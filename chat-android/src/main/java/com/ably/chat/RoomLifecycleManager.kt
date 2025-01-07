@@ -1,6 +1,8 @@
 package com.ably.chat
 
+import io.ably.lib.realtime.ChannelEvent
 import io.ably.lib.realtime.ChannelState
+import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import kotlin.coroutines.resume
@@ -63,6 +65,11 @@ internal abstract class ContributesToRoomLifecycleImpl(logger: Logger) : Contrib
     }
 }
 
+internal data class ContributorStateChange(
+    val contributor: ContributesToRoomLifecycle,
+    val stateChange: ChannelStateListener.ChannelStateChange,
+)
+
 /**
  * The order of precedence for lifecycle operations, passed to PriorityQueueExecutor which allows
  * us to ensure that internal operations take precedence over user-driven operations.
@@ -118,6 +125,7 @@ internal class RoomLifecycleManager(
     private val statusLifecycle: DefaultRoomLifecycle,
     private val contributors: List<ContributesToRoomLifecycle>,
     roomLogger: Logger,
+    transientDetachTimeout: Long = 5000,
 ) {
     private val logger = roomLogger.withContext(
         "RoomLifecycleManager",
@@ -130,6 +138,13 @@ internal class RoomLifecycleManager(
      * Spec: CHA-RL7
      */
     private val atomicCoroutineScope = AtomicCoroutineScope(roomScope)
+
+    /**
+     * contributorStateChangeEmitter is responsible for emitting and subscribing to ContributorStateChange events.
+     * Events are emitted by room contributors/features using the underlying channel.
+     * All emitted events are processed sequentially under the specified roomScope.
+     */
+    private val contributorStateChangeMonitor = ScopedEmitter<ContributorStateChange>(roomScope)
 
     /**
      * This flag indicates whether some sort of controlled operation is in progress (e.g. attaching, detaching, releasing).
@@ -160,7 +175,39 @@ internal class RoomLifecycleManager(
     private val retryDurationInMs: Long = 250
 
     init {
-        // TODO - [CHA-RL4] set up room monitoring here
+        // CHA-RL4
+        setupContributorListeners(transientDetachTimeout)
+    }
+
+    /**
+     * Sets up listeners for each contributor to the room status.
+     * Spec : CHA-RL4
+     * @param transientDetachTimeout The number of milliseconds to consider a detach to be "transient"
+     */
+    @Suppress("UnusedParameter")
+    private fun setupContributorListeners(transientDetachTimeout: Long) {
+        contributorStateChangeMonitor.on { change ->
+            if (change.stateChange.event == ChannelEvent.update) {
+                TODO("Do some stuff when update event received")
+            }
+            when (change.stateChange.event) {
+                ChannelEvent.initialized -> TODO()
+                ChannelEvent.attaching -> TODO()
+                ChannelEvent.attached -> TODO()
+                ChannelEvent.detaching -> TODO()
+                ChannelEvent.detached -> TODO()
+                ChannelEvent.failed -> TODO()
+                ChannelEvent.suspended -> TODO()
+                else -> {
+                }
+            }
+        }
+        // Set up channel state change listener for each contributor
+        for (contributor in contributors) {
+            contributor.channel.on {
+                contributorStateChangeMonitor.emit(ContributorStateChange(contributor, it))
+            }
+        }
     }
 
     /**
