@@ -125,7 +125,6 @@ internal class RoomLifecycleManager(
     private val statusLifecycle: DefaultRoomLifecycle,
     private val contributors: List<ContributesToRoomLifecycle>,
     roomLogger: Logger,
-    transientDetachTimeout: Long = 5000,
 ) {
     private val logger = roomLogger.withContext(
         "RoomLifecycleManager",
@@ -176,31 +175,102 @@ internal class RoomLifecycleManager(
     private val retryDurationInMs: Long = 250
 
     init {
-        // CHA-RL4
-        setupContributorListeners(transientDetachTimeout)
+        setupContributorListeners() // CHA-RL4
     }
 
     /**
      * Sets up listeners for each contributor to the room status.
      * Spec : CHA-RL4
-     * @param transientDetachTimeout The number of milliseconds to consider a detach to be "transient"
      */
-    @Suppress("UnusedParameter")
-    private fun setupContributorListeners(transientDetachTimeout: Long) {
+    @Suppress("CognitiveComplexMethod", "LongMethod", "CyclomaticComplexMethod")
+    private fun setupContributorListeners() {
         contributorStateChangeMonitor.on { change ->
-            if (change.stateChange.event == ChannelEvent.update) {
-                TODO("Do some stuff when update event received")
-            }
-            when (change.stateChange.event) {
-                ChannelEvent.initialized -> TODO()
-                ChannelEvent.attaching -> TODO()
-                ChannelEvent.attached -> TODO()
-                ChannelEvent.detaching -> TODO()
-                ChannelEvent.detached -> TODO()
-                ChannelEvent.failed -> TODO()
-                ChannelEvent.suspended -> TODO()
-                else -> {
+            val contributor = change.contributor
+            val stateChangeEvent = change.stateChange.event
+            val stateChangeReason = change.stateChange.reason
+            val stateResumed = change.stateChange.resumed
+
+            logger.debug(
+                "setupContributorListeners(); feature: ${contributor.featureName}, event: ${stateChangeEvent.toString().uppercase()}",
+            )
+
+            if (stateChangeEvent == ChannelEvent.attached || stateChangeEvent == ChannelEvent.update) {
+                // If all features attached and room is not attached, transition room to ATTACHED state
+                if (!operationInProgress &&
+                    statusLifecycle.status !== RoomStatus.Attached &&
+                    contributors.all { it.channel.state == ChannelState.attached }
+                ) {
+                    logger.debug("setupContributorListeners(); all features are attached, transitioning room to ATTACHED state")
+                    statusLifecycle.setStatus(RoomStatus.Attached)
                 }
+
+                logger.debug("setupContributorListeners();  event: ${stateChangeEvent.toString().uppercase()}")
+                if (stateResumed) {
+                    logger.debug("setupContributorListeners(); resume is true, so ignore")
+                    return@on
+                }
+                if (!firstAttachesCompleted.containsKey(contributor)) { // If this is our first attach, we should ignore the event
+                    logger.debug("setupContributorListeners(); first attach so ignore the event")
+                    return@on
+                }
+                if (operationInProgress) {
+                    if (pendingDiscontinuityEvents.containsKey(contributor)) {
+                        logger.debug("setupContributorListeners(); operationInProgress, found existing discontinuity event, so ignore")
+                        return@on
+                    }
+                    logger.warn(
+                        "setupContributorListeners(); operation in progress, " +
+                            "queuing pending update event for feature: ${contributor.featureName}",
+                    )
+                    pendingDiscontinuityEvents[contributor] = stateChangeReason
+                    return@on
+                }
+                // If we're not ignoring contributor detachments, we should process the event
+                logger.debug("setupContributorListeners(); processing discontinuity event for feature: ${contributor.featureName}")
+                contributor.discontinuityDetected(stateChangeReason)
+                return@on
+            }
+
+            // If we're in the middle of an operation, we should ignore other events
+            if (operationInProgress) {
+                logger.debug("setupContributorListeners(); operationInProgress, skip events if not ATTACH and UPDATE")
+                return@on
+            }
+
+            when (stateChangeEvent) {
+                ChannelEvent.attaching -> {
+                    logger.debug("setupContributorListeners(); feature: ${contributor.featureName}, detected channel attaching")
+                    if (statusLifecycle.status !== RoomStatus.Attaching) {
+                        statusLifecycle.setStatus(RoomStatus.Attaching, stateChangeReason)
+                        logger.debug("setupContributorListeners(); changing room status to ATTACHING")
+                    }
+                    return@on
+                }
+                ChannelEvent.failed -> {
+                    logger.warn("setupContributorListeners(); feature: ${contributor.featureName}, detected channel failure")
+                    if (statusLifecycle.status !== RoomStatus.Failed) {
+                        statusLifecycle.setStatus(RoomStatus.Failed, stateChangeReason)
+                        logger.debug("setupContributorListeners(); changing room status to FAILED, winding down all channels")
+                        atomicCoroutineScope.async(LifecycleOperationPrecedence.Internal.priority) {
+                            runDownChannelsOnFailedAttach()
+                        }
+                    }
+                    return@on
+                }
+                ChannelEvent.suspended -> {
+                    logger.warn("setupContributorListeners(); feature: ${contributor.featureName}, detected channel suspension")
+                    if (statusLifecycle.status !== RoomStatus.Suspended) {
+                        statusLifecycle.setStatus(RoomStatus.Suspended, stateChangeReason)
+                        logger.debug("setupContributorListeners(); changed room status to SUSPENDED, retrying attach")
+                        atomicCoroutineScope.async(LifecycleOperationPrecedence.Internal.priority) {
+                            doRetry(contributor)
+                        }
+                    }
+                    return@on
+                }
+                else -> logger.warn(
+                    "setupContributorListeners(); no op for event: $stateChangeEvent received for feature: ${contributor.featureName}",
+                )
             }
         }
         // Set up channel state change listener for each contributor
@@ -730,6 +800,7 @@ internal class RoomLifecycleManager(
         contributors.forEach {
             it.release()
         }
+        contributorStateChangeMonitor.offAll()
         logger.debug("doRelease(); underlying channels released from core SDK")
         statusLifecycle.setStatus(RoomStatus.Released) // CHA-RL3g
         logger.debug("doRelease(); transitioned room to RELEASED state")
