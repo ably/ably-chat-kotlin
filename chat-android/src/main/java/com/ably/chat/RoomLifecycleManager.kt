@@ -152,7 +152,8 @@ internal class RoomLifecycleManager(
      * It is used to prevent the room status from being changed by individual channel state changes and ignore
      * underlying channel events until we reach a consistent state.
      */
-    private var operationInProgress = false
+    private val operationInProgress: Boolean
+        get() = !atomicCoroutineScope.finishedProcessing
 
     /**
      * A map of pending discontinuity events.
@@ -383,7 +384,6 @@ internal class RoomLifecycleManager(
 
             // At this point, we force the room status to be attaching
             clearAllTransientDetachTimeouts()
-            operationInProgress = true
             statusLifecycle.setStatus(RoomStatus.Attaching) // CHA-RL1e
             logger.debug("attach(); transitioned room to ATTACHING state")
 
@@ -475,7 +475,6 @@ internal class RoomLifecycleManager(
         logger.debug("doAttach(); attach success for all features: ${contributors.map { it.featureName }.joinWithBrackets}")
         this.statusLifecycle.setStatus(attachResult)
         logger.debug("doAttach(); transitioned room to ATTACHED state")
-        this.operationInProgress = false
 
         // Iterate the pending discontinuity events and trigger them
         for ((contributor, error) in pendingDiscontinuityEvents) {
@@ -598,7 +597,6 @@ internal class RoomLifecycleManager(
             }
 
             // CHA-RL2e - We force the room status to be detaching
-            operationInProgress = true
             clearAllTransientDetachTimeouts()
             statusLifecycle.setStatus(RoomStatus.Detaching)
             logger.debug("detach(); transitioned room to DETACHING state")
@@ -670,7 +668,6 @@ internal class RoomLifecycleManager(
             // CHA-RL3l - We force the room status to be releasing.
             // Any transient disconnect timeouts shall be cleared.
             clearAllTransientDetachTimeouts()
-            operationInProgress = true
             statusLifecycle.setStatus(RoomStatus.Releasing)
             logger.debug("release(); transitioned room to RELEASING state")
 
