@@ -195,7 +195,7 @@ internal class RoomLifecycleManager(
             )
 
             if (stateChangeEvent == ChannelEvent.attached || stateChangeEvent == ChannelEvent.update) {
-                // If all features attached and room is not attached, transition room to ATTACHED state
+                // CHA-RL4b8 - If all features attached and room is not attached, transition room to ATTACHED state
                 if (!operationInProgress &&
                     statusLifecycle.status !== RoomStatus.Attached &&
                     contributors.all { it.channel.state == ChannelState.attached }
@@ -205,14 +205,17 @@ internal class RoomLifecycleManager(
                 }
 
                 logger.debug("setupContributorListeners();  event: ${stateChangeEvent.toString().uppercase()}")
+                // CHA-RL4a1 - If we're in a resumed state, we should ignore the event
                 if (stateResumed) {
                     logger.debug("setupContributorListeners(); resume is true, so ignore")
                     return@on
                 }
-                if (!firstAttachesCompleted.containsKey(contributor)) { // If this is our first attach, we should ignore the event
+                // CHA-RL4a2- If this is our first attach, we should ignore the event
+                if (!firstAttachesCompleted.containsKey(contributor)) {
                     logger.debug("setupContributorListeners(); first attach so ignore the event")
                     return@on
                 }
+                // CHA-RL4a3, CHA-RL4b1 - If operation in progress, we should queue the event
                 if (operationInProgress) {
                     if (pendingDiscontinuityEvents.containsKey(contributor)) {
                         logger.debug("setupContributorListeners(); operationInProgress, found existing discontinuity event, so ignore")
@@ -225,20 +228,20 @@ internal class RoomLifecycleManager(
                     pendingDiscontinuityEvents[contributor] = stateChangeReason
                     return@on
                 }
-                // If we're not ignoring contributor detachments, we should process the event
+                // CHA-RL4a4- If operation not in progress, we should emit discontinuity event
                 logger.debug("setupContributorListeners(); processing discontinuity event for feature: ${contributor.featureName}")
                 contributor.discontinuityDetected(stateChangeReason)
                 return@on
             }
 
-            // If we're in the middle of an operation, we should ignore other events
+            // CHA-RL4b - If we're in the middle of an operation, we should ignore other events
             if (operationInProgress) {
                 logger.debug("setupContributorListeners(); operationInProgress, skip events if not ATTACH and UPDATE")
                 return@on
             }
 
             when (stateChangeEvent) {
-                ChannelEvent.attaching -> {
+                ChannelEvent.attaching -> { // CHA-RL4b7
                     logger.debug("setupContributorListeners(); feature: ${contributor.featureName}, detected channel attaching")
                     if (statusLifecycle.status !== RoomStatus.Attaching) {
                         statusLifecycle.setStatus(RoomStatus.Attaching, stateChangeReason)
@@ -246,7 +249,7 @@ internal class RoomLifecycleManager(
                     }
                     return@on
                 }
-                ChannelEvent.failed -> {
+                ChannelEvent.failed -> { // CHA-RL4b5
                     logger.warn("setupContributorListeners(); feature: ${contributor.featureName}, detected channel failure")
                     if (statusLifecycle.status !== RoomStatus.Failed) {
                         statusLifecycle.setStatus(RoomStatus.Failed, stateChangeReason)
@@ -257,7 +260,7 @@ internal class RoomLifecycleManager(
                     }
                     return@on
                 }
-                ChannelEvent.suspended -> {
+                ChannelEvent.suspended -> { // CHA-RL4b9
                     logger.warn("setupContributorListeners(); feature: ${contributor.featureName}, detected channel suspension")
                     if (statusLifecycle.status !== RoomStatus.Suspended) {
                         statusLifecycle.setStatus(RoomStatus.Suspended, stateChangeReason)
