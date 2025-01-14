@@ -25,8 +25,6 @@ object PubSubMessageNames {
 }
 
 internal val messageActionNameToAction = mapOf(
-    /** Represents a message with no action set. */
-    "message.unset" to MessageAction.MESSAGE_UNSET,
 
     /** Action applied to a new message. */
     "message.create" to MessageAction.MESSAGE_CREATE,
@@ -37,14 +35,11 @@ internal val messageActionNameToAction = mapOf(
     /** Action applied to a deleted message. */
     "message.delete" to MessageAction.MESSAGE_DELETE,
 
-    /** Action applied to a new annotation. */
-    "annotation.create" to MessageAction.ANNOTATION_CREATE,
-
-    /** Action applied to a deleted annotation. */
-    "annotation.delete" to MessageAction.ANNOTATION_DELETE,
-
     /** Action applied to a meta occupancy message. */
     "meta.occupancy" to MessageAction.META_OCCUPANCY,
+
+    /** Action applied to a message summary. */
+    "message.summary" to MessageAction.MESSAGE_SUMMARY,
 )
 
 /**
