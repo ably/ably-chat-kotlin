@@ -46,7 +46,7 @@ android {
 buildConfig {
     packageName("com.ably.chat")
     useKotlinOutput { internalVisibility = true }
-    buildConfigField("APP_VERSION", provider { "\"${version}\"" })
+    buildConfigField("APP_VERSION", provider { version.toString() })
 }
 
 dependencies {
