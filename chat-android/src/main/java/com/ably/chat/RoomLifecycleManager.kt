@@ -1,6 +1,8 @@
 package com.ably.chat
 
+import io.ably.lib.realtime.ChannelEvent
 import io.ably.lib.realtime.ChannelState
+import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import kotlin.coroutines.resume
@@ -62,6 +64,11 @@ internal abstract class ContributesToRoomLifecycleImpl(logger: Logger) : Contrib
         discontinuityEmitter.emit("discontinuity", reason)
     }
 }
+
+internal data class ContributorStateChange(
+    val contributor: ContributesToRoomLifecycle,
+    val stateChange: ChannelStateListener.ChannelStateChange,
+)
 
 /**
  * The order of precedence for lifecycle operations, passed to PriorityQueueExecutor which allows
@@ -132,12 +139,20 @@ internal class RoomLifecycleManager(
     private val atomicCoroutineScope = AtomicCoroutineScope(roomScope)
 
     /**
+     * contributorStateChangeEmitter is responsible for emitting and subscribing to ContributorStateChange events.
+     * Events are emitted by room contributors/features using the underlying channel.
+     * All emitted events are processed sequentially under the specified roomScope.
+     */
+    private val contributorStateChangeMonitor = ScopedEmitter<ContributorStateChange>(roomScope)
+
+    /**
      * This flag indicates whether some sort of controlled operation is in progress (e.g. attaching, detaching, releasing).
      *
      * It is used to prevent the room status from being changed by individual channel state changes and ignore
      * underlying channel events until we reach a consistent state.
      */
-    private var operationInProgress = false
+    private val operationInProgress: Boolean
+        get() = !atomicCoroutineScope.finishedProcessing
 
     /**
      * A map of pending discontinuity events.
@@ -160,7 +175,113 @@ internal class RoomLifecycleManager(
     private val retryDurationInMs: Long = 250
 
     init {
-        // TODO - [CHA-RL4] set up room monitoring here
+        setupContributorListeners() // CHA-RL4
+    }
+
+    /**
+     * Sets up listeners for each contributor to the room status.
+     * Spec : CHA-RL4
+     */
+    @Suppress("CognitiveComplexMethod", "LongMethod", "CyclomaticComplexMethod")
+    private fun setupContributorListeners() {
+        contributorStateChangeMonitor.on { change ->
+            val contributor = change.contributor
+            val stateChangeEvent = change.stateChange.event
+            val stateChangeReason = change.stateChange.reason
+            val stateResumed = change.stateChange.resumed
+
+            logger.debug(
+                "setupContributorListeners(); feature: ${contributor.featureName}, event: ${stateChangeEvent.toString().uppercase()}",
+            )
+
+            if (stateChangeEvent == ChannelEvent.attached || stateChangeEvent == ChannelEvent.update) {
+                // CHA-RL4b8 - If all features attached and room is not attached, transition room to ATTACHED state
+                if (!operationInProgress &&
+                    statusLifecycle.status !== RoomStatus.Attached &&
+                    contributors.all { it.channel.state == ChannelState.attached }
+                ) {
+                    logger.debug("setupContributorListeners(); all features are attached, transitioning room to ATTACHED state")
+                    statusLifecycle.setStatus(RoomStatus.Attached)
+                }
+
+                logger.debug("setupContributorListeners();  event: ${stateChangeEvent.toString().uppercase()}")
+                // CHA-RL4a1 - If we're in a resumed state, we should ignore the event
+                if (stateResumed) {
+                    logger.debug("setupContributorListeners(); resume is true, so ignore")
+                    return@on
+                }
+                // CHA-RL4a2- If this is our first attach, we should ignore the event
+                if (!firstAttachesCompleted.containsKey(contributor)) {
+                    logger.debug("setupContributorListeners(); first attach so ignore the event")
+                    return@on
+                }
+                // CHA-RL4a3, CHA-RL4b1 - If operation in progress, we should queue the event
+                if (operationInProgress) {
+                    if (pendingDiscontinuityEvents.containsKey(contributor)) {
+                        logger.debug("setupContributorListeners(); operationInProgress, found existing discontinuity event, so ignore")
+                        return@on
+                    }
+                    logger.warn(
+                        "setupContributorListeners(); operation in progress, " +
+                            "queuing pending update event for feature: ${contributor.featureName}",
+                    )
+                    pendingDiscontinuityEvents[contributor] = stateChangeReason
+                    return@on
+                }
+                // CHA-RL4a4- If operation not in progress, we should emit discontinuity event
+                logger.debug("setupContributorListeners(); processing discontinuity event for feature: ${contributor.featureName}")
+                contributor.discontinuityDetected(stateChangeReason)
+                return@on
+            }
+
+            // CHA-RL4b - If we're in the middle of an operation, we should ignore other events
+            if (operationInProgress) {
+                logger.debug("setupContributorListeners(); operationInProgress, skip events if not ATTACH and UPDATE")
+                return@on
+            }
+
+            when (stateChangeEvent) {
+                ChannelEvent.attaching -> { // CHA-RL4b7
+                    logger.debug("setupContributorListeners(); feature: ${contributor.featureName}, detected channel attaching")
+                    if (statusLifecycle.status !== RoomStatus.Attaching) {
+                        statusLifecycle.setStatus(RoomStatus.Attaching, stateChangeReason)
+                        logger.debug("setupContributorListeners(); changing room status to ATTACHING")
+                    }
+                    return@on
+                }
+                ChannelEvent.failed -> { // CHA-RL4b5
+                    logger.warn("setupContributorListeners(); feature: ${contributor.featureName}, detected channel failure")
+                    if (statusLifecycle.status !== RoomStatus.Failed) {
+                        statusLifecycle.setStatus(RoomStatus.Failed, stateChangeReason)
+                        logger.debug("setupContributorListeners(); changing room status to FAILED, winding down all channels")
+                        atomicCoroutineScope.async(LifecycleOperationPrecedence.Internal.priority) {
+                            runDownChannelsOnFailedAttach()
+                        }
+                    }
+                    return@on
+                }
+                ChannelEvent.suspended -> { // CHA-RL4b9
+                    logger.warn("setupContributorListeners(); feature: ${contributor.featureName}, detected channel suspension")
+                    if (statusLifecycle.status !== RoomStatus.Suspended) {
+                        statusLifecycle.setStatus(RoomStatus.Suspended, stateChangeReason)
+                        logger.debug("setupContributorListeners(); changed room status to SUSPENDED, retrying attach")
+                        atomicCoroutineScope.async(LifecycleOperationPrecedence.Internal.priority) {
+                            doRetry(contributor)
+                        }
+                    }
+                    return@on
+                }
+                else -> logger.warn(
+                    "setupContributorListeners(); no op for event: $stateChangeEvent received for feature: ${contributor.featureName}",
+                )
+            }
+        }
+        // Set up channel state change listener for each contributor
+        for (contributor in contributors) {
+            contributor.channel.on {
+                contributorStateChangeMonitor.emit(ContributorStateChange(contributor, it))
+            }
+        }
     }
 
     /**
@@ -336,7 +457,6 @@ internal class RoomLifecycleManager(
 
             // At this point, we force the room status to be attaching
             clearAllTransientDetachTimeouts()
-            operationInProgress = true
             statusLifecycle.setStatus(RoomStatus.Attaching) // CHA-RL1e
             logger.debug("attach(); transitioned room to ATTACHING state")
 
@@ -428,7 +548,6 @@ internal class RoomLifecycleManager(
         logger.debug("doAttach(); attach success for all features: ${contributors.map { it.featureName }.joinWithBrackets}")
         this.statusLifecycle.setStatus(attachResult)
         logger.debug("doAttach(); transitioned room to ATTACHED state")
-        this.operationInProgress = false
 
         // Iterate the pending discontinuity events and trigger them
         for ((contributor, error) in pendingDiscontinuityEvents) {
@@ -551,7 +670,6 @@ internal class RoomLifecycleManager(
             }
 
             // CHA-RL2e - We force the room status to be detaching
-            operationInProgress = true
             clearAllTransientDetachTimeouts()
             statusLifecycle.setStatus(RoomStatus.Detaching)
             logger.debug("detach(); transitioned room to DETACHING state")
@@ -623,7 +741,6 @@ internal class RoomLifecycleManager(
             // CHA-RL3l - We force the room status to be releasing.
             // Any transient disconnect timeouts shall be cleared.
             clearAllTransientDetachTimeouts()
-            operationInProgress = true
             statusLifecycle.setStatus(RoomStatus.Releasing)
             logger.debug("release(); transitioned room to RELEASING state")
 
@@ -686,6 +803,7 @@ internal class RoomLifecycleManager(
         contributors.forEach {
             it.release()
         }
+        contributorStateChangeMonitor.offAll()
         logger.debug("doRelease(); underlying channels released from core SDK")
         statusLifecycle.setStatus(RoomStatus.Released) // CHA-RL3g
         logger.debug("doRelease(); transitioned room to RELEASED state")
