@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 
 /**
  * Metadata is a map of extra information that can be attached to chat
@@ -15,4 +15,4 @@ import com.google.gson.JsonElement
  * The key `ably-chat` is reserved and cannot be used. Ably may populate
  * this with different values in the future.
  */
-typealias Metadata = JsonElement
+typealias Metadata = JsonObject

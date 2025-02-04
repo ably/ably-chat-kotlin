@@ -45,7 +45,7 @@ internal class ChatApi(
                     roomId = it.requireString("roomId"),
                     text = it.requireString("text"),
                     createdAt = it.requireLong("createdAt"),
-                    metadata = it.asJsonObject.get("metadata"),
+                    metadata = it.asJsonObject.getAsJsonObject("metadata"),
                     headers = it.asJsonObject.get("headers")?.toMap() ?: mapOf(),
                     action = action,
                 )

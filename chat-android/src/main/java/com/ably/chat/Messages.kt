@@ -340,6 +340,6 @@ private fun parsePubSubMessageData(data: Any): PubSubMessageData {
     }
     return PubSubMessageData(
         text = data.requireString("text"),
-        metadata = data.get("metadata"),
+        metadata = data.getAsJsonObject("metadata"),
     )
 }
