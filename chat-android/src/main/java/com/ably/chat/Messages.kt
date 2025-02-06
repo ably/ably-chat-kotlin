@@ -173,6 +173,38 @@ internal data class SendMessageParams(
     val headers: MessageHeaders? = null,
 )
 
+/**
+ * Params for updating a message. It accepts all parameters that sending a
+ * message accepts. Also accepts `description` and `metadata` for the update action.
+ *
+ * Note that updating a message creates a new message with original serial and a new version.
+ */
+internal data class UpdateMessageParams(
+    val message: SendMessageParams,
+    /**
+     * Optional description for the message action.
+     */
+    val description: String?,
+    /**
+     * Optional metadata that will be added to the update action. Defaults to empty.
+     */
+    val metadata: OperationMetadata?
+)
+
+/**
+ * Parameters for deleting a message.
+ */
+internal data class DeleteMessageParams(
+    /**
+     * Optional description for the message action.
+     */
+    val description: String?,
+    /**
+     * Optional metadata that will be added to the delete action. Defaults to empty.
+     */
+    val metadata: OperationMetadata?
+)
+
 interface MessagesSubscription : Subscription {
     /**
      * (CHA-M5j)
