@@ -71,6 +71,49 @@ interface Messages : EmitsDiscontinuities {
     suspend fun send(text: String, metadata: MessageMetadata? = null, headers: MessageHeaders? = null): Message
 
     /**
+     * Update a message in the chat room.
+     *
+     * This method uses the Ably Chat API REST endpoint for updating messages.
+     * It creates a new message with the same serial and a new version.
+     * The original message is not modified.
+     *
+     * @param message The message to update.
+     * @param text The new text of the message.
+     * @param description Optional description for the update action.
+     * @param opMetadata Optional metadata for the update action.
+     * @param metadata Optional metadata of the message.
+     * @param headers Optional headers of the message.
+     * @returns updated message.
+     */
+    suspend fun update(
+        message: Message,
+        text: String,
+        description: String? = null,
+        opMetadata: OperationMetadata? = null,
+        metadata: MessageMetadata? = null,
+        headers: MessageHeaders? = null,
+    ): Message
+
+    /**
+     * Delete a message in the chat room.
+     *
+     * This method uses the Ably Chat API REST endpoint for deleting messages.
+     * It performs a `soft` delete, meaning the message is marked as deleted.
+     *
+     * Should you wish to restore a deleted message, and providing you have the appropriate permissions,
+     * you can simply send an update to the original message.
+     * Note: This is subject to change in future versions, whereby a new permissions model will be introduced
+     * and a deleted message may not be restorable in this way.
+     *
+     * @returns when the message is deleted.
+     * @param message - The message to delete.
+     * @param description - Optional description for the delete action.
+     * @param opMetadata - Optional metadata for the delete action.
+     * @return A promise that resolves to the deleted message.
+     */
+    suspend fun delete(message: Message, description: String? = null, opMetadata: OperationMetadata? = null): Message
+
+    /**
      * An interface for listening to new messaging event
      */
     fun interface Listener {
@@ -188,7 +231,7 @@ internal data class UpdateMessageParams(
     /**
      * Optional metadata that will be added to the update action. Defaults to empty.
      */
-    val metadata: OperationMetadata?
+    val metadata: OperationMetadata?,
 )
 
 /**
@@ -202,7 +245,7 @@ internal data class DeleteMessageParams(
     /**
      * Optional metadata that will be added to the delete action. Defaults to empty.
      */
-    val metadata: OperationMetadata?
+    val metadata: OperationMetadata?,
 )
 
 interface MessagesSubscription : Subscription {
@@ -343,6 +386,21 @@ internal class DefaultMessages(
         roomId,
         SendMessageParams(text, metadata, headers),
     )
+
+    override suspend fun update(
+        message: Message,
+        text: String,
+        description: String?,
+        opMetadata: OperationMetadata?,
+        metadata: MessageMetadata?,
+        headers: MessageHeaders?,
+    ): Message {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun delete(message: Message, description: String?, opMetadata: OperationMetadata?): Message {
+        TODO("Not yet implemented")
+    }
 
     private fun requireChannelSerial(): String {
         return channel.properties.channelSerial
