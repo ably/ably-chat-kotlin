@@ -76,6 +76,8 @@ class MessagesTest {
                 metadata = JsonObject().apply { addProperty("meta", "data") },
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
+                version = "abcdefghij@1672531200000-123",
+                timestamp = 1_000_000L,
             ),
             sentMessage,
         )
@@ -120,6 +122,7 @@ class MessagesTest {
                     },
                 )
                 action = MessageAction.MESSAGE_CREATE
+                version = "abcdefghij@1672531200000-123"
             },
         )
 
@@ -136,6 +139,8 @@ class MessagesTest {
                 metadata = null,
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
+                version = "abcdefghij@1672531200000-123",
+                timestamp = 1000L,
             ),
             messageEvent.message,
         )
@@ -276,4 +281,5 @@ private fun buildDummyPubSubMessage() = PubSubMessage().apply {
         JsonObject().apply {},
     )
     action = MessageAction.MESSAGE_CREATE
+    version = "abcdefghij@1672531200000-123"
 }

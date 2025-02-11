@@ -1,5 +1,7 @@
 package com.ably.chat
 
+import com.google.gson.JsonObject
+import io.ably.lib.types.Message
 import io.ably.lib.types.MessageAction
 
 /**
@@ -74,4 +76,41 @@ data class Message(
      * The latest action of the message. This can be used to determine if the message was created, updated, or deleted.
      */
     val action: MessageAction,
+
+    /**
+     * A unique identifier for the latest version of this message.
+     */
+    val version: String,
+
+    /**
+     * The timestamp at which this version was updated, deleted, or created.
+     */
+    val timestamp: Long,
+
+    /**
+     * The details of the operation that modified the message. This is only set for update and delete actions. It contains
+     * information about the operation: the clientId of the user who performed the operation, a description, and metadata.
+     */
+    val operation: Message.Operation? = null,
 )
+
+fun toMessageOperation(jsonObject: JsonObject?): Message.Operation? {
+    if (jsonObject == null) {
+        return null
+    }
+    val operation = Message.Operation()
+    if (jsonObject.has("clientId")) {
+        operation.clientId = jsonObject.get("clientId").asString
+    }
+    if (jsonObject.has("description")) {
+        operation.description = jsonObject.get("description").asString
+    }
+    if (jsonObject.has("metadata")) {
+        val metadataObject = jsonObject.getAsJsonObject("metadata")
+        operation.metadata = mutableMapOf()
+        for ((key, value) in metadataObject.entrySet()) {
+            operation.metadata[key] = value.asString
+        }
+    }
+    return operation
+}

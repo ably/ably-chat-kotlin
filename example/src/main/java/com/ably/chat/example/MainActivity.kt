@@ -321,6 +321,8 @@ fun MessageBubblePreview() {
                 metadata = null,
                 headers = mapOf(),
                 action = MessageAction.MESSAGE_CREATE,
+                version = "fake",
+                timestamp = System.currentTimeMillis(),
             ),
         )
     }

@@ -33,6 +33,8 @@ class ChatApiTest {
                     addProperty("text", "hello")
                     addProperty("createdAt", 1_000_000)
                     addProperty("action", "message.create")
+                    addProperty("version", "timeserial")
+                    addProperty("timestamp", 1_000_000)
                 },
             ),
         )
@@ -50,6 +52,8 @@ class ChatApiTest {
                     metadata = null,
                     headers = mapOf(),
                     action = MessageAction.MESSAGE_CREATE,
+                    version = "timeserial",
+                    timestamp = 1_000_000L,
                 ),
             ),
             messages.items,
@@ -104,6 +108,8 @@ class ChatApiTest {
                 headers = mapOf(),
                 metadata = null,
                 action = MessageAction.MESSAGE_CREATE,
+                version = "timeserial",
+                timestamp = 1_000_000L,
             ),
             message,
         )

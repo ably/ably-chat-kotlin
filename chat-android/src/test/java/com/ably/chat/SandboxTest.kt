@@ -1,9 +1,11 @@
 package com.ably.chat
 
+import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
 import org.junit.Test
 
@@ -156,8 +158,10 @@ class SandboxTest {
         val room = chatClient.rooms.get(roomId)
 
         room.attach()
+        val metadata = MessageMetadata()
+        metadata.addProperty("foo", "bar")
 
-        room.messages.send("hello")
+        room.messages.send("hello", metadata)
 
         lateinit var messages: List<Message>
 
@@ -165,10 +169,17 @@ class SandboxTest {
             messages = room.messages.get().items
             messages.isNotEmpty()
         }
-
         assertEquals(1, messages.size)
-        assertEquals("hello", messages.first().text)
-        assertEquals("sandbox-client", messages.first().clientId)
+        val message = messages.first()
+
+        assertEquals(roomId, message.roomId)
+        assertEquals(MessageAction.MESSAGE_CREATE, message.action)
+        assertEquals("hello", message.text)
+        assertEquals("sandbox-client", message.clientId)
+        assertTrue(message.serial.isNotEmpty())
+        assertEquals(message.serial, message.version)
+        assertEquals(message.createdAt, message.timestamp)
+        assertEquals(metadata.toString(), message.metadata.toString())
     }
 
     companion object {

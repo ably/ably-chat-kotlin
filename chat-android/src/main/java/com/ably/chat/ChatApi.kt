@@ -35,19 +35,22 @@ internal class ChatApi(
             method = "GET",
             params = params,
         ) {
-            val latestActionName = it.requireJsonObject().get("action")?.asString
-            val latestAction = latestActionName?.let { name -> messageActionNameToAction[name] }
-
+            val messageJsonObject = it.requireJsonObject()
+            val latestAction = messageJsonObject.get("action")?.asString?.let { name -> messageActionNameToAction[name] }
+            val operation = messageJsonObject.getAsJsonObject("operation")
             latestAction?.let { action ->
                 Message(
-                    serial = it.requireString("serial"),
-                    clientId = it.requireString("clientId"),
-                    roomId = it.requireString("roomId"),
-                    text = it.requireString("text"),
-                    createdAt = it.requireLong("createdAt"),
-                    metadata = it.asJsonObject.getAsJsonObject("metadata"),
-                    headers = it.asJsonObject.get("headers")?.toMap() ?: mapOf(),
+                    serial = messageJsonObject.requireString("serial"),
+                    clientId = messageJsonObject.requireString("clientId"),
+                    roomId = messageJsonObject.requireString("roomId"),
+                    text = messageJsonObject.requireString("text"),
+                    createdAt = messageJsonObject.requireLong("createdAt"),
+                    metadata = messageJsonObject.getAsJsonObject("metadata"),
+                    headers = messageJsonObject.get("headers")?.toMap() ?: mapOf(),
                     action = action,
+                    version = messageJsonObject.requireString("version"),
+                    timestamp = messageJsonObject.requireLong("timestamp"),
+                    operation = toMessageOperation(operation),
                 )
             }
         }
@@ -78,16 +81,20 @@ internal class ChatApi(
             "POST",
             body,
         )?.let {
+            val serial = it.requireString("serial")
+            val createdAt = it.requireLong("createdAt")
             // (CHA-M3a)
             Message(
-                serial = it.requireString("serial"),
+                serial = serial,
                 clientId = clientId,
                 roomId = roomId,
                 text = params.text,
-                createdAt = it.requireLong("createdAt"),
+                createdAt = createdAt,
                 metadata = params.metadata,
                 headers = params.headers ?: mapOf(),
                 action = MessageAction.MESSAGE_CREATE,
+                version = serial,
+                timestamp = createdAt,
             )
         } ?: throw AblyException.fromErrorInfo(ErrorInfo("Send message endpoint returned empty value", HttpStatusCode.InternalServerError))
     }

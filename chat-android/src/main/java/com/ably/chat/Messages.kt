@@ -351,6 +351,9 @@ internal class DefaultMessages(
                 metadata = data.metadata,
                 headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap() ?: mapOf(),
                 action = MessageAction.MESSAGE_CREATE,
+                version = pubSubMessage.version,
+                timestamp = pubSubMessage.timestamp,
+                operation = pubSubMessage.operation,
             )
             listener.onEvent(MessageEvent(type = MessageEventType.Created, message = chatMessage))
         }
