@@ -114,3 +114,11 @@ fun toMessageOperation(jsonObject: JsonObject?): Message.Operation? {
     }
     return operation
 }
+
+fun toMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
+    val operation = Message.Operation()
+    operation.clientId = clientId
+    operation.description = description
+    operation.metadata = metadata
+    return operation
+}

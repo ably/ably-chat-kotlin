@@ -1,5 +1,3 @@
-@file:Suppress("StringLiteralDuplication", "NotImplementedDeclaration")
-
 package com.ably.chat
 
 import io.ably.lib.types.ErrorInfo

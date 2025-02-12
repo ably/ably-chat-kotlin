@@ -1,4 +1,4 @@
-@file:Suppress("StringLiteralDuplication", "NotImplementedDeclaration")
+@file:Suppress("StringLiteralDuplication")
 
 package com.ably.chat
 
@@ -7,7 +7,6 @@ import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
-import io.ably.lib.types.MessageAction
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
@@ -216,6 +215,16 @@ internal data class SendMessageParams(
     val headers: MessageHeaders? = null,
 )
 
+internal fun SendMessageParams.toJsonObject(): JsonObject {
+    return JsonObject().apply {
+        addProperty("text", text)
+        // (CHA-M3b)
+        headers?.let { add("headers", it.toJson()) }
+        // (CHA-M3b)
+        metadata?.let { add("metadata", it) }
+    }
+}
+
 /**
  * Params for updating a message. It accepts all parameters that sending a
  * message accepts. Also accepts `description` and `metadata` for the update action.
@@ -234,6 +243,14 @@ internal data class UpdateMessageParams(
     val metadata: OperationMetadata?,
 )
 
+internal fun UpdateMessageParams.toJsonObject(): JsonObject {
+    return JsonObject().apply {
+        add("message", message.toJsonObject())
+        description?.let { addProperty("description", it) }
+        metadata?.let { add("metadata", it.toJson()) }
+    }
+}
+
 /**
  * Parameters for deleting a message.
  */
@@ -247,6 +264,13 @@ internal data class DeleteMessageParams(
      */
     val metadata: OperationMetadata?,
 )
+
+internal fun DeleteMessageParams.toJsonObject(): JsonObject {
+    return JsonObject().apply {
+        description?.let { addProperty("description", it) }
+        metadata?.let { add("metadata", it.toJson()) }
+    }
+}
 
 interface MessagesSubscription : Subscription {
     /**
@@ -338,9 +362,6 @@ internal class DefaultMessages(
         val messageListener = PubSubMessageListener {
             val pubSubMessage = it ?: throw clientError("Got empty pubsub channel message")
 
-            // Ignore any action that is not message.create
-            if (pubSubMessage.action != MessageAction.MESSAGE_CREATE) return@PubSubMessageListener
-
             val data = parsePubSubMessageData(pubSubMessage.data)
             val chatMessage = Message(
                 roomId = roomId,
@@ -350,11 +371,12 @@ internal class DefaultMessages(
                 text = data.text,
                 metadata = data.metadata,
                 headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap() ?: mapOf(),
-                action = MessageAction.MESSAGE_CREATE,
+                action = pubSubMessage.action,
                 version = pubSubMessage.version,
                 timestamp = pubSubMessage.timestamp,
                 operation = pubSubMessage.operation,
             )
+            // TODO - Update to respective event type
             listener.onEvent(MessageEvent(type = MessageEventType.Created, message = chatMessage))
         }
         channelSerialMap[messageListener] = deferredChannelSerial
@@ -385,10 +407,11 @@ internal class DefaultMessages(
             QueryOptions(start, end, limit, orderBy),
         )
 
-    override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message = chatApi.sendMessage(
-        roomId,
-        SendMessageParams(text, metadata, headers),
-    )
+    override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message =
+        chatApi.sendMessage(
+            roomId,
+            SendMessageParams(text, metadata, headers),
+        )
 
     override suspend fun update(
         message: Message,
@@ -397,13 +420,23 @@ internal class DefaultMessages(
         opMetadata: OperationMetadata?,
         metadata: MessageMetadata?,
         headers: MessageHeaders?,
-    ): Message {
-        TODO("Not yet implemented")
-    }
+    ): Message = chatApi.updateMessage(
+        message,
+        UpdateMessageParams(
+            message = SendMessageParams(text, metadata, headers),
+            description = description,
+            metadata = opMetadata,
+        ),
+    )
 
-    override suspend fun delete(message: Message, description: String?, opMetadata: OperationMetadata?): Message {
-        TODO("Not yet implemented")
-    }
+    override suspend fun delete(message: Message, description: String?, opMetadata: OperationMetadata?): Message =
+        chatApi.deleteMessage(
+            message,
+            DeleteMessageParams(
+                description = description,
+                metadata = opMetadata,
+            ),
+        )
 
     private fun requireChannelSerial(): String {
         return channel.properties.channelSerial

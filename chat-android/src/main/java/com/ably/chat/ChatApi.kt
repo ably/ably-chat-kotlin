@@ -1,7 +1,8 @@
+@file:Suppress("StringLiteralDuplication")
+
 package com.ably.chat
 
 import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
 import io.ably.lib.types.ErrorInfo
@@ -56,6 +57,17 @@ internal class ChatApi(
         }
     }
 
+    private fun validateSendMessageParams(params: SendMessageParams) {
+        // (CHA-M3c)
+        if (params.metadata?.has(RESERVED_ABLY_CHAT_KEY) == true) {
+            throw ablyException("Metadata contains reserved 'ably-chat' key", ErrorCode.InvalidRequestBody)
+        }
+        // (CHA-M3d)
+        if (params.headers?.keys?.any { it.startsWith(RESERVED_ABLY_CHAT_KEY) } == true) {
+            throw ablyException("Headers contains reserved key with reserved 'ably-chat' prefix", ErrorCode.InvalidRequestBody)
+        }
+    }
+
     /**
      * Send message to the Chat Backend
      *
@@ -63,18 +75,7 @@ internal class ChatApi(
      */
     suspend fun sendMessage(roomId: String, params: SendMessageParams): Message {
         validateSendMessageParams(params)
-
-        val body = JsonObject().apply {
-            addProperty("text", params.text)
-            // (CHA-M3b)
-            params.headers?.let {
-                add("headers", it.toJson())
-            }
-            // (CHA-M3b)
-            params.metadata?.let {
-                add("metadata", it)
-            }
-        }
+        val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
             "/chat/v2/rooms/$roomId/messages",
@@ -95,32 +96,64 @@ internal class ChatApi(
                 action = MessageAction.MESSAGE_CREATE,
                 version = serial,
                 timestamp = createdAt,
+                operation = null,
             )
-        } ?: throw AblyException.fromErrorInfo(ErrorInfo("Send message endpoint returned empty value", HttpStatusCode.InternalServerError))
+        } ?: throw serverError("Send message endpoint returned empty value")
     }
 
-    private fun validateSendMessageParams(params: SendMessageParams) {
-        // (CHA-M3c)
-        if ((params.metadata as? JsonObject)?.has(RESERVED_ABLY_CHAT_KEY) == true) {
-            throw AblyException.fromErrorInfo(
-                ErrorInfo(
-                    "Metadata contains reserved 'ably-chat' key",
-                    HttpStatusCode.BadRequest,
-                    ErrorCode.InvalidRequestBody.code,
-                ),
-            )
-        }
+    suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
+        validateSendMessageParams(params.message)
+        val body = params.toJsonObject()
 
-        // (CHA-M3d)
-        if (params.headers?.keys?.any { it.startsWith(RESERVED_ABLY_CHAT_KEY) } == true) {
-            throw AblyException.fromErrorInfo(
-                ErrorInfo(
-                    "Headers contains reserved key with reserved 'ably-chat' prefix",
-                    HttpStatusCode.BadRequest,
-                    ErrorCode.InvalidRequestBody.code,
-                ),
+        return makeAuthorizedRequest(
+            "/chat/v2/rooms/${message.roomId}/messages/${message.serial}",
+            "PUT",
+            body,
+        )?.let {
+            val version = it.requireString("version")
+            val timestamp = it.requireLong("timestamp")
+
+            Message(
+                serial = message.serial,
+                clientId = clientId,
+                roomId = message.roomId,
+                text = params.message.text,
+                createdAt = message.createdAt,
+                metadata = params.message.metadata,
+                headers = params.message.headers ?: mapOf(),
+                action = MessageAction.MESSAGE_UPDATE,
+                version = version,
+                timestamp = timestamp,
+                operation = toMessageOperation(clientId, params.description, params.metadata),
             )
-        }
+        } ?: throw serverError("Update message endpoint returned empty value")
+    }
+
+    suspend fun deleteMessage(message: Message, params: DeleteMessageParams): Message {
+        val body = params.toJsonObject()
+
+        return makeAuthorizedRequest(
+            "/chat/v2/rooms/${message.roomId}/messages/${message.serial}/delete",
+            "POST",
+            body,
+        )?.let {
+            val version = it.requireString("version")
+            val timestamp = it.requireLong("timestamp")
+
+            Message(
+                serial = message.serial,
+                clientId = clientId,
+                roomId = message.roomId,
+                text = message.text,
+                createdAt = message.createdAt,
+                metadata = message.metadata,
+                headers = message.headers,
+                action = MessageAction.MESSAGE_DELETE,
+                version = version,
+                timestamp = timestamp,
+                operation = toMessageOperation(clientId, params.description, params.metadata),
+            )
+        } ?: throw serverError("Delete message endpoint returned empty value")
     }
 
     /**
@@ -132,7 +165,7 @@ internal class ChatApi(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),
             )
-        } ?: throw AblyException.fromErrorInfo(ErrorInfo("Occupancy endpoint returned empty value", HttpStatusCode.InternalServerError))
+        } ?: throw serverError("Occupancy endpoint returned empty value")
     }
 
     private suspend fun makeAuthorizedRequest(
