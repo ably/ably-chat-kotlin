@@ -361,6 +361,8 @@ internal class DefaultMessages(
     override fun subscribe(listener: Messages.Listener): MessagesSubscription {
         val messageListener = PubSubMessageListener {
             val pubSubMessage = it ?: throw clientError("Got empty pubsub channel message")
+            val eventType = messageActionToEventType[pubSubMessage.action]
+                ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
 
             val data = parsePubSubMessageData(pubSubMessage.data)
             val chatMessage = Message(
@@ -376,8 +378,7 @@ internal class DefaultMessages(
                 timestamp = pubSubMessage.timestamp,
                 operation = pubSubMessage.operation,
             )
-            // TODO - Update to respective event type
-            listener.onEvent(MessageEvent(type = MessageEventType.Created, message = chatMessage))
+            listener.onEvent(MessageEvent(type = eventType, message = chatMessage))
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)

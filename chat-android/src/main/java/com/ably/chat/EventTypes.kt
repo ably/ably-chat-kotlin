@@ -42,6 +42,12 @@ internal val messageActionNameToAction = mapOf(
     "message.summary" to MessageAction.MESSAGE_SUMMARY,
 )
 
+internal val messageActionToEventType = mapOf(
+    MessageAction.MESSAGE_CREATE to MessageEventType.Created,
+    MessageAction.MESSAGE_UPDATE to MessageEventType.Updated,
+    MessageAction.MESSAGE_DELETE to MessageEventType.Deleted,
+)
+
 /**
  * Enum representing presence events.
  */
