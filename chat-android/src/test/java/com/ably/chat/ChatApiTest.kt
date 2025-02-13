@@ -106,7 +106,7 @@ class ChatApiTest {
                 text = "hello",
                 createdAt = 1_000_000L,
                 headers = mapOf(),
-                metadata = null,
+                metadata = MessageMetadata(),
                 action = MessageAction.MESSAGE_CREATE,
                 version = "timeserial",
                 timestamp = 1_000_000L,

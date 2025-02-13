@@ -78,7 +78,7 @@ interface Messages : EmitsDiscontinuities {
      *
      * @param message The message to update.
      * @param text The new text of the message.
-     * @param description Optional description for the update action.
+     * @param opDescription Optional description for the update action.
      * @param opMetadata Optional metadata for the update action.
      * @param metadata Optional metadata of the message.
      * @param headers Optional headers of the message.
@@ -87,7 +87,7 @@ interface Messages : EmitsDiscontinuities {
     suspend fun update(
         message: Message,
         text: String,
-        description: String? = null,
+        opDescription: String? = null,
         opMetadata: OperationMetadata? = null,
         metadata: MessageMetadata? = null,
         headers: MessageHeaders? = null,
@@ -106,11 +106,11 @@ interface Messages : EmitsDiscontinuities {
      *
      * @returns when the message is deleted.
      * @param message - The message to delete.
-     * @param description - Optional description for the delete action.
+     * @param opDescription - Optional description for the delete action.
      * @param opMetadata - Optional metadata for the delete action.
      * @return A promise that resolves to the deleted message.
      */
-    suspend fun delete(message: Message, description: String? = null, opMetadata: OperationMetadata? = null): Message
+    suspend fun delete(message: Message, opDescription: String? = null, opMetadata: OperationMetadata? = null): Message
 
     /**
      * An interface for listening to new messaging event
@@ -417,7 +417,7 @@ internal class DefaultMessages(
     override suspend fun update(
         message: Message,
         text: String,
-        description: String?,
+        opDescription: String?,
         opMetadata: OperationMetadata?,
         metadata: MessageMetadata?,
         headers: MessageHeaders?,
@@ -425,16 +425,16 @@ internal class DefaultMessages(
         message,
         UpdateMessageParams(
             message = SendMessageParams(text, metadata, headers),
-            description = description,
+            description = opDescription,
             metadata = opMetadata,
         ),
     )
 
-    override suspend fun delete(message: Message, description: String?, opMetadata: OperationMetadata?): Message =
+    override suspend fun delete(message: Message, opDescription: String?, opMetadata: OperationMetadata?): Message =
         chatApi.deleteMessage(
             message,
             DeleteMessageParams(
-                description = description,
+                description = opDescription,
                 metadata = opMetadata,
             ),
         )
