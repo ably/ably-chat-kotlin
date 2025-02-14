@@ -19,9 +19,9 @@ enum class MessageEventType(val eventName: String) {
 /**
  * Realtime chat message names.
  */
-object PubSubMessageNames {
+object PubSubEventName {
     /** Represents a regular chat message. */
-    const val ChatMessage = "chat.message"
+    const val CHAT_MESSAGE = "chat.message"
 }
 
 internal val messageActionNameToAction = mapOf(

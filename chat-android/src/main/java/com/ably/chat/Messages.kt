@@ -60,6 +60,7 @@ interface Messages : EmitsDiscontinuities {
      * Note: that the suspending function may resolve before OR after the message is received
      * from the realtime channel. This means you may see the message that was just
      * sent in a callback to `subscribe` before the function resolves.
+     * Spec: CHA-M3
      *
      * @param text The text of the message. See [SendMessageParams.text]
      * @param metadata Optional metadata of the message. See [SendMessageParams.metadata]
@@ -75,6 +76,7 @@ interface Messages : EmitsDiscontinuities {
      * This method uses the Ably Chat API REST endpoint for updating messages.
      * It creates a new message with the same serial and a new version.
      * The original message is not modified.
+     * Spec: CHA-M8
      *
      * @param message The message to update.
      * @param text The new text of the message.
@@ -103,6 +105,7 @@ interface Messages : EmitsDiscontinuities {
      * you can simply send an update to the original message.
      * Note: This is subject to change in future versions, whereby a new permissions model will be introduced
      * and a deleted message may not be restorable in this way.
+     * Spec: CHA-M9
      *
      * @returns when the message is deleted.
      * @param message - The message to delete.
@@ -218,9 +221,8 @@ internal data class SendMessageParams(
 internal fun SendMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
         addProperty("text", text)
-        // (CHA-M3b)
+        // CHA-M3b
         headers?.let { add("headers", it.toJson()) }
-        // (CHA-M3b)
         metadata?.let { add("metadata", it) }
     }
 }
@@ -382,7 +384,7 @@ internal class DefaultMessages(
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
-        channel.subscribe(PubSubMessageNames.ChatMessage, messageListener)
+        channel.subscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
         // (CHA-M5) setting subscription point
         if (channel.state == ChannelState.attached) {
             channelSerialMap[messageListener] = CompletableDeferred(requireChannelSerial())
@@ -393,7 +395,7 @@ internal class DefaultMessages(
             roomId = roomId,
             subscription = {
                 channelSerialMap.remove(messageListener)
-                channel.unsubscribe(PubSubMessageNames.ChatMessage, messageListener)
+                channel.unsubscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
             },
             fromSerialProvider = {
                 channelSerialMap[messageListener]

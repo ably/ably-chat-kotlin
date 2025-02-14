@@ -229,38 +229,6 @@ class MessagesTest {
         verify(exactly = 2) { listener1.onEvent(any()) }
         verify(exactly = 1) { listener2.onEvent(any()) }
     }
-
-    /**
-     * @spec CHA-M3d
-     */
-    @Test
-    fun `should throw exception if headers contains ably-chat prefix`() = runTest {
-        val exception = assertThrows(AblyException::class.java) {
-            runBlocking {
-                messages.send(
-                    text = "lala",
-                    headers = mapOf("ably-chat-foo" to "bar"),
-                )
-            }
-        }
-        assertEquals(40_001, exception.errorInfo.code)
-    }
-
-    /**
-     * @spec CHA-M3c
-     */
-    @Test
-    fun `should throw exception if metadata contains ably-chat key`() = runTest {
-        val exception = assertThrows(AblyException::class.java) {
-            runBlocking {
-                messages.send(
-                    text = "lala",
-                    metadata = mapOf("ably-chat" to "data").toJson(),
-                )
-            }
-        }
-        assertEquals(40_001, exception.errorInfo.code)
-    }
 }
 
 private val Channel.channelMulticaster: ChannelBase.MessageListener

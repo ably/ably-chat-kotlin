@@ -14,7 +14,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 private const val API_PROTOCOL_VERSION = 3
 private const val PROTOCOL_VERSION_PARAM_NAME = "v"
-private const val RESERVED_ABLY_CHAT_KEY = "ably-chat"
 private val apiProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, API_PROTOCOL_VERSION.toString())
 
 internal class ChatApi(
@@ -57,25 +56,11 @@ internal class ChatApi(
         }
     }
 
-    private fun validateSendMessageParams(params: SendMessageParams) {
-        // (CHA-M3c)
-        if (params.metadata?.has(RESERVED_ABLY_CHAT_KEY) == true) {
-            throw ablyException("Metadata contains reserved 'ably-chat' key", ErrorCode.InvalidRequestBody)
-        }
-        // (CHA-M3d)
-        if (params.headers?.keys?.any { it.startsWith(RESERVED_ABLY_CHAT_KEY) } == true) {
-            throw ablyException("Headers contains reserved key with reserved 'ably-chat' prefix", ErrorCode.InvalidRequestBody)
-        }
-    }
-
     /**
-     * Send message to the Chat Backend
-     *
-     * @return sent message instance
+     * Spec: CHA-M3
      */
     suspend fun sendMessage(roomId: String, params: SendMessageParams): Message {
-        validateSendMessageParams(params)
-        val body = params.toJsonObject()
+        val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
             "/chat/v2/rooms/$roomId/messages",
@@ -84,7 +69,7 @@ internal class ChatApi(
         )?.let {
             val serial = it.requireString("serial")
             val createdAt = it.requireLong("createdAt")
-            // (CHA-M3a)
+            // CHA-M3a
             Message(
                 serial = serial,
                 clientId = clientId,
@@ -98,13 +83,15 @@ internal class ChatApi(
                 timestamp = createdAt,
                 operation = null,
             )
-        } ?: throw serverError("Send message endpoint returned empty value")
+        } ?: throw serverError("Send message endpoint returned empty value") // CHA-M3e
     }
 
+    /**
+     * Spec: CHA-M8
+     */
     suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
-        validateSendMessageParams(params.message)
         val body = params.toJsonObject()
-
+        // CHA-M8c
         return makeAuthorizedRequest(
             "/chat/v2/rooms/${message.roomId}/messages/${message.serial}",
             "PUT",
@@ -112,7 +99,7 @@ internal class ChatApi(
         )?.let {
             val version = it.requireString("version")
             val timestamp = it.requireLong("timestamp")
-
+            // CHA-M8b
             Message(
                 serial = message.serial,
                 clientId = clientId,
@@ -126,9 +113,12 @@ internal class ChatApi(
                 timestamp = timestamp,
                 operation = toMessageOperation(clientId, params.description, params.metadata),
             )
-        } ?: throw serverError("Update message endpoint returned empty value")
+        } ?: throw serverError("Update message endpoint returned empty value") // CHA-M8d
     }
 
+    /**
+     * Spec: CHA-M9
+     */
     suspend fun deleteMessage(message: Message, params: DeleteMessageParams): Message {
         val body = params.toJsonObject()
 
@@ -139,7 +129,7 @@ internal class ChatApi(
         )?.let {
             val version = it.requireString("version")
             val timestamp = it.requireLong("timestamp")
-
+            // CHA-M9b
             Message(
                 serial = message.serial,
                 clientId = clientId,
@@ -153,7 +143,7 @@ internal class ChatApi(
                 timestamp = timestamp,
                 operation = toMessageOperation(clientId, params.description, params.metadata),
             )
-        } ?: throw serverError("Delete message endpoint returned empty value")
+        } ?: throw serverError("Delete message endpoint returned empty value") // CHA-M9c
     }
 
     /**

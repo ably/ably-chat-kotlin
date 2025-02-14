@@ -17,6 +17,9 @@ import org.junit.Test
 
 class MessagesIntegrationTest {
 
+    /**
+     * Spec: CHA-M3, CHA-M4
+     */
     @Test
     fun `should be able to send and retrieve messages without room features`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
@@ -37,6 +40,9 @@ class MessagesIntegrationTest {
         )
     }
 
+    /**
+     * Spec: CHA-M3, CHA-M4
+     */
     @Test
     fun `should be able to send and retrieve messages with all room features enabled`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
@@ -81,6 +87,9 @@ class MessagesIntegrationTest {
         assertEquals(sentMessage.operation, receivedMessage.operation)
     }
 
+    /**
+     * Spec: CHA-M3, CHA-M6
+     */
     @Test
     fun `should be able to send and retrieve messages from history`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
@@ -129,6 +138,9 @@ class MessagesIntegrationTest {
         assertEquals(sentMessage.operation, historyMessage.operation)
     }
 
+    /**
+     * Spec: CHA-M8, CHA-M4
+     */
     @Test
     fun `should be able to update a sent message`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
@@ -185,6 +197,9 @@ class MessagesIntegrationTest {
         assertEquals(updatedMessage.action, receivedMsg2.action)
     }
 
+    /**
+     * Spec: CHA-M9, CHA-M4
+     */
     @Test
     fun `should be able to delete a sent message`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()

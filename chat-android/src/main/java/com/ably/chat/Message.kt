@@ -20,6 +20,7 @@ typealias MessageMetadata = Metadata
 data class Message(
     /**
      * The unique identifier of the message.
+     * Spec: CHA-M2d
      */
     val serial: String,
 
@@ -74,11 +75,13 @@ data class Message(
 
     /**
      * The latest action of the message. This can be used to determine if the message was created, updated, or deleted.
+     * Spec: CHA-M10
      */
     val action: MessageAction,
 
     /**
      * A unique identifier for the latest version of this message.
+     * Spec: CHA-M10a
      */
     val version: String,
 
