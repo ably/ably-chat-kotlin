@@ -288,12 +288,17 @@ internal class DefaultMessagesSubscription(
     private val roomId: String,
     private val subscription: Subscription,
     internal val fromSerialProvider: () -> CompletableDeferred<String>,
+    logger: Logger,
 ) : MessagesSubscription {
+    private val logger = logger.withContext(tag = "DefaultMessagesSubscription")
+
     override fun unsubscribe() {
+        logger.trace("unsubscribe(); roomId=$roomId")
         subscription.unsubscribe()
     }
 
     override suspend fun getPreviousMessages(start: Long?, end: Long?, limit: Int): PaginatedResult<Message> {
+        logger.trace("getPreviousMessages(); roomId=$roomId, start=$start, end=$end, limit=$limit")
         val fromSerial = fromSerialProvider().await()
         val queryOptions = QueryOptions(start = start, end = end, limit = limit, orderBy = NewestFirst)
         return chatApi.getMessages(
@@ -341,6 +346,7 @@ internal class DefaultMessages(
     private var deferredChannelSerial = CompletableDeferred<String>()
 
     init {
+        logger.trace("init(); roomId=$roomId, initializing channelStateListener to update channel serials after discontinuity")
         channelStateListener = ChannelStateListener {
             if (it.current == ChannelState.attached && !it.resumed) {
                 updateChannelSerialsAfterDiscontinuity(requireAttachSerial())
@@ -351,6 +357,7 @@ internal class DefaultMessages(
 
     // CHA-M5c, CHA-M5d - Updated channel serial after discontinuity
     private fun updateChannelSerialsAfterDiscontinuity(value: String) {
+        logger.debug("updateChannelSerialsAfterDiscontinuity(); roomId=$roomId, serial=$value")
         if (deferredChannelSerial.isActive) {
             deferredChannelSerial.complete(value)
         } else {
@@ -361,7 +368,9 @@ internal class DefaultMessages(
     }
 
     override fun subscribe(listener: Messages.Listener): MessagesSubscription {
+        logger.trace("subscribe(); roomId=$roomId")
         val messageListener = PubSubMessageListener {
+            logger.debug("subscribe(); roomId=$roomId, received message: $it")
             val pubSubMessage = it ?: throw clientError("Got empty pubsub channel message")
             val eventType = messageActionToEventType[pubSubMessage.action]
                 ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
@@ -385,6 +394,7 @@ internal class DefaultMessages(
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
         channel.subscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
+        logger.debug("subscribe(); roomId=$roomId, subscribed to messages")
         // (CHA-M5) setting subscription point
         if (channel.state == ChannelState.attached) {
             channelSerialMap[messageListener] = CompletableDeferred(requireChannelSerial())
@@ -401,20 +411,25 @@ internal class DefaultMessages(
                 channelSerialMap[messageListener]
                     ?: throw clientError("This messages subscription instance was already unsubscribed")
             },
+            logger = logger,
         )
     }
 
-    override suspend fun get(start: Long?, end: Long?, limit: Int, orderBy: OrderBy): PaginatedResult<Message> =
-        chatApi.getMessages(
+    override suspend fun get(start: Long?, end: Long?, limit: Int, orderBy: OrderBy): PaginatedResult<Message> {
+        logger.trace("get(); roomId=$roomId, start=$start, end=$end, limit=$limit, orderBy=$orderBy")
+        return chatApi.getMessages(
             roomId,
             QueryOptions(start, end, limit, orderBy),
         )
+    }
 
-    override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message =
-        chatApi.sendMessage(
+    override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message {
+        logger.trace("send(); roomId=$roomId, text=$text, metadata=$metadata, headers=$headers")
+        return chatApi.sendMessage(
             roomId,
             SendMessageParams(text, metadata, headers),
         )
+    }
 
     override suspend fun update(
         message: Message,
@@ -423,23 +438,28 @@ internal class DefaultMessages(
         opMetadata: OperationMetadata?,
         metadata: MessageMetadata?,
         headers: MessageHeaders?,
-    ): Message = chatApi.updateMessage(
-        message,
-        UpdateMessageParams(
-            message = SendMessageParams(text, metadata, headers),
-            description = opDescription,
-            metadata = opMetadata,
-        ),
-    )
+    ): Message {
+        logger.trace("update(); roomId=$roomId, serial=${message.serial}, text=$text, metadata=$metadata, headers=$headers")
+        return chatApi.updateMessage(
+            message,
+            UpdateMessageParams(
+                message = SendMessageParams(text, metadata, headers),
+                description = opDescription,
+                metadata = opMetadata,
+            ),
+        )
+    }
 
-    override suspend fun delete(message: Message, opDescription: String?, opMetadata: OperationMetadata?): Message =
-        chatApi.deleteMessage(
+    override suspend fun delete(message: Message, opDescription: String?, opMetadata: OperationMetadata?): Message {
+        logger.trace("delete(); roomId=$roomId, serial=${message.serial}, opDescription=$opDescription, opMetadata=$opMetadata")
+        return chatApi.deleteMessage(
             message,
             DeleteMessageParams(
                 description = opDescription,
                 metadata = opMetadata,
             ),
         )
+    }
 
     private fun requireChannelSerial(): String {
         return channel.properties.channelSerial
@@ -452,6 +472,7 @@ internal class DefaultMessages(
     }
 
     override fun release() {
+        logger.trace("release(); roomId=$roomId")
         channel.off(channelStateListener)
         channelSerialMap.clear()
         realtimeChannels.release(channel.name)

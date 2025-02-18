@@ -77,7 +77,7 @@ internal class DefaultRooms(
     private val roomReleaseDeferredMap: MutableMap<String, CompletableDeferred<Unit>> = mutableMapOf()
 
     override suspend fun get(roomId: String, options: RoomOptions): Room {
-        logger.trace("get(); $roomId; $options")
+        logger.trace("get(); roomId=$roomId, options=$options")
         return sequentialScope.async {
             val existingRoom = getReleasedOrExistingRoom(roomId)
             existingRoom?.let {
@@ -96,7 +96,7 @@ internal class DefaultRooms(
     }
 
     override suspend fun release(roomId: String) {
-        logger.trace("release(); $roomId")
+        logger.trace("release(); roomId=$roomId")
         sequentialScope.launch {
             // CHA-RC1g4 - Previous Room Get in progress, cancel all of them
             roomGetDeferredMap[roomId]?.let {

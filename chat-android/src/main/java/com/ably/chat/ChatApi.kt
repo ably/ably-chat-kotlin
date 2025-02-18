@@ -19,8 +19,9 @@ private val apiProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, API_PROTOCOL_V
 internal class ChatApi(
     private val realtimeClient: RealtimeClient,
     private val clientId: String,
-    private val logger: Logger,
+    logger: Logger,
 ) {
+    private val logger = logger.withContext(tag = "ChatApi")
 
     /**
      * Get messages from the Chat Backend
@@ -28,6 +29,7 @@ internal class ChatApi(
      * @return paginated result with messages
      */
     suspend fun getMessages(roomId: String, options: QueryOptions, fromSerial: String? = null): PaginatedResult<Message> {
+        logger.trace("getMessages(); roomId=$roomId, options=$options, fromSerial=$fromSerial")
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
@@ -39,6 +41,7 @@ internal class ChatApi(
             val latestAction = messageJsonObject.get("action")?.asString?.let { name -> messageActionNameToAction[name] }
             val operation = messageJsonObject.getAsJsonObject("operation")
             latestAction?.let { action ->
+                logger.debug("getMessages(); messageJsonObject=$messageJsonObject")
                 Message(
                     serial = messageJsonObject.requireString("serial"),
                     clientId = messageJsonObject.requireString("clientId"),
@@ -60,6 +63,7 @@ internal class ChatApi(
      * Spec: CHA-M3
      */
     suspend fun sendMessage(roomId: String, params: SendMessageParams): Message {
+        logger.trace("sendMessage(); roomId=$roomId, params=$params")
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
@@ -69,6 +73,7 @@ internal class ChatApi(
         )?.let {
             val serial = it.requireString("serial")
             val createdAt = it.requireLong("createdAt")
+            logger.debug("sendMessage(); roomId=$roomId, response=$it")
             // CHA-M3a
             Message(
                 serial = serial,
@@ -90,6 +95,7 @@ internal class ChatApi(
      * Spec: CHA-M8
      */
     suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
+        logger.trace("updateMessage(); message=$message, params=$params")
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
@@ -99,6 +105,7 @@ internal class ChatApi(
         )?.let {
             val version = it.requireString("version")
             val timestamp = it.requireLong("timestamp")
+            logger.debug("updateMessage(); messageSerial=${message.serial}, response=$it")
             // CHA-M8b
             Message(
                 serial = message.serial,
@@ -120,6 +127,7 @@ internal class ChatApi(
      * Spec: CHA-M9
      */
     suspend fun deleteMessage(message: Message, params: DeleteMessageParams): Message {
+        logger.trace("deleteMessage(); message=$message, params=$params")
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
@@ -129,6 +137,7 @@ internal class ChatApi(
         )?.let {
             val version = it.requireString("version")
             val timestamp = it.requireLong("timestamp")
+            logger.debug("deleteMessage(); messageSerial=${message.serial}, response=$it")
             // CHA-M9b
             Message(
                 serial = message.serial,
@@ -150,7 +159,9 @@ internal class ChatApi(
      * return occupancy for specified room
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
+        logger.trace("getOccupancy(); roomId=$roomId")
         return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", "GET")?.let {
+            logger.debug("getOccupancy(); roomId=$roomId, response=$it")
             OccupancyEvent(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),

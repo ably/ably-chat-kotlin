@@ -55,7 +55,7 @@ internal class DefaultChatClient(
         AndroidLogger(clientOptions.logLevel, buildLogContext())
     }
 
-    private val chatApi = ChatApi(realtime, clientId, logger.withContext(tag = "AblyChatAPI"))
+    private val chatApi = ChatApi(realtime, clientId, logger)
 
     override val rooms: Rooms = DefaultRooms(
         realtimeClient = realtime,
