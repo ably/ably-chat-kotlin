@@ -102,6 +102,79 @@ identifiable. If you are prototyping, you can use `java.util.UUID` to generate a
 In most cases, `clientId` can be set to `userId`, the user’s application-specific identifier, provided that `userId`
 is unique within the context of your application.
 
+## Getting Started
+
+At the end of this tutorial, you will have initialized the Ably Chat client and sent your first message.
+
+Start by creating a new Android project and installing the Chat SDK using the instructions described above. Then add the code in the following snippet
+to your app and call it in your code. This simple script initializes the Chat client, creates a chat room and sends a message, printing it to logcat when it is received over the websocket connection.
+
+```kotlin
+import kotlinx.coroutines.delay
+import io.ably.lib.realtime.AblyRealtime
+import io.ably.lib.types.ClientOptions
+import com.ably.chat.ChatClient
+import com.ably.chat.ConnectionStatusChange
+import com.ably.chat.RoomOptions
+import com.ably.chat.RoomStatusChange
+
+suspend fun getStartedWithChat() {
+    // Create an Ably Realtime client that will be passed to the chat client
+    val realtimeClient = AblyRealtime(
+        ClientOptions().apply {
+            key = "<API_KEY>"
+            clientId = "ably-chat"
+        },
+    )
+
+    // Create the chat client
+    // The two clients can be re-used for the duration of your application.
+    val chatClient = ChatClient(realtimeClient)
+
+    // Subscribe to connection state changes
+    val connectionSubscription = chatClient.connection.onStatusChange { statusChange: ConnectionStatusChange ->
+        println("Connection status changed: ${statusChange.current}")
+    }
+
+    // Get our chat room and subscribe to status changes
+    val room = chatClient.rooms.get("readme-getting-started", RoomOptions.default)
+    val roomSubscription = room.onStatusChange {statusChange: RoomStatusChange ->
+        println("Room status changed: ${statusChange.current}")
+    }
+
+    // Subscribe to incoming messages
+    val messageSubscription = room.messages.subscribe { event ->
+        println("Message received: ${event.message.text}")
+    }
+
+    // Attach the room - meaning we'll start receiving events from the server
+    room.attach()
+
+    // Send a message
+    room.messages.send(text = "Hello, World! This is my first message with Ably Chat!")
+
+    // Wait for 5 seconds to make sure the message has time to be received.
+    delay(5000)
+
+    // Now release the room and close the connection
+    chatClient.rooms.release("readme-getting-started")
+    realtimeClient.close()
+}
+```
+
+All being well, you should see lines in logcat resembling the following:
+
+```
+Connection status changed: Connected
+Room status changed: Attaching
+Room status changed: Attached
+Message received: Hello, World! This is my first message with Ably Chat!
+Room status changed: Releasing
+Room status changed: Released
+```
+
+Congratulations! You have sent your first message using the Ably Chat SDK!
+
 ## Contributing
 
 For guidance on how to contribute to this project, see the [contributing guidelines](CONTRIBUTING.md).
