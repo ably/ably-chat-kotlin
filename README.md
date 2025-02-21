@@ -175,6 +175,10 @@ Room status changed: Released
 
 Congratulations! You have sent your first message using the Ably Chat SDK!
 
+## Documentation
+
+Click [📚 here](https://ably.com/docs/products/chat) to view the complete documentation for the Ably Chat SDKs.
+
 ## Contributing
 
 For guidance on how to contribute to this project, see the [contributing guidelines](CONTRIBUTING.md).
