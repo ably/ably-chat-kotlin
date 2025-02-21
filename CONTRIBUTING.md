@@ -105,6 +105,12 @@ In the project where you want to use the updated library:
 > - The `mavenLocal()` repository should typically be used only during development to avoid conflicts with published versions in remote
     repositories.
 
+## Documentation
+
+The source of truth for documentation for the Ably Chat SDKs can be found on the [Ably Docs repository](https://github.com/ably/docs).
+
+Please ensure that you merge any pull requests in that repository promptly after releasing your change.
+
 ## Release Process
 
 ### Prerequisites for Release
@@ -161,4 +167,5 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
         - Incomplete Javadoc
 8. Add a tag and push to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`
 9. Create the release on Github including populating the release notes
-10. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
+10. Merge any [docs](https://github.com/ably/docs) PRs related to your changes.
+11. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
