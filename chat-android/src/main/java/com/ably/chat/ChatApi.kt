@@ -1,5 +1,3 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
 import com.google.gson.JsonElement
@@ -36,21 +34,21 @@ internal class ChatApi(
             params = params,
         ) {
             val messageJsonObject = it.requireJsonObject()
-            val latestAction = messageJsonObject.get("action")?.asString?.let { name -> messageActionNameToAction[name] }
-            val operation = messageJsonObject.getAsJsonObject("operation")
+            val latestAction = messageJsonObject.get(MessageProperty.ACTION)?.asString?.let { name -> messageActionNameToAction[name] }
+            val operation = messageJsonObject.getAsJsonObject(MessageProperty.OPERATION)
             latestAction?.let { action ->
                 Message(
-                    serial = messageJsonObject.requireString("serial"),
-                    clientId = messageJsonObject.requireString("clientId"),
-                    roomId = messageJsonObject.requireString("roomId"),
-                    text = messageJsonObject.requireString("text"),
-                    createdAt = messageJsonObject.requireLong("createdAt"),
-                    metadata = messageJsonObject.getAsJsonObject("metadata"),
-                    headers = messageJsonObject.get("headers")?.toMap() ?: mapOf(),
+                    serial = messageJsonObject.requireString(MessageProperty.SERIAL),
+                    clientId = messageJsonObject.requireString(MessageProperty.CLIENT_ID),
+                    roomId = messageJsonObject.requireString(MessageProperty.ROOM_ID),
+                    text = messageJsonObject.requireString(MessageProperty.TEXT),
+                    createdAt = messageJsonObject.requireLong(MessageProperty.CREATED_AT),
+                    metadata = messageJsonObject.getAsJsonObject(MessageProperty.METADATA),
+                    headers = messageJsonObject.get(MessageProperty.HEADERS)?.toMap() ?: mapOf(),
                     action = action,
-                    version = messageJsonObject.requireString("version"),
-                    timestamp = messageJsonObject.requireLong("timestamp"),
-                    operation = toMessageOperation(operation),
+                    version = messageJsonObject.requireString(MessageProperty.VERSION),
+                    timestamp = messageJsonObject.requireLong(MessageProperty.TIMESTAMP),
+                    operation = buildMessageOperation(operation),
                 )
             }
         }
@@ -67,8 +65,8 @@ internal class ChatApi(
             "POST",
             body,
         )?.let {
-            val serial = it.requireString("serial")
-            val createdAt = it.requireLong("createdAt")
+            val serial = it.requireString(MessageProperty.SERIAL)
+            val createdAt = it.requireLong(MessageProperty.CREATED_AT)
             // CHA-M3a
             Message(
                 serial = serial,
@@ -97,8 +95,8 @@ internal class ChatApi(
             "PUT",
             body,
         )?.let {
-            val version = it.requireString("version")
-            val timestamp = it.requireLong("timestamp")
+            val version = it.requireString(MessageProperty.VERSION)
+            val timestamp = it.requireLong(MessageProperty.TIMESTAMP)
             // CHA-M8b
             Message(
                 serial = message.serial,
@@ -111,7 +109,7 @@ internal class ChatApi(
                 action = MessageAction.MESSAGE_UPDATE,
                 version = version,
                 timestamp = timestamp,
-                operation = toMessageOperation(clientId, params.description, params.metadata),
+                operation = buildMessageOperation(clientId, params.description, params.metadata),
             )
         } ?: throw serverError("Update message endpoint returned empty value") // CHA-M8d
     }
@@ -127,8 +125,8 @@ internal class ChatApi(
             "POST",
             body,
         )?.let {
-            val version = it.requireString("version")
-            val timestamp = it.requireLong("timestamp")
+            val version = it.requireString(MessageProperty.VERSION)
+            val timestamp = it.requireLong(MessageProperty.TIMESTAMP)
             // CHA-M9b
             Message(
                 serial = message.serial,
@@ -141,7 +139,7 @@ internal class ChatApi(
                 action = MessageAction.MESSAGE_DELETE,
                 version = version,
                 timestamp = timestamp,
-                operation = toMessageOperation(clientId, params.description, params.metadata),
+                operation = buildMessageOperation(clientId, params.description, params.metadata),
             )
         } ?: throw serverError("Delete message endpoint returned empty value") // CHA-M9c
     }

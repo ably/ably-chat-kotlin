@@ -97,19 +97,19 @@ data class Message(
     val operation: Message.Operation? = null,
 )
 
-fun toMessageOperation(jsonObject: JsonObject?): Message.Operation? {
+fun buildMessageOperation(jsonObject: JsonObject?): Message.Operation? {
     if (jsonObject == null) {
         return null
     }
     val operation = Message.Operation()
-    if (jsonObject.has("clientId")) {
-        operation.clientId = jsonObject.get("clientId").asString
+    if (jsonObject.has(MessageOperationProperty.CLIENT_ID)) {
+        operation.clientId = jsonObject.get(MessageOperationProperty.CLIENT_ID).asString
     }
-    if (jsonObject.has("description")) {
-        operation.description = jsonObject.get("description").asString
+    if (jsonObject.has(MessageOperationProperty.DESCRIPTION)) {
+        operation.description = jsonObject.get(MessageOperationProperty.DESCRIPTION).asString
     }
-    if (jsonObject.has("metadata")) {
-        val metadataObject = jsonObject.getAsJsonObject("metadata")
+    if (jsonObject.has(MessageOperationProperty.METADATA)) {
+        val metadataObject = jsonObject.getAsJsonObject(MessageOperationProperty.METADATA)
         operation.metadata = mutableMapOf()
         for ((key, value) in metadataObject.entrySet()) {
             operation.metadata[key] = value.asString
@@ -118,10 +118,36 @@ fun toMessageOperation(jsonObject: JsonObject?): Message.Operation? {
     return operation
 }
 
-fun toMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
+fun buildMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
     val operation = Message.Operation()
     operation.clientId = clientId
     operation.description = description
     operation.metadata = metadata
     return operation
+}
+
+/**
+ * MessageProperty object representing the properties of a message.
+ */
+object MessageProperty {
+    const val SERIAL = "serial"
+    const val CLIENT_ID = "clientId"
+    const val ROOM_ID = "roomId"
+    const val TEXT = "text"
+    const val CREATED_AT = "createdAt"
+    const val METADATA = "metadata"
+    const val HEADERS = "headers"
+    const val ACTION = "action"
+    const val VERSION = "version"
+    const val TIMESTAMP = "timestamp"
+    const val OPERATION = "operation"
+}
+
+/**
+ * MessageOperationProperty object representing the properties of a message operation.
+ */
+object MessageOperationProperty {
+    const val CLIENT_ID = "clientId"
+    const val DESCRIPTION = "description"
+    const val METADATA = "metadata"
 }

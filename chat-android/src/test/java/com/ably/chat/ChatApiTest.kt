@@ -27,14 +27,14 @@ class ChatApiTest {
             listOf(
                 JsonObject().apply {
                     addProperty("foo", "bar")
-                    addProperty("serial", "timeserial")
-                    addProperty("roomId", "roomId")
-                    addProperty("clientId", "clientId")
-                    addProperty("text", "hello")
-                    addProperty("createdAt", 1_000_000)
-                    addProperty("action", "message.create")
-                    addProperty("version", "timeserial")
-                    addProperty("timestamp", 1_000_000)
+                    addProperty(MessageProperty.SERIAL, "timeserial")
+                    addProperty(MessageProperty.ROOM_ID, "roomId")
+                    addProperty(MessageProperty.CLIENT_ID, "clientId")
+                    addProperty(MessageProperty.TEXT, "hello")
+                    addProperty(MessageProperty.CREATED_AT, 1_000_000)
+                    addProperty(MessageProperty.ACTION, "message.create")
+                    addProperty(MessageProperty.VERSION, "timeserial")
+                    addProperty(MessageProperty.TIMESTAMP, 1_000_000)
                 },
             ),
         )
@@ -70,7 +70,7 @@ class ChatApiTest {
             listOf(
                 JsonObject().apply {
                     addProperty("foo", "bar")
-                    addProperty("action", "message.create")
+                    addProperty(MessageProperty.ACTION, "message.create")
                 },
             ),
         )
@@ -91,8 +91,8 @@ class ChatApiTest {
             realtime,
             JsonObject().apply {
                 addProperty("foo", "bar")
-                addProperty("serial", "timeserial")
-                addProperty("createdAt", 1_000_000)
+                addProperty(MessageProperty.SERIAL, "timeserial")
+                addProperty(MessageProperty.CREATED_AT, 1_000_000)
             },
         )
 
@@ -124,7 +124,7 @@ class ChatApiTest {
             realtime,
             JsonObject().apply {
                 addProperty("foo", "bar")
-                addProperty("createdAt", 1_000_000)
+                addProperty(MessageProperty.CREATED_AT, 1_000_000)
             },
         )
 

@@ -248,8 +248,8 @@ internal data class UpdateMessageParams(
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
         add("message", message.toJsonObject())
-        description?.let { addProperty("description", it) }
-        metadata?.let { add("metadata", it.toJson()) }
+        description?.let { addProperty(MessageOperationProperty.DESCRIPTION, it) }
+        metadata?.let { add(MessageOperationProperty.METADATA, it.toJson()) }
     }
 }
 
@@ -269,8 +269,8 @@ internal data class DeleteMessageParams(
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
-        description?.let { addProperty("description", it) }
-        metadata?.let { add("metadata", it.toJson()) }
+        description?.let { addProperty(MessageOperationProperty.DESCRIPTION, it) }
+        metadata?.let { add(MessageOperationProperty.METADATA, it.toJson()) }
     }
 }
 
