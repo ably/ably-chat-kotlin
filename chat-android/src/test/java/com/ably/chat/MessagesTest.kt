@@ -106,6 +106,7 @@ class MessagesTest {
             PubSubMessage().apply {
                 data = JsonObject().apply {
                     addProperty("text", "some text")
+                    add("metadata", JsonObject())
                 }
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
@@ -136,7 +137,7 @@ class MessagesTest {
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "some text",
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
                 version = "abcdefghij@1672531200000-123",
@@ -240,6 +241,7 @@ private val Channel.channelMulticaster: ChannelBase.MessageListener
 private fun buildDummyPubSubMessage() = PubSubMessage().apply {
     data = JsonObject().apply {
         addProperty("text", "dummy text")
+        add("metadata", JsonObject())
     }
     serial = "abcdefghij@1672531200000-123"
     clientId = "dummy"

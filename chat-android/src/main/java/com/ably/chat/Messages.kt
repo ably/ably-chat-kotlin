@@ -452,7 +452,7 @@ internal class DefaultMessages(
 /**
  * Parsed data from the Pub/Sub channel's message data field
  */
-private data class PubSubMessageData(val text: String, val metadata: MessageMetadata?)
+private data class PubSubMessageData(val text: String, val metadata: MessageMetadata)
 
 private fun parsePubSubMessageData(data: Any): PubSubMessageData {
     if (data !is JsonObject) {

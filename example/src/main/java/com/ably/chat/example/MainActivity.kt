@@ -43,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ably.chat.ChatClient
 import com.ably.chat.Message
+import com.ably.chat.MessageMetadata
 import com.ably.chat.RealtimeClient
 import com.ably.chat.Room
 import com.ably.chat.RoomOptions
@@ -318,7 +319,7 @@ fun MessageBubblePreview() {
                 roomId = "roomId",
                 clientId = "clientId",
                 createdAt = System.currentTimeMillis(),
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf(),
                 action = MessageAction.MESSAGE_CREATE,
                 version = "fake",

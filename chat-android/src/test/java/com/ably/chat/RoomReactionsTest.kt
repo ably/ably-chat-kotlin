@@ -72,6 +72,7 @@ class RoomReactionsTest {
             PubSubMessage().apply {
                 data = JsonObject().apply {
                     addProperty("type", "like")
+                    add("metadata", JsonObject())
                 }
                 clientId = "clientId"
                 timestamp = 1000L
@@ -95,7 +96,7 @@ class RoomReactionsTest {
                 type = "like",
                 createdAt = 1000L,
                 clientId = "clientId",
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 isSelf = false,
             ),

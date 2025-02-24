@@ -27,6 +27,7 @@ class ChatApiTest {
             listOf(
                 JsonObject().apply {
                     addProperty("foo", "bar")
+                    add(MessageProperty.METADATA, JsonObject())
                     addProperty(MessageProperty.SERIAL, "timeserial")
                     addProperty(MessageProperty.ROOM_ID, "roomId")
                     addProperty(MessageProperty.CLIENT_ID, "clientId")
@@ -49,7 +50,7 @@ class ChatApiTest {
                     clientId = "clientId",
                     text = "hello",
                     createdAt = 1_000_000L,
-                    metadata = null,
+                    metadata = MessageMetadata(),
                     headers = null,
                     action = MessageAction.MESSAGE_CREATE,
                     version = "timeserial",
