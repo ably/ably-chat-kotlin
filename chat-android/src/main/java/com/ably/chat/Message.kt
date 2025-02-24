@@ -71,7 +71,7 @@ data class Message(
      * Do not use the headers for authoritative information. There is no server-side
      * validation. When reading the headers treat them like user input.
      */
-    val headers: MessageHeaders,
+    val headers: MessageHeaders?,
 
     /**
      * The latest action of the message. This can be used to determine if the message was created, updated, or deleted.
@@ -96,6 +96,31 @@ data class Message(
      */
     val operation: Message.Operation? = null,
 )
+
+fun com.ably.chat.Message.copy(text: String, metadata: MessageMetadata? = null, headers: MessageHeaders? = null): MessageCopy {
+    return MessageCopy(
+        message = this,
+        text = text,
+        metadata = metadata,
+        headers = headers,
+    )
+}
+
+data class MessageCopy(
+    val message: com.ably.chat.Message,
+    val text: String,
+    val metadata: MessageMetadata? = null,
+    val headers: MessageHeaders? = null,
+) {
+    val serial: String = message.serial
+    val clientId: String = message.clientId
+    val roomId: String = message.roomId
+    val createdAt: Long = message.createdAt
+    val action: MessageAction = message.action
+    val version: String = message.version
+    val timestamp: Long = message.timestamp
+    val operation: Message.Operation? = message.operation
+}
 
 fun buildMessageOperation(jsonObject: JsonObject?): Message.Operation? {
     if (jsonObject == null) {

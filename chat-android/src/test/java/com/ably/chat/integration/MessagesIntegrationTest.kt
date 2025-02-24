@@ -6,6 +6,7 @@ import com.ably.chat.MessageMetadata
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
+import com.ably.chat.copy
 import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -162,17 +163,16 @@ class MessagesIntegrationTest {
         val updatedText = "hello updated"
         val updatedMetadata = MessageMetadata()
         updatedMetadata.addProperty("foo", "baz")
-        val description = "Updating message"
-        val opMetadata = mapOf("operation" to "update")
         val headers = mapOf("headerKey" to "headerValue")
 
+        val opDescription = "Updating message"
+        val opMetadata = mapOf("operation" to "update")
+
+        val messageCopy = sentMessage.copy(updatedText, updatedMetadata, headers)
         val updatedMessage = room.messages.update(
-            message = sentMessage,
-            text = updatedText,
-            opDescription = description,
-            opMetadata = opMetadata,
-            metadata = updatedMetadata,
-            headers = headers,
+            message = messageCopy,
+            opDescription,
+            opMetadata,
         )
 
         assertEquals(MessageAction.MESSAGE_UPDATE, updatedMessage.action)
@@ -223,8 +223,8 @@ class MessagesIntegrationTest {
 
         val deletedMessage = room.messages.delete(
             message = sentMessage,
-            opDescription = description,
-            opMetadata = opMetadata,
+            operationDescription = description,
+            operationMetadata = opMetadata,
         )
 
         assertEquals(MessageAction.MESSAGE_DELETE, deletedMessage.action)

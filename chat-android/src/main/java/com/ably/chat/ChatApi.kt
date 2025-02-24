@@ -44,7 +44,7 @@ internal class ChatApi(
                     text = messageJsonObject.requireString(MessageProperty.TEXT),
                     createdAt = messageJsonObject.requireLong(MessageProperty.CREATED_AT),
                     metadata = messageJsonObject.getAsJsonObject(MessageProperty.METADATA),
-                    headers = messageJsonObject.get(MessageProperty.HEADERS)?.toMap() ?: mapOf(),
+                    headers = messageJsonObject.get(MessageProperty.HEADERS)?.toMap(),
                     action = action,
                     version = messageJsonObject.requireString(MessageProperty.VERSION),
                     timestamp = messageJsonObject.requireLong(MessageProperty.TIMESTAMP),
@@ -75,7 +75,7 @@ internal class ChatApi(
                 text = params.text,
                 createdAt = createdAt,
                 metadata = params.metadata ?: MessageMetadata(),
-                headers = params.headers ?: mapOf(),
+                headers = params.headers,
                 action = MessageAction.MESSAGE_CREATE,
                 version = serial,
                 timestamp = createdAt,
@@ -87,7 +87,7 @@ internal class ChatApi(
     /**
      * Spec: CHA-M8
      */
-    suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
+    suspend fun updateMessage(message: MessageCopy, params: UpdateMessageParams): Message {
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
@@ -105,7 +105,7 @@ internal class ChatApi(
                 text = params.message.text,
                 createdAt = message.createdAt,
                 metadata = params.message.metadata ?: MessageMetadata(),
-                headers = params.message.headers ?: mapOf(),
+                headers = params.message.headers,
                 action = MessageAction.MESSAGE_UPDATE,
                 version = version,
                 timestamp = timestamp,

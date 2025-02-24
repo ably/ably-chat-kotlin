@@ -79,21 +79,11 @@ interface Messages : EmitsDiscontinuities {
      * Spec: CHA-M8
      *
      * @param message The message to update.
-     * @param text The new text of the message.
-     * @param opDescription Optional description for the update action.
-     * @param opMetadata Optional metadata for the update action.
-     * @param metadata Optional metadata of the message.
-     * @param headers Optional headers of the message.
+     * @param operationDescription Optional description for the update action.
+     * @param operationMetadata Optional metadata for the update action.
      * @returns updated message.
      */
-    suspend fun update(
-        message: Message,
-        text: String,
-        opDescription: String? = null,
-        opMetadata: OperationMetadata? = null,
-        metadata: MessageMetadata? = null,
-        headers: MessageHeaders? = null,
-    ): Message
+    suspend fun update(message: MessageCopy, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * Delete a message in the chat room.
@@ -109,11 +99,11 @@ interface Messages : EmitsDiscontinuities {
      *
      * @returns when the message is deleted.
      * @param message - The message to delete.
-     * @param opDescription - Optional description for the delete action.
-     * @param opMetadata - Optional metadata for the delete action.
+     * @param operationDescription - Optional description for the delete action.
+     * @param operationMetadata - Optional metadata for the delete action.
      * @return A promise that resolves to the deleted message.
      */
-    suspend fun delete(message: Message, opDescription: String? = null, opMetadata: OperationMetadata? = null): Message
+    suspend fun delete(message: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * An interface for listening to new messaging event
@@ -374,7 +364,7 @@ internal class DefaultMessages(
                 serial = pubSubMessage.serial,
                 text = data.text,
                 metadata = data.metadata,
-                headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap() ?: mapOf(),
+                headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap(),
                 action = pubSubMessage.action,
                 version = pubSubMessage.version,
                 timestamp = pubSubMessage.timestamp,
@@ -417,27 +407,28 @@ internal class DefaultMessages(
         )
 
     override suspend fun update(
-        message: Message,
-        text: String,
-        opDescription: String?,
-        opMetadata: OperationMetadata?,
-        metadata: MessageMetadata?,
-        headers: MessageHeaders?,
+        messageCopy: MessageCopy,
+        operationDescription: String?,
+        operationMetadata: OperationMetadata?,
     ): Message = chatApi.updateMessage(
-        message,
+        messageCopy,
         UpdateMessageParams(
-            message = SendMessageParams(text, metadata, headers),
-            description = opDescription,
-            metadata = opMetadata,
+            message = SendMessageParams(messageCopy.text, messageCopy.metadata, messageCopy.headers),
+            description = operationDescription,
+            metadata = operationMetadata,
         ),
     )
 
-    override suspend fun delete(message: Message, opDescription: String?, opMetadata: OperationMetadata?): Message =
+    override suspend fun delete(
+        message: Message,
+        operationDescription: String?,
+        operationMetadata: OperationMetadata?,
+    ): Message =
         chatApi.deleteMessage(
             message,
             DeleteMessageParams(
-                description = opDescription,
-                metadata = opMetadata,
+                description = operationDescription,
+                metadata = operationMetadata,
             ),
         )
 
