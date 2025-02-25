@@ -54,8 +54,8 @@ class MessagesTest {
         mockSendMessageApiResponse(
             realtimeClient,
             JsonObject().apply {
-                addProperty(MessageProperty.SERIAL, "abcdefghij@1672531200000-123")
-                addProperty(MessageProperty.CREATED_AT, 1_000_000)
+                addProperty(MessageProperty.Serial, "abcdefghij@1672531200000-123")
+                addProperty(MessageProperty.CreatedAt, 1_000_000)
             },
             roomId = "room1",
         )

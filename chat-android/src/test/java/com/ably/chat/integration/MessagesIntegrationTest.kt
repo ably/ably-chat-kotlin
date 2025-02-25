@@ -170,7 +170,7 @@ class MessagesIntegrationTest {
 
         val messageCopy = sentMessage.copy(updatedText, updatedMetadata, headers)
         val updatedMessage = room.messages.update(
-            message = messageCopy,
+            messageCopy,
             opDescription,
             opMetadata,
         )

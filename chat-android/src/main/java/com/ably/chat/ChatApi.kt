@@ -34,20 +34,20 @@ internal class ChatApi(
             params = params,
         ) {
             val messageJsonObject = it.requireJsonObject()
-            val latestAction = messageJsonObject.get(MessageProperty.ACTION)?.asString?.let { name -> messageActionNameToAction[name] }
-            val operation = messageJsonObject.getAsJsonObject(MessageProperty.OPERATION)
+            val latestAction = messageJsonObject.get(MessageProperty.Action)?.asString?.let { name -> messageActionNameToAction[name] }
+            val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
             latestAction?.let { action ->
                 Message(
-                    serial = messageJsonObject.requireString(MessageProperty.SERIAL),
-                    clientId = messageJsonObject.requireString(MessageProperty.CLIENT_ID),
-                    roomId = messageJsonObject.requireString(MessageProperty.ROOM_ID),
-                    text = messageJsonObject.requireString(MessageProperty.TEXT),
-                    createdAt = messageJsonObject.requireLong(MessageProperty.CREATED_AT),
-                    metadata = messageJsonObject.getAsJsonObject(MessageProperty.METADATA),
-                    headers = messageJsonObject.get(MessageProperty.HEADERS)?.toMap(),
+                    serial = messageJsonObject.requireString(MessageProperty.Serial),
+                    clientId = messageJsonObject.requireString(MessageProperty.ClientId),
+                    roomId = messageJsonObject.requireString(MessageProperty.RoomId),
+                    text = messageJsonObject.requireString(MessageProperty.Text),
+                    createdAt = messageJsonObject.requireLong(MessageProperty.CreatedAt),
+                    metadata = messageJsonObject.getAsJsonObject(MessageProperty.Metadata),
+                    headers = messageJsonObject.get(MessageProperty.Headers)?.toMap(),
                     action = action,
-                    version = messageJsonObject.requireString(MessageProperty.VERSION),
-                    timestamp = messageJsonObject.requireLong(MessageProperty.TIMESTAMP),
+                    version = messageJsonObject.requireString(MessageProperty.Version),
+                    timestamp = messageJsonObject.requireLong(MessageProperty.Timestamp),
                     operation = buildMessageOperation(operation),
                 )
             }
@@ -65,8 +65,8 @@ internal class ChatApi(
             "POST",
             body,
         )?.let {
-            val serial = it.requireString(MessageProperty.SERIAL)
-            val createdAt = it.requireLong(MessageProperty.CREATED_AT)
+            val serial = it.requireString(MessageProperty.Serial)
+            val createdAt = it.requireLong(MessageProperty.CreatedAt)
             // CHA-M3a
             Message(
                 serial = serial,
@@ -87,7 +87,7 @@ internal class ChatApi(
     /**
      * Spec: CHA-M8
      */
-    suspend fun updateMessage(message: MessageCopy, params: UpdateMessageParams): Message {
+    suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
@@ -95,8 +95,8 @@ internal class ChatApi(
             "PUT",
             body,
         )?.let {
-            val version = it.requireString(MessageProperty.VERSION)
-            val timestamp = it.requireLong(MessageProperty.TIMESTAMP)
+            val version = it.requireString(MessageProperty.Version)
+            val timestamp = it.requireLong(MessageProperty.Timestamp)
             // CHA-M8b
             Message(
                 serial = message.serial,
@@ -125,8 +125,8 @@ internal class ChatApi(
             "POST",
             body,
         )?.let {
-            val version = it.requireString(MessageProperty.VERSION)
-            val timestamp = it.requireLong(MessageProperty.TIMESTAMP)
+            val version = it.requireString(MessageProperty.Version)
+            val timestamp = it.requireLong(MessageProperty.Timestamp)
             // CHA-M9b
             Message(
                 serial = message.serial,

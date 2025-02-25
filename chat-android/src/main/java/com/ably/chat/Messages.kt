@@ -78,12 +78,12 @@ interface Messages : EmitsDiscontinuities {
      * The original message is not modified.
      * Spec: CHA-M8
      *
-     * @param message The message to update.
+     * @param messageCopy The updated copy of the message created using the `message.copy` method.
      * @param operationDescription Optional description for the update action.
      * @param operationMetadata Optional metadata for the update action.
      * @returns updated message.
      */
-    suspend fun update(message: MessageCopy, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
+    suspend fun update(messageCopy: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * Delete a message in the chat room.
@@ -238,8 +238,8 @@ internal data class UpdateMessageParams(
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
         add("message", message.toJsonObject())
-        description?.let { addProperty(MessageOperationProperty.DESCRIPTION, it) }
-        metadata?.let { add(MessageOperationProperty.METADATA, it.toJson()) }
+        description?.let { addProperty(MessageOperationProperty.Description, it) }
+        metadata?.let { add(MessageOperationProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -259,8 +259,8 @@ internal data class DeleteMessageParams(
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
-        description?.let { addProperty(MessageOperationProperty.DESCRIPTION, it) }
-        metadata?.let { add(MessageOperationProperty.METADATA, it.toJson()) }
+        description?.let { addProperty(MessageOperationProperty.Description, it) }
+        metadata?.let { add(MessageOperationProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -374,7 +374,7 @@ internal class DefaultMessages(
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
-        channel.subscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
+        channel.subscribe(PubSubEventName.ChatMessage, messageListener)
         // (CHA-M5) setting subscription point
         if (channel.state == ChannelState.attached) {
             channelSerialMap[messageListener] = CompletableDeferred(requireChannelSerial())
@@ -385,7 +385,7 @@ internal class DefaultMessages(
             roomId = roomId,
             subscription = {
                 channelSerialMap.remove(messageListener)
-                channel.unsubscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
+                channel.unsubscribe(PubSubEventName.ChatMessage, messageListener)
             },
             fromSerialProvider = {
                 channelSerialMap[messageListener]
@@ -407,7 +407,7 @@ internal class DefaultMessages(
         )
 
     override suspend fun update(
-        messageCopy: MessageCopy,
+        messageCopy: Message,
         operationDescription: String?,
         operationMetadata: OperationMetadata?,
     ): Message = chatApi.updateMessage(

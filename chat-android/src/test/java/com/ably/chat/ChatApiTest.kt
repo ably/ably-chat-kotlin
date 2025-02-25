@@ -27,15 +27,15 @@ class ChatApiTest {
             listOf(
                 JsonObject().apply {
                     addProperty("foo", "bar")
-                    add(MessageProperty.METADATA, JsonObject())
-                    addProperty(MessageProperty.SERIAL, "timeserial")
-                    addProperty(MessageProperty.ROOM_ID, "roomId")
-                    addProperty(MessageProperty.CLIENT_ID, "clientId")
-                    addProperty(MessageProperty.TEXT, "hello")
-                    addProperty(MessageProperty.CREATED_AT, 1_000_000)
-                    addProperty(MessageProperty.ACTION, "message.create")
-                    addProperty(MessageProperty.VERSION, "timeserial")
-                    addProperty(MessageProperty.TIMESTAMP, 1_000_000)
+                    add(MessageProperty.Metadata, JsonObject())
+                    addProperty(MessageProperty.Serial, "timeserial")
+                    addProperty(MessageProperty.RoomId, "roomId")
+                    addProperty(MessageProperty.ClientId, "clientId")
+                    addProperty(MessageProperty.Text, "hello")
+                    addProperty(MessageProperty.CreatedAt, 1_000_000)
+                    addProperty(MessageProperty.Action, "message.create")
+                    addProperty(MessageProperty.Version, "timeserial")
+                    addProperty(MessageProperty.Timestamp, 1_000_000)
                 },
             ),
         )
@@ -71,7 +71,7 @@ class ChatApiTest {
             listOf(
                 JsonObject().apply {
                     addProperty("foo", "bar")
-                    addProperty(MessageProperty.ACTION, "message.create")
+                    addProperty(MessageProperty.Action, "message.create")
                 },
             ),
         )
@@ -92,8 +92,8 @@ class ChatApiTest {
             realtime,
             JsonObject().apply {
                 addProperty("foo", "bar")
-                addProperty(MessageProperty.SERIAL, "timeserial")
-                addProperty(MessageProperty.CREATED_AT, 1_000_000)
+                addProperty(MessageProperty.Serial, "timeserial")
+                addProperty(MessageProperty.CreatedAt, 1_000_000)
             },
         )
 
@@ -125,7 +125,7 @@ class ChatApiTest {
             realtime,
             JsonObject().apply {
                 addProperty("foo", "bar")
-                addProperty(MessageProperty.CREATED_AT, 1_000_000)
+                addProperty(MessageProperty.CreatedAt, 1_000_000)
             },
         )
 
