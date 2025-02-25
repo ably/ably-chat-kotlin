@@ -1,5 +1,3 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
 import com.ably.chat.OrderBy.NewestFirst
@@ -78,12 +76,12 @@ interface Messages : EmitsDiscontinuities {
      * The original message is not modified.
      * Spec: CHA-M8
      *
-     * @param messageCopy The updated copy of the message created using the `message.copy` method.
+     * @param updatedMessage The updated copy of the message created using the `message.copy` method.
      * @param operationDescription Optional description for the update action.
      * @param operationMetadata Optional metadata for the update action.
      * @returns updated message.
      */
-    suspend fun update(messageCopy: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
+    suspend fun update(updatedMessage: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * Delete a message in the chat room.
@@ -363,8 +361,8 @@ internal class DefaultMessages(
                 clientId = pubSubMessage.clientId,
                 serial = pubSubMessage.serial,
                 text = data.text,
-                metadata = data.metadata,
-                headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap(),
+                metadata = data.metadata ?: MessageMetadata(),
+                headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
                 version = pubSubMessage.version,
                 timestamp = pubSubMessage.timestamp,
@@ -407,13 +405,13 @@ internal class DefaultMessages(
         )
 
     override suspend fun update(
-        messageCopy: Message,
+        updatedMessage: Message,
         operationDescription: String?,
         operationMetadata: OperationMetadata?,
     ): Message = chatApi.updateMessage(
-        messageCopy,
+        updatedMessage,
         UpdateMessageParams(
-            message = SendMessageParams(messageCopy.text, messageCopy.metadata, messageCopy.headers),
+            message = SendMessageParams(updatedMessage.text, updatedMessage.metadata, updatedMessage.headers),
             description = operationDescription,
             metadata = operationMetadata,
         ),
@@ -452,7 +450,7 @@ internal class DefaultMessages(
 /**
  * Parsed data from the Pub/Sub channel's message data field
  */
-private data class PubSubMessageData(val text: String, val metadata: MessageMetadata)
+private data class PubSubMessageData(val text: String, val metadata: MessageMetadata?)
 
 private fun parsePubSubMessageData(data: Any): PubSubMessageData {
     if (data !is JsonObject) {

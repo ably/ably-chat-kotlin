@@ -1,5 +1,3 @@
-@file:Suppress("NotImplementedDeclaration")
-
 package com.ably.chat
 
 import io.ably.lib.realtime.AblyRealtime

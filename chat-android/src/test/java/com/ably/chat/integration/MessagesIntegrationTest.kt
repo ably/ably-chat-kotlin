@@ -6,7 +6,6 @@ import com.ably.chat.MessageMetadata
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
-import com.ably.chat.copy
 import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -168,7 +167,7 @@ class MessagesIntegrationTest {
         val opDescription = "Updating message"
         val opMetadata = mapOf("operation" to "update")
 
-        val messageCopy = sentMessage.copy(updatedText, updatedMetadata, headers)
+        val messageCopy = sentMessage.copy(text = updatedText, metadata = updatedMetadata, headers = headers)
         val updatedMessage = room.messages.update(
             messageCopy,
             opDescription,

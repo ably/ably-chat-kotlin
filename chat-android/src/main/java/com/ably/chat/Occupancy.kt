@@ -1,4 +1,4 @@
-@file:Suppress("StringLiteralDuplication", "NotImplementedDeclaration")
+@file:Suppress("StringLiteralDuplication")
 
 package com.ably.chat
 
