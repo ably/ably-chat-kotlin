@@ -1,16 +1,13 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
+import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
-import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.CompletionListener
-import io.ably.lib.realtime.Presence.GET_CLIENTID
-import io.ably.lib.realtime.Presence.GET_CONNECTIONID
-import io.ably.lib.realtime.Presence.GET_WAITFORSYNC
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ChannelOptions
 import io.ably.lib.types.ErrorInfo
-import io.ably.lib.types.Param
 import io.ably.lib.types.PresenceMessage
 import java.util.UUID
 import kotlin.coroutines.resume
@@ -18,11 +15,8 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import io.ably.lib.realtime.Presence as PubSubPresence
 
-internal const val AGENT_PARAMETER_NAME = "agent"
-
-internal suspend fun Channel.attachCoroutine() = suspendCancellableCoroutine { continuation ->
+internal suspend fun RealtimeChannel.attachCoroutine() = suspendCancellableCoroutine { continuation ->
     attach(object : CompletionListener {
         override fun onSuccess() {
             continuation.resume(Unit)
@@ -34,7 +28,7 @@ internal suspend fun Channel.attachCoroutine() = suspendCancellableCoroutine { c
     })
 }
 
-internal suspend fun Channel.detachCoroutine() = suspendCancellableCoroutine { continuation ->
+internal suspend fun RealtimeChannel.detachCoroutine() = suspendCancellableCoroutine { continuation ->
     detach(object : CompletionListener {
         override fun onSuccess() {
             continuation.resume(Unit)
@@ -46,7 +40,7 @@ internal suspend fun Channel.detachCoroutine() = suspendCancellableCoroutine { c
     })
 }
 
-internal suspend fun Channel.publishCoroutine(message: PubSubMessage) = suspendCancellableCoroutine { continuation ->
+internal suspend fun RealtimeChannel.publishCoroutine(message: PubSubMessage) = suspendCancellableCoroutine { continuation ->
     publish(
         message,
         object : CompletionListener {
@@ -61,21 +55,15 @@ internal suspend fun Channel.publishCoroutine(message: PubSubMessage) = suspendC
     )
 }
 
-@Suppress("SpreadOperator")
-internal suspend fun PubSubPresence.getCoroutine(
+internal suspend fun RealtimePresence.getCoroutine(
     waitForSync: Boolean = true,
     clientId: String? = null,
     connectionId: String? = null,
 ): List<PresenceMessage> = withContext(Dispatchers.IO) {
-    val params = buildList {
-        if (waitForSync) add(Param(GET_WAITFORSYNC, true))
-        clientId?.let { add(Param(GET_CLIENTID, it)) }
-        connectionId?.let { add(Param(GET_CONNECTIONID, it)) }
-    }
-    get(*params.toTypedArray()).asList()
+    get(waitForSync = waitForSync, clientId = clientId, connectionId = connectionId)
 }
 
-internal suspend fun PubSubPresence.enterClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
+internal suspend fun RealtimePresence.enterClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
     suspendCancellableCoroutine { continuation ->
         enterClient(
             clientId,
@@ -92,7 +80,7 @@ internal suspend fun PubSubPresence.enterClientCoroutine(clientId: String, data:
         )
     }
 
-internal suspend fun PubSubPresence.updateClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
+internal suspend fun RealtimePresence.updateClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
     suspendCancellableCoroutine { continuation ->
         updateClient(
             clientId,
@@ -109,7 +97,7 @@ internal suspend fun PubSubPresence.updateClientCoroutine(clientId: String, data
         )
     }
 
-internal suspend fun PubSubPresence.leaveClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
+internal suspend fun RealtimePresence.leaveClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
     suspendCancellableCoroutine { continuation ->
         leaveClient(
             clientId,
@@ -126,11 +114,11 @@ internal suspend fun PubSubPresence.leaveClientCoroutine(clientId: String, data:
         )
     }
 
-internal val Channel.errorMessage: String
+internal val RealtimeChannel.errorMessage: String
     get() = if (reason == null) {
         ""
     } else {
-        ", ${reason.message}"
+        ", ${reason?.message}"
     }
 
 val List<String>.joinWithBrackets: String get() = joinToString(prefix = "[", postfix = "]") { it }
@@ -139,9 +127,6 @@ val List<String>.joinWithBrackets: String get() = joinToString(prefix = "[", pos
 internal fun ChatChannelOptions(init: (ChannelOptions.() -> Unit)? = null): ChannelOptions {
     val options = ChannelOptions()
     init?.let { options.it() }
-    options.params = (options.params ?: mapOf()) + mapOf(
-        AGENT_PARAMETER_NAME to "chat-kotlin/${BuildConfig.APP_VERSION}",
-    )
     // (CHA-M4a)
     options.attachOnSubscribe = false
     return options
@@ -202,3 +187,7 @@ private fun createAblyException(
 internal fun clientError(errorMessage: String) = ablyException(errorMessage, ErrorCode.BadRequest, HttpStatusCode.BadRequest)
 
 internal fun serverError(errorMessage: String) = ablyException(errorMessage, ErrorCode.InternalError, HttpStatusCode.InternalServerError)
+
+internal fun com.ably.Subscription.asChatSubscription(): Subscription = Subscription {
+    this.unsubscribe()
+}

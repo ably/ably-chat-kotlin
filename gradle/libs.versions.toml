@@ -24,6 +24,7 @@ ktor = "3.0.1"
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 ably-android = { module = "io.ably:ably-android", version.ref = "ably" }
+ably-pubsub-adapter = { module = "io.ably:pubsub-adapter", version.ref = "ably" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test" }
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }

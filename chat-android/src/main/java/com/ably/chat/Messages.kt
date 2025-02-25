@@ -1,6 +1,8 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.OrderBy.NewestFirst
+import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
@@ -314,7 +316,10 @@ internal class DefaultMessages(
      */
     private val messagesChannelName = "${room.roomId}::\$chat::\$chatMessages"
 
-    override val channel: Channel = realtimeChannels.get(messagesChannelName, room.options.messagesChannelOptions()) // CHA-RC2f
+    override val channelWrapper: RealtimeChannel = realtimeChannels.get(messagesChannelName, room.options.messagesChannelOptions())
+
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
 
     override val attachmentErrorCode: ErrorCode = ErrorCode.MessagesAttachmentFailed
 
@@ -334,7 +339,8 @@ internal class DefaultMessages(
                 updateChannelSerialsAfterDiscontinuity(requireAttachSerial())
             }
         }
-        channel.on(channelStateListener)
+        @OptIn(InternalAPI::class)
+        channelWrapper.javaChannel.on(channelStateListener)
     }
 
     // CHA-M5c, CHA-M5d - Updated channel serial after discontinuity
@@ -372,9 +378,9 @@ internal class DefaultMessages(
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
-        channel.subscribe(PubSubEventName.ChatMessage, messageListener)
+        val subscription = channelWrapper.subscribe(PubSubEventName.ChatMessage, messageListener)
         // (CHA-M5) setting subscription point
-        if (channel.state == ChannelState.attached) {
+        if (channelWrapper.state == ChannelState.attached) {
             channelSerialMap[messageListener] = CompletableDeferred(requireChannelSerial())
         }
 
@@ -383,7 +389,7 @@ internal class DefaultMessages(
             roomId = roomId,
             subscription = {
                 channelSerialMap.remove(messageListener)
-                channel.unsubscribe(PubSubEventName.ChatMessage, messageListener)
+                subscription.unsubscribe()
             },
             fromSerialProvider = {
                 channelSerialMap[messageListener]
@@ -431,19 +437,20 @@ internal class DefaultMessages(
         )
 
     private fun requireChannelSerial(): String {
-        return channel.properties.channelSerial
+        return channelWrapper.properties.channelSerial
             ?: throw clientError("Channel has been attached, but channelSerial is not defined")
     }
 
     private fun requireAttachSerial(): String {
-        return channel.properties.attachSerial
+        return channelWrapper.properties.attachSerial
             ?: throw clientError("Channel has been attached, but attachSerial is not defined")
     }
 
     override fun release() {
-        channel.off(channelStateListener)
+        @OptIn(InternalAPI::class)
+        channelWrapper.javaChannel.off(channelStateListener)
         channelSerialMap.clear()
-        realtimeChannels.release(channel.name)
+        realtimeChannels.release(channelWrapper.name)
     }
 }
 

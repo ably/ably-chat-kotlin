@@ -2,6 +2,8 @@
 
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
+import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.Presence.PresenceListener
 import io.ably.lib.types.AblyException
@@ -112,7 +114,10 @@ internal class DefaultTyping(
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
-    override val channel: Channel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions()) // CHA-RC2f
+    override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
+
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
 
     private var typingJob: Job? = null
 
@@ -137,11 +142,7 @@ internal class DefaultTyping(
             }
         }
 
-        channel.presence.subscribe(presenceListener)
-
-        presenceSubscription = Subscription {
-            channel.presence.unsubscribe(presenceListener)
-        }
+        presenceSubscription = channelWrapper.presence.subscribe(presenceListener).asChatSubscription()
     }
 
     override fun subscribe(listener: Typing.Listener): Subscription {
@@ -156,7 +157,7 @@ internal class DefaultTyping(
     override suspend fun get(): Set<String> {
         logger.trace("DefaultTyping.get()")
         room.ensureAttached(logger) // CHA-T2d, CHA-T2c, CHA-T2g
-        return channel.presence.getCoroutine().map { it.clientId }.toSet()
+        return channelWrapper.presence.getCoroutine().map { it.clientId }.toSet()
     }
 
     override suspend fun start() {
@@ -171,7 +172,7 @@ internal class DefaultTyping(
             } else {
                 startTypingTimer()
                 room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
-                channel.presence.enterClientCoroutine(room.clientId)
+                channelWrapper.presence.enterClientCoroutine(room.clientId)
             }
         }.join()
     }
@@ -181,14 +182,14 @@ internal class DefaultTyping(
         typingScope.launch {
             typingJob?.cancel()
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
-            channel.presence.leaveClientCoroutine(room.clientId)
+            channelWrapper.presence.leaveClientCoroutine(room.clientId)
         }.join()
     }
 
     override fun release() {
         presenceSubscription.unsubscribe()
         typingScope.cancel()
-        room.realtimeClient.channels.release(channel.name)
+        room.realtimeClient.channels.release(channelWrapper.name)
     }
 
     private fun startTypingTimer() {

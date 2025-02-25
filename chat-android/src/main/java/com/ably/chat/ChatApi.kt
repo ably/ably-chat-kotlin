@@ -1,5 +1,7 @@
 package com.ably.chat
 
+import com.ably.http.HttpMethod
+import com.ably.pubsub.RealtimeClient
 import com.google.gson.JsonElement
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
@@ -30,7 +32,7 @@ internal class ChatApi(
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
             url = "/chat/v2/rooms/$roomId/messages",
-            method = "GET",
+            method = HttpMethod.Get,
             params = params,
         ) {
             val messageJsonObject = it.requireJsonObject()
@@ -62,7 +64,7 @@ internal class ChatApi(
 
         return makeAuthorizedRequest(
             "/chat/v2/rooms/$roomId/messages",
-            "POST",
+            HttpMethod.Post,
             body,
         )?.let {
             val serial = it.requireString(MessageProperty.Serial)
@@ -92,7 +94,7 @@ internal class ChatApi(
         // CHA-M8c
         return makeAuthorizedRequest(
             "/chat/v2/rooms/${message.roomId}/messages/${message.serial}",
-            "PUT",
+            HttpMethod.Put,
             body,
         )?.let {
             val version = it.requireString(MessageProperty.Version)
@@ -122,7 +124,7 @@ internal class ChatApi(
 
         return makeAuthorizedRequest(
             "/chat/v2/rooms/${message.roomId}/messages/${message.serial}/delete",
-            "POST",
+            HttpMethod.Post,
             body,
         )?.let {
             val version = it.requireString(MessageProperty.Version)
@@ -148,7 +150,7 @@ internal class ChatApi(
      * return occupancy for specified room
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
-        return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", "GET")?.let {
+        return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             OccupancyEvent(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),
@@ -158,17 +160,17 @@ internal class ChatApi(
 
     private suspend fun makeAuthorizedRequest(
         url: String,
-        method: String,
+        method: HttpMethod,
         body: JsonElement? = null,
     ): JsonElement? = suspendCancellableCoroutine { continuation ->
         val requestBody = body.toRequestBody()
         realtimeClient.requestAsync(
-            method,
-            url,
-            arrayOf(apiProtocolParam),
-            requestBody,
-            arrayOf(),
-            object : AsyncHttpPaginatedResponse.Callback {
+            path = url,
+            method = method,
+            params = listOf(apiProtocolParam),
+            body = requestBody,
+            headers = listOf(),
+            callback = object : AsyncHttpPaginatedResponse.Callback {
                 override fun onResponse(response: AsyncHttpPaginatedResponse?) {
                     continuation.resume(response?.items()?.firstOrNull())
                 }
@@ -192,17 +194,17 @@ internal class ChatApi(
 
     private suspend fun <T> makeAuthorizedPaginatedRequest(
         url: String,
-        method: String,
+        method: HttpMethod,
         params: List<Param> = listOf(),
         transform: (JsonElement) -> T?,
     ): PaginatedResult<T> = suspendCancellableCoroutine { continuation ->
         realtimeClient.requestAsync(
-            method,
-            url,
-            (params + apiProtocolParam).toTypedArray(),
-            null,
-            arrayOf(),
-            object : AsyncHttpPaginatedResponse.Callback {
+            method = method,
+            path = url,
+            params = params + apiProtocolParam,
+            body = null,
+            headers = listOf(),
+            callback = object : AsyncHttpPaginatedResponse.Callback {
                 override fun onResponse(response: AsyncHttpPaginatedResponse?) {
                     continuation.resume(response.toPaginatedResult(transform))
                 }

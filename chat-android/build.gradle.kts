@@ -51,6 +51,7 @@ buildConfig {
 
 dependencies {
     api(libs.ably.android)
+    implementation(libs.ably.pubsub.adapter)
     implementation(libs.gson)
     implementation(libs.coroutine.core)
 
