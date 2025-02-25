@@ -1,11 +1,12 @@
 package com.ably.chat
 
-import com.ably.chat.room.createMockChannel
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
 import com.google.gson.JsonObject
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -21,11 +22,10 @@ class OccupancyTest {
 
     @Before
     fun setUp() {
-        val mockRealtimeChannel = realtimeClient.createMockChannel()
-        every { mockRealtimeChannel.subscribe(capture(pubSubMessageListenerSlot)) } returns Unit
-
-        every { realtimeClient.channels.get(any(), any()) } returns mockRealtimeChannel
-
+        val channel = createMockRealtimeChannel("room1::\$chat::\$chatMessages")
+        every { channel.subscribe(capture(pubSubMessageListenerSlot)) } returns mockk(relaxUnitFun = true)
+        val channels = realtimeClient.channels
+        every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
         val mockChatApi = createMockChatApi(realtimeClient)
         val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi)
         occupancy = DefaultOccupancy(room)

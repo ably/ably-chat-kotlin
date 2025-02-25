@@ -1,19 +1,14 @@
 package com.ably.chat.room
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.AndroidLogger
 import com.ably.chat.AtomicCoroutineScope
 import com.ably.chat.ChatApi
 import com.ably.chat.ContributesToRoomLifecycle
-import com.ably.chat.DefaultMessages
-import com.ably.chat.DefaultOccupancy
-import com.ably.chat.DefaultPresence
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomLifecycle
-import com.ably.chat.DefaultRoomReactions
-import com.ably.chat.DefaultTyping
 import com.ably.chat.LifecycleOperationPrecedence
 import com.ably.chat.Logger
-import com.ably.chat.RealtimeClient
 import com.ably.chat.Room
 import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomOptions
@@ -21,13 +16,14 @@ import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
 import com.ably.chat.getPrivateField
 import com.ably.chat.invokePrivateSuspendMethod
-import com.ably.chat.setPrivateField
-import io.ably.lib.realtime.AblyRealtime
+import com.ably.pubsub.RealtimeChannel
+import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
-import io.ably.lib.types.ClientOptions
+import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import kotlinx.coroutines.CompletableDeferred
@@ -37,15 +33,36 @@ const val DEFAULT_ROOM_ID = "1234"
 const val DEFAULT_CLIENT_ID = "clientId"
 const val DEFAULT_CHANNEL_NAME = "channel"
 
-fun createMockRealtimeClient(): AblyRealtime {
-    val realtimeClient = spyk(AblyRealtime(ClientOptions("id:key").apply { autoConnect = false }), recordPrivateCalls = true)
-    val mockChannels = spyk(realtimeClient.channels, recordPrivateCalls = true)
-    realtimeClient.setPrivateField("channels", mockChannels)
+fun createMockRealtimeClient(): RealtimeClient {
+    val realtimeClient = mockk<RealtimeClient> {
+        every {
+            channels
+        } returns mockk {
+            every { get(any(), any()) } answers {
+                createMockRealtimeChannel(firstArg<String>())
+            }
+            every { release(any()) } returns Unit
+        }
+    }
     return realtimeClient
 }
 
-fun AblyRealtime.createMockChannel(channelName: String = DEFAULT_CHANNEL_NAME): Channel =
-    spyk(channels.get(channelName), recordPrivateCalls = true)
+@OptIn(InternalAPI::class)
+fun createMockRealtimeChannel(channelName: String = "channel"): RealtimeChannel = mockk {
+    every { name } returns channelName
+    every { javaChannel } returns spyk(buildRealtimeChannel(channelName))
+    every { state } returns ChannelState.initialized
+    every { reason } returns null
+    every { presence } returns mockk {
+        every { subscribe(any()) } returns mockk(relaxUnitFun = true)
+    }
+    every { subscribe(any<String>(), any()) } returns mockk(relaxUnitFun = true)
+    every { subscribe(any()) } returns mockk(relaxUnitFun = true)
+}
+
+@OptIn(InternalAPI::class)
+fun RealtimeClient.createMockChannel(channelName: String = DEFAULT_CHANNEL_NAME): Channel =
+    spyk(this.javaClient.channels.get(channelName), recordPrivateCalls = true)
 
 internal fun createMockChatApi(
     realtimeClient: RealtimeClient = createMockRealtimeClient(),
@@ -101,11 +118,11 @@ internal fun createRoomFeatureMocks(
     val logger = createMockLogger()
     val room = createMockRoom(roomId, clientId, realtimeClient, chatApi, logger)
 
-    val messagesContributor = spyk(DefaultMessages(room), recordPrivateCalls = true)
-    val presenceContributor = spyk(DefaultPresence(room), recordPrivateCalls = true)
-    val occupancyContributor = spyk(DefaultOccupancy(room), recordPrivateCalls = true)
-    val typingContributor = spyk(DefaultTyping(room), recordPrivateCalls = true)
-    val reactionsContributor = spyk(DefaultRoomReactions(room), recordPrivateCalls = true)
+    val messagesContributor = spyk(room.messages, recordPrivateCalls = true) as ContributesToRoomLifecycle
+    val presenceContributor = spyk(room.presence, recordPrivateCalls = true) as ContributesToRoomLifecycle
+    val occupancyContributor = spyk(room.occupancy, recordPrivateCalls = true) as ContributesToRoomLifecycle
+    val typingContributor = spyk(room.typing, recordPrivateCalls = true) as ContributesToRoomLifecycle
+    val reactionsContributor = spyk(room.reactions, recordPrivateCalls = true) as ContributesToRoomLifecycle
 
     // CHA-RC2e - Add contributors/features as per the order of precedence
     return listOf(messagesContributor, presenceContributor, typingContributor, reactionsContributor, occupancyContributor)

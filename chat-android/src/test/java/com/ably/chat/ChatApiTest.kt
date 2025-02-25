@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeClient
 import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.MessageAction

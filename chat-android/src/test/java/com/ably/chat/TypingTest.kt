@@ -1,13 +1,12 @@
 package com.ably.chat
 
 import com.ably.chat.room.DEFAULT_CLIENT_ID
-import com.ably.chat.room.createMockChannel
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
+import com.ably.pubsub.RealtimePresence
 import io.ably.lib.realtime.CompletionListener
-import io.ably.lib.realtime.Presence
-import io.ably.lib.types.ChannelOptions
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -25,19 +24,21 @@ import org.junit.Test
 class TypingTest {
 
     private lateinit var room: DefaultRoom
-    private val pubSubPresence = mockk<Presence>(relaxed = true)
+    private val pubSubPresence = mockk<RealtimePresence>(relaxed = true)
 
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
-        val mockRealtimeChannel = realtimeClient.createMockChannel("room1::\$chat::\$messages")
-        mockRealtimeChannel.setPrivateField("presence", pubSubPresence)
-
-        every { realtimeClient.channels.get(any<String>(), any<ChannelOptions>()) } returns mockRealtimeChannel
         every { pubSubPresence.enterClient(DEFAULT_CLIENT_ID, any(), any()) } answers {
             val completionListener = arg<CompletionListener>(2)
             completionListener.onSuccess()
         }
+
+        val channel = createMockRealtimeChannel()
+        every { channel.presence } returns pubSubPresence
+
+        val channels = realtimeClient.channels
+        every { channels.get(any(), any()) } returns channel
 
         val mockChatApi = createMockChatApi(realtimeClient)
         room = spyk(createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi))
