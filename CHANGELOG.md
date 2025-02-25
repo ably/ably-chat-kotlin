@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.1.2](https://github.com/ably/ably-chat-kotlin/tree/v0.1.2)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.1.1...v0.1.2)
+
+**Closed issues:**
+
+- [Messages] message edit/update feature  [\#96](https://github.com/ably/ably-chat-kotlin/issues/96)
+- [Messages] message delete feature [\#97](https://github.com/ably/ably-chat-kotlin/issues/97)
+
+**Merged pull requests:**
+
+- [ECO-5196] Message edit/delete [\#100](https://github.com/ably/ably-chat-kotlin/pull/100) ([sacOO7](https://github.com/sacOO7))
+
 ## [0.1.1](https://github.com/ably/ably-chat-kotlin/tree/v0.1.1)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.1.0...v0.1.1)
