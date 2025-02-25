@@ -1,4 +1,4 @@
-@file:Suppress("StringLiteralDuplication", "NotImplementedDeclaration")
+@file:Suppress("StringLiteralDuplication")
 
 package com.ably.chat
 
@@ -153,7 +153,7 @@ internal class DefaultRoomReactions(
                 type = data.requireString("type"),
                 createdAt = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
-                metadata = data.get("metadata"),
+                metadata = data.getAsJsonObject("metadata"),
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )

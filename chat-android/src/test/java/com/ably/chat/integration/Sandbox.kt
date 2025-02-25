@@ -1,5 +1,8 @@
-package com.ably.chat
+package com.ably.chat.integration
 
+import com.ably.chat.ClientOptions
+import com.ably.chat.DefaultChatClient
+import com.ably.chat.serverError
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import io.ably.lib.realtime.AblyRealtime

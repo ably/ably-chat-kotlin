@@ -1,5 +1,7 @@
 package com.ably.chat
 
+import com.google.gson.JsonObject
+import io.ably.lib.types.Message
 import io.ably.lib.types.MessageAction
 
 /**
@@ -18,6 +20,7 @@ typealias MessageMetadata = Metadata
 data class Message(
     /**
      * The unique identifier of the message.
+     * Spec: CHA-M2d
      */
     val serial: String,
 
@@ -53,7 +56,7 @@ data class Message(
      * Do not use metadata for authoritative information. There is no server-side
      * validation. When reading the metadata treat it like user input.
      */
-    val metadata: MessageMetadata?,
+    val metadata: MessageMetadata,
 
     /**
      * The headers of a chat message. Headers enable attaching extra info to a message,
@@ -72,6 +75,79 @@ data class Message(
 
     /**
      * The latest action of the message. This can be used to determine if the message was created, updated, or deleted.
+     * Spec: CHA-M10
      */
     val action: MessageAction,
+
+    /**
+     * A unique identifier for the latest version of this message.
+     * Spec: CHA-M10a
+     */
+    val version: String,
+
+    /**
+     * The timestamp at which this version was updated, deleted, or created.
+     */
+    val timestamp: Long,
+
+    /**
+     * The details of the operation that modified the message. This is only set for update and delete actions. It contains
+     * information about the operation: the clientId of the user who performed the operation, a description, and metadata.
+     */
+    val operation: Message.Operation? = null,
 )
+
+internal fun buildMessageOperation(jsonObject: JsonObject?): Message.Operation? {
+    if (jsonObject == null) {
+        return null
+    }
+    val operation = Message.Operation()
+    if (jsonObject.has(MessageOperationProperty.ClientId)) {
+        operation.clientId = jsonObject.get(MessageOperationProperty.ClientId).asString
+    }
+    if (jsonObject.has(MessageOperationProperty.Description)) {
+        operation.description = jsonObject.get(MessageOperationProperty.Description).asString
+    }
+    if (jsonObject.has(MessageOperationProperty.Metadata)) {
+        val metadataObject = jsonObject.getAsJsonObject(MessageOperationProperty.Metadata)
+        operation.metadata = mutableMapOf()
+        for ((key, value) in metadataObject.entrySet()) {
+            operation.metadata[key] = value.asString
+        }
+    }
+    return operation
+}
+
+internal fun buildMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
+    val operation = Message.Operation()
+    operation.clientId = clientId
+    operation.description = description
+    operation.metadata = metadata
+    return operation
+}
+
+/**
+ * MessageProperty object representing the properties of a message.
+ */
+internal object MessageProperty {
+    const val Serial = "serial"
+    const val ClientId = "clientId"
+    const val RoomId = "roomId"
+    const val Text = "text"
+    const val CreatedAt = "createdAt"
+    const val Metadata = "metadata"
+    const val Headers = "headers"
+    const val Action = "action"
+    const val Version = "version"
+    const val Timestamp = "timestamp"
+    const val Operation = "operation"
+}
+
+/**
+ * MessageOperationProperty object representing the properties of a message operation.
+ */
+internal object MessageOperationProperty {
+    const val ClientId = "clientId"
+    const val Description = "description"
+    const val Metadata = "metadata"
+}

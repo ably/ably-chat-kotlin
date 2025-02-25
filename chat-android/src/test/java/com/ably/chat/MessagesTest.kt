@@ -54,8 +54,8 @@ class MessagesTest {
         mockSendMessageApiResponse(
             realtimeClient,
             JsonObject().apply {
-                addProperty("serial", "abcdefghij@1672531200000-123")
-                addProperty("createdAt", 1_000_000)
+                addProperty(MessageProperty.Serial, "abcdefghij@1672531200000-123")
+                addProperty(MessageProperty.CreatedAt, 1_000_000)
             },
             roomId = "room1",
         )
@@ -76,6 +76,8 @@ class MessagesTest {
                 metadata = JsonObject().apply { addProperty("meta", "data") },
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
+                version = "abcdefghij@1672531200000-123",
+                timestamp = 1_000_000L,
             ),
             sentMessage,
         )
@@ -104,6 +106,7 @@ class MessagesTest {
             PubSubMessage().apply {
                 data = JsonObject().apply {
                     addProperty("text", "some text")
+                    add("metadata", JsonObject())
                 }
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
@@ -120,6 +123,7 @@ class MessagesTest {
                     },
                 )
                 action = MessageAction.MESSAGE_CREATE
+                version = "abcdefghij@1672531200000-123"
             },
         )
 
@@ -133,9 +137,11 @@ class MessagesTest {
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "some text",
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
+                version = "abcdefghij@1672531200000-123",
+                timestamp = 1000L,
             ),
             messageEvent.message,
         )
@@ -224,38 +230,6 @@ class MessagesTest {
         verify(exactly = 2) { listener1.onEvent(any()) }
         verify(exactly = 1) { listener2.onEvent(any()) }
     }
-
-    /**
-     * @spec CHA-M3d
-     */
-    @Test
-    fun `should throw exception if headers contains ably-chat prefix`() = runTest {
-        val exception = assertThrows(AblyException::class.java) {
-            runBlocking {
-                messages.send(
-                    text = "lala",
-                    headers = mapOf("ably-chat-foo" to "bar"),
-                )
-            }
-        }
-        assertEquals(40_001, exception.errorInfo.code)
-    }
-
-    /**
-     * @spec CHA-M3c
-     */
-    @Test
-    fun `should throw exception if metadata contains ably-chat key`() = runTest {
-        val exception = assertThrows(AblyException::class.java) {
-            runBlocking {
-                messages.send(
-                    text = "lala",
-                    metadata = mapOf("ably-chat" to "data").toJson(),
-                )
-            }
-        }
-        assertEquals(40_001, exception.errorInfo.code)
-    }
 }
 
 private val Channel.channelMulticaster: ChannelBase.MessageListener
@@ -267,6 +241,7 @@ private val Channel.channelMulticaster: ChannelBase.MessageListener
 private fun buildDummyPubSubMessage() = PubSubMessage().apply {
     data = JsonObject().apply {
         addProperty("text", "dummy text")
+        add("metadata", JsonObject())
     }
     serial = "abcdefghij@1672531200000-123"
     clientId = "dummy"
@@ -276,4 +251,5 @@ private fun buildDummyPubSubMessage() = PubSubMessage().apply {
         JsonObject().apply {},
     )
     action = MessageAction.MESSAGE_CREATE
+    version = "abcdefghij@1672531200000-123"
 }

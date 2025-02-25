@@ -1,26 +1,19 @@
-package com.ably.chat.room
+package com.ably.chat.integration
 
 import com.ably.chat.ChatClient
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
-import com.ably.chat.Sandbox
 import com.ably.chat.assertWaiter
-import com.ably.chat.createSandboxChatClient
-import com.ably.chat.getConnectedChatClient
+import com.ably.chat.room.LifecycleManager
+import com.ably.chat.room.atomicCoroutineScope
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
-import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 
 class RoomIntegrationTest {
-    private lateinit var sandbox: Sandbox
-
-    @Before
-    fun setUp() = runTest {
-        sandbox = Sandbox.createInstance()
-    }
 
     private suspend fun validateAllOps(room: Room, chatClient: ChatClient) {
         Assert.assertEquals(RoomStatus.Initialized, room.status)
@@ -99,5 +92,15 @@ class RoomIntegrationTest {
         validateAttachAndRelease(room2, chatClient)
 
         chatClient.realtime.close()
+    }
+
+    companion object {
+        private lateinit var sandbox: Sandbox
+
+        @JvmStatic
+        @BeforeClass
+        fun setUp() = runTest {
+            sandbox = Sandbox.createInstance()
+        }
     }
 }
