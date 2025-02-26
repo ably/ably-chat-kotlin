@@ -1,5 +1,6 @@
 package com.ably.chat.room.lifecycle
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.DefaultRoomLifecycle
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.RoomLifecycleManager
@@ -12,6 +13,7 @@ import com.ably.chat.room.createMockLogger
 import com.ably.chat.room.createRoomFeatureMocks
 import com.ably.chat.room.retry
 import com.ably.chat.room.setState
+import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.types.AblyException
@@ -44,25 +46,28 @@ class RetryTest {
 
     @After
     fun tearDown() {
-        unmockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
+        unmockkStatic(RealtimeChannel::attachCoroutine)
     }
 
+    @OptIn(InternalAPI::class)
     @Test
     fun `(CHA-RL5a) Retry detaches all contributors except the one that's provided (based on underlying channel CHA-RL5a)`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coJustRun { any<io.ably.lib.realtime.Channel>().attachCoroutine() }
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coJustRun { any<RealtimeChannel>().attachCoroutine() }
 
-        val capturedDetachedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        val capturedDetachedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             capturedDetachedChannels.add(firstArg())
         }
 
         val contributors = createRoomFeatureMocks()
         Assert.assertEquals(5, contributors.size)
         val messagesContributor = contributors.first { it.featureName == "messages" }
-        messagesContributor.channel.setState(ChannelState.attached)
+        val channel = messagesContributor.channelWrapper
+        every { channel.state } returns ChannelState.attached
+        channel.javaChannel.setState(ChannelState.attached)
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
 
@@ -78,18 +83,20 @@ class RetryTest {
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
 
+    @OptIn(InternalAPI::class)
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5c) If one of the contributor channel goes into failed state during channel windown (CHA-RL5a), then the room enters failed state and retry operation stops`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coJustRun { any<io.ably.lib.realtime.Channel>().attachCoroutine() }
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coJustRun { any<RealtimeChannel>().attachCoroutine() }
 
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if (channel.name.contains("typing")) {
-                channel.setState(ChannelState.failed)
+                every { channel.state } returns ChannelState.failed
+                channel.javaChannel.setState(ChannelState.failed)
                 error("${channel.name} went into FAILED state")
             }
         }
@@ -97,7 +104,9 @@ class RetryTest {
         val contributors = createRoomFeatureMocks()
 
         val messagesContributor = contributors.first { it.featureName == "messages" }
-        messagesContributor.channel.setState(ChannelState.attached)
+        val channel = messagesContributor.channelWrapper
+        every { channel.state } returns ChannelState.attached
+        messagesContributor.channelWrapper.javaChannel.setState(ChannelState.failed)
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
 
@@ -113,13 +122,13 @@ class RetryTest {
     fun `(CHA-RL5c) If one of the contributor channel goes into failed state during Retry, then the room enters failed state and retry operation stops`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coJustRun { any<io.ably.lib.realtime.Channel>().detachCoroutine() }
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coJustRun { any<RealtimeChannel>().detachCoroutine() }
 
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if (channel.name.contains("typing")) {
-                channel.setState(ChannelState.failed)
+                every { channel.state } returns ChannelState.failed
                 error("${channel.name} went into FAILED state")
             }
         }
@@ -127,7 +136,8 @@ class RetryTest {
         val contributors = createRoomFeatureMocks()
 
         val messagesContributor = contributors.first { it.featureName == "messages" }
-        messagesContributor.channel.setState(ChannelState.attached)
+        val channel = messagesContributor.channelWrapper
+        every { channel.state } returns ChannelState.attached
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
 
@@ -137,25 +147,27 @@ class RetryTest {
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
 
+    @OptIn(InternalAPI::class)
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5d) If all contributor channels goes into detached (except one provided in suspended state), provided contributor starts attach operation and waits for ATTACHED or FAILED state`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coJustRun { any<io.ably.lib.realtime.Channel>().attachCoroutine() }
-        coJustRun { any<io.ably.lib.realtime.Channel>().detachCoroutine() }
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coJustRun { any<RealtimeChannel>().attachCoroutine() }
+        coJustRun { any<RealtimeChannel>().detachCoroutine() }
 
         val contributors = createRoomFeatureMocks()
         val messagesContributor = contributors.first { it.featureName == "messages" }
 
+        val javaChannel = messagesContributor.channelWrapper.javaChannel
         every {
-            messagesContributor.channel.once(eq(ChannelState.attached), any<ChannelStateListener>())
+            javaChannel.once(eq(ChannelState.attached), any<ChannelStateListener>())
         } answers {
             secondArg<ChannelStateListener>().onChannelStateChanged(null)
         }
         justRun {
-            messagesContributor.channel.once(eq(ChannelState.failed), any<ChannelStateListener>())
+            javaChannel.once(eq(ChannelState.failed), any<ChannelStateListener>())
         }
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
@@ -168,27 +180,31 @@ class RetryTest {
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         verify {
-            messagesContributor.channel.once(eq(ChannelState.attached), any<ChannelStateListener>())
+            javaChannel.once(eq(ChannelState.attached), any<ChannelStateListener>())
         }
         verify {
-            messagesContributor.channel.once(eq(ChannelState.failed), any<ChannelStateListener>())
+            javaChannel.once(eq(ChannelState.failed), any<ChannelStateListener>())
         }
     }
 
+    @OptIn(InternalAPI::class)
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5e) If, during the CHA-RL5d wait, the contributor channel becomes failed, then the room enters failed state and retry operation stops`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coJustRun { any<io.ably.lib.realtime.Channel>().attachCoroutine() }
-        coJustRun { any<io.ably.lib.realtime.Channel>().detachCoroutine() }
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coJustRun { any<RealtimeChannel>().attachCoroutine() }
+        coJustRun { any<RealtimeChannel>().detachCoroutine() }
 
         val contributors = createRoomFeatureMocks()
         val messagesContributor = contributors.first { it.featureName == "messages" }
 
         val errorInfo = ErrorInfo("Failed channel messages", HttpStatusCode.InternalServerError)
-        messagesContributor.channel.setState(ChannelState.failed, errorInfo)
+        val channel = messagesContributor.channelWrapper
+        every { channel.state } returns ChannelState.failed
+        every { channel.reason } returns errorInfo
+        messagesContributor.channelWrapper.javaChannel.setState(ChannelState.failed, errorInfo)
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
 
@@ -206,21 +222,22 @@ class RetryTest {
     fun `(CHA-RL5f, CHA-RC2e) If, during the CHA-RL5d wait, the contributor channel becomes ATTACHED, then attach operation continues for other contributors as per CHA-RL1e`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        val capturedAttachedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        val capturedAttachedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
             capturedAttachedChannels.add(firstArg())
         }
 
-        val capturedDetachedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        val capturedDetachedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             capturedDetachedChannels.add(firstArg())
         }
 
         val contributors = createRoomFeatureMocks()
         Assert.assertEquals(5, contributors.size)
         val messagesContributor = contributors.first { it.featureName == "messages" }
-        messagesContributor.channel.setState(ChannelState.attached)
+        val channel = messagesContributor.channelWrapper
+        every { channel.state } returns ChannelState.attached
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
 

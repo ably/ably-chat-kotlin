@@ -1,5 +1,6 @@
 package com.ably.chat.room.lifecycle
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoomLifecycle
 import com.ably.chat.ErrorCode
@@ -15,11 +16,13 @@ import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createMockLogger
 import com.ably.chat.room.createRoomFeatureMocks
 import com.ably.chat.room.setState
+import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockkStatic
 import io.mockk.spyk
@@ -52,7 +55,7 @@ class DetachTest {
 
     @After
     fun tearDown() {
-        unmockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
+        unmockkStatic(RealtimeChannel::attachCoroutine)
     }
 
     @Test
@@ -144,9 +147,9 @@ class DetachTest {
     fun `(CHA-RL2f, CHA-RL2g, CHA-RC2e) Detach op should detach each contributor channel sequentially and room should be considered DETACHED`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
-        val capturedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        val capturedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             capturedChannels.add(firstArg())
         }
 
@@ -160,7 +163,7 @@ class DetachTest {
 
         Assert.assertEquals(5, capturedChannels.size)
         repeat(5) {
-            Assert.assertEquals(contributors[it].channel.name, capturedChannels[it].name)
+            Assert.assertEquals(contributors[it].channelWrapper.name, capturedChannels[it].name)
         }
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
@@ -218,24 +221,29 @@ class DetachTest {
     }
 
     // All of the following tests cover sub-spec points under CHA-RL2h ( channel detach failure )
+    @OptIn(InternalAPI::class)
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL2h1) If a one of the contributors fails to detach (enters failed state), then room enters failed state, detach op continues for other contributors`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
+        mockkStatic(RealtimeChannel::detachCoroutine)
         // Fail detach for both typing and reactions, should capture error for first failed contributor
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("typing" in channel.name) { // Throw error for typing contributor
                 val error = ErrorInfo("error detaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
+                channel.javaChannel.setState(ChannelState.failed, error)
                 throw ablyException(error)
             }
 
             if ("reactions" in channel.name) { // Throw error for reactions contributor
                 val error = ErrorInfo("error detaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
+                channel.javaChannel.setState(ChannelState.failed, error)
                 throw ablyException(error)
             }
         }
@@ -268,6 +276,7 @@ class DetachTest {
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
 
+    @OptIn(InternalAPI::class)
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL2h2) If multiple contributors fails to detach (enters failed state), then failed status should be emitted only once`() = runTest {
@@ -279,18 +288,22 @@ class DetachTest {
             }
         }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("typing" in channel.name) {
                 val error = ErrorInfo("error detaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
+                channel.javaChannel.setState(ChannelState.failed, error)
                 throw ablyException(error)
             }
 
             if ("reactions" in channel.name) {
                 val error = ErrorInfo("error detaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
+                channel.javaChannel.setState(ChannelState.failed, error)
                 throw ablyException(error)
             }
         }
@@ -327,13 +340,13 @@ class DetachTest {
             roomEvents.add(it)
         }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
+        mockkStatic(RealtimeChannel::detachCoroutine)
         var failDetachTimes = 5
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             delay(200)
             if (--failDetachTimes >= 0) {
-                channel.setState(ChannelState.attached)
+                every { channel.state } returns ChannelState.attached
                 error("failed to detach channel")
             }
         }

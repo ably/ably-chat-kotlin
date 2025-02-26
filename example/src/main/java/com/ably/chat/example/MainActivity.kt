@@ -44,12 +44,12 @@ import androidx.compose.ui.unit.dp
 import com.ably.chat.ChatClient
 import com.ably.chat.Message
 import com.ably.chat.MessageMetadata
-import com.ably.chat.RealtimeClient
 import com.ably.chat.Room
 import com.ably.chat.RoomOptions
 import com.ably.chat.Typing
 import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
+import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.types.ClientOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val realtimeClient = RealtimeClient(
+        val realtimeClient = AblyRealtime(
             ClientOptions().apply {
                 key = BuildConfig.ABLY_KEY
                 clientId = randomClientId

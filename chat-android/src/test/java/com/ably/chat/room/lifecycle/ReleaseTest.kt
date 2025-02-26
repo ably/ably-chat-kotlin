@@ -10,7 +10,7 @@ import com.ably.chat.detachCoroutine
 import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createMockLogger
 import com.ably.chat.room.createRoomFeatureMocks
-import com.ably.chat.room.setState
+import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -44,7 +44,7 @@ class ReleaseTest {
 
     @After
     fun tearDown() {
-        unmockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
+        unmockkStatic(RealtimeChannel::attachCoroutine)
     }
 
     @Test
@@ -122,37 +122,38 @@ class ReleaseTest {
 
     @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RL3d, CHA-RC2e) Release op should detach each contributor channel sequentially and room should be considered RELEASED`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger)).apply {
-            setStatus(RoomStatus.Attached)
+    fun `(CHA-RL3d, CHA-RC2e) Release op should detach each contributor channel sequentially and room should be considered RELEASED`() =
+        runTest {
+            val statusLifecycle = spyk(DefaultRoomLifecycle(logger)).apply {
+                setStatus(RoomStatus.Attached)
+            }
+
+            mockkStatic(RealtimeChannel::detachCoroutine)
+            val capturedChannels = mutableListOf<RealtimeChannel>()
+            coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+                capturedChannels.add(firstArg())
+            }
+
+            val contributors = createRoomFeatureMocks()
+            Assert.assertEquals(5, contributors.size)
+
+            val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
+            val result = kotlin.runCatching { roomLifecycle.release() }
+            Assert.assertTrue(result.isSuccess)
+            Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
+
+            Assert.assertEquals(5, capturedChannels.size)
+            repeat(5) {
+                Assert.assertEquals(contributors[it].channelWrapper.name, capturedChannels[it].name)
+            }
+            Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
+            Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
+            Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedChannels[2].name)
+            Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
+            Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
+
+            assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
         }
-
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
-        val capturedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            capturedChannels.add(firstArg())
-        }
-
-        val contributors = createRoomFeatureMocks()
-        Assert.assertEquals(5, contributors.size)
-
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
-        val result = kotlin.runCatching { roomLifecycle.release() }
-        Assert.assertTrue(result.isSuccess)
-        Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
-
-        Assert.assertEquals(5, capturedChannels.size)
-        repeat(5) {
-            Assert.assertEquals(contributors[it].channel.name, capturedChannels[it].name)
-        }
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedChannels[2].name)
-        Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
-
-        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
-    }
 
     @Test
     fun `(CHA-RL3e, CHA-RC2e) If a one of the contributors is in failed state, release op continues for other contributors`() = runTest {
@@ -160,17 +161,18 @@ class ReleaseTest {
             setStatus(RoomStatus.Attached)
         }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
-        val capturedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        val capturedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             capturedChannels.add(firstArg())
         }
 
         val contributors = createRoomFeatureMocks("1234")
 
         // Put typing contributor into failed state, so it won't be detached
-        contributors.first { it.channel.name.contains("typing") }.apply {
-            channel.setState(ChannelState.failed)
+        contributors.first { it.channelWrapper.name.contains("typing") }.apply {
+            val channel = channelWrapper
+            every { channel.state } returns ChannelState.failed
         }
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
@@ -199,15 +201,15 @@ class ReleaseTest {
             roomEvents.add(it)
         }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
+        mockkStatic(RealtimeChannel::detachCoroutine)
         var failDetachTimes = 5
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             delay(200)
             if (--failDetachTimes >= 0) {
                 error("failed to detach channel")
             }
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
-            channel.setState(ChannelState.detached)
+            val channel = firstArg<RealtimeChannel>()
+            every { channel.state } returns ChannelState.detached
         }
 
         val contributors = createRoomFeatureMocks("1234")
@@ -234,17 +236,17 @@ class ReleaseTest {
             setStatus(RoomStatus.Attached)
         }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
+        mockkStatic(RealtimeChannel::detachCoroutine)
         var failDetachTimes = 5
-        val capturedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        val capturedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             delay(200)
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+            val channel = firstArg<RealtimeChannel>()
             if (--failDetachTimes >= 0) {
-                channel.setState(listOf(ChannelState.attached, ChannelState.suspended).random())
+                every { channel.state } returns listOf(ChannelState.attached, ChannelState.suspended).random()
                 error("failed to detach channel")
             }
-            channel.setState(listOf(ChannelState.detached, ChannelState.failed).random())
+            every { channel.state } returns listOf(ChannelState.detached, ChannelState.failed).random()
             capturedChannels.add(channel)
         }
 
@@ -252,13 +254,12 @@ class ReleaseTest {
         Assert.assertEquals(5, contributors.size)
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
-        val result = kotlin.runCatching { roomLifecycle.release() }
-        Assert.assertTrue(result.isSuccess)
+        roomLifecycle.release()
         Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
 
         Assert.assertEquals(5, capturedChannels.size)
         repeat(5) {
-            Assert.assertEquals(contributors[it].channel.name, capturedChannels[it].name)
+            Assert.assertEquals(contributors[it].channelWrapper.name, capturedChannels[it].name)
         }
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
@@ -276,50 +277,51 @@ class ReleaseTest {
 
     @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RL3h, CHA-RC2e) Upon channel release, underlying Realtime Channels are released from the core SDK prevent leakage`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger)).apply {
-            setStatus(RoomStatus.Attached)
-        }
+    fun `(CHA-RL3h, CHA-RC2e) Upon channel release, underlying Realtime Channels are released from the core SDK prevent leakage`() =
+        runTest {
+            val statusLifecycle = spyk(DefaultRoomLifecycle(logger)).apply {
+                setStatus(RoomStatus.Attached)
+            }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
-            channel.setState(ChannelState.detached)
-        }
+            mockkStatic(RealtimeChannel::detachCoroutine)
+            coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+                val channel = firstArg<RealtimeChannel>()
+                every { channel.state } returns ChannelState.detached
+            }
 
-        val contributors = createRoomFeatureMocks()
-        Assert.assertEquals(5, contributors.size)
+            val contributors = createRoomFeatureMocks()
+            Assert.assertEquals(5, contributors.size)
 
-        val releasedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        for (contributor in contributors) {
-            every { contributor.release() } answers {
-                releasedChannels.add(contributor.channel)
+            val releasedChannels = mutableListOf<RealtimeChannel>()
+            for (contributor in contributors) {
+                every { contributor.release() } answers {
+                    releasedChannels.add(contributor.channelWrapper)
+                }
+            }
+
+            val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
+            val result = kotlin.runCatching { roomLifecycle.release() }
+            Assert.assertTrue(result.isSuccess)
+            Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
+
+            Assert.assertEquals(5, releasedChannels.size)
+            repeat(5) {
+                Assert.assertEquals(contributors[it].channelWrapper.name, releasedChannels[it].name)
+            }
+            Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[0].name)
+            Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[1].name)
+            Assert.assertEquals("1234::\$chat::\$typingIndicators", releasedChannels[2].name)
+            Assert.assertEquals("1234::\$chat::\$reactions", releasedChannels[3].name)
+            Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[4].name)
+
+            assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+
+            for (contributor in contributors) {
+                verify(exactly = 1) {
+                    contributor.release()
+                }
             }
         }
-
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
-        val result = kotlin.runCatching { roomLifecycle.release() }
-        Assert.assertTrue(result.isSuccess)
-        Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
-
-        Assert.assertEquals(5, releasedChannels.size)
-        repeat(5) {
-            Assert.assertEquals(contributors[it].channel.name, releasedChannels[it].name)
-        }
-        Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[0].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", releasedChannels[2].name)
-        Assert.assertEquals("1234::\$chat::\$reactions", releasedChannels[3].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[4].name)
-
-        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
-
-        for (contributor in contributors) {
-            verify(exactly = 1) {
-                contributor.release()
-            }
-        }
-    }
 
     @Test
     fun `(CHA-RL3k) Release op should wait for existing operation as per (CHA-RL7)`() = runTest {
@@ -333,10 +335,10 @@ class ReleaseTest {
             roomEvents.add(it)
         }
 
-        mockkStatic(io.ably.lib.realtime.Channel::detachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
-            channel.setState(ChannelState.detached)
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
+            every { channel.state } returns ChannelState.detached
         }
 
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, createRoomFeatureMocks(), logger))

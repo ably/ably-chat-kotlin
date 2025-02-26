@@ -2,6 +2,7 @@
 
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import io.ably.lib.realtime.Channel
@@ -85,6 +86,8 @@ internal class DefaultOccupancy(
 
     override val channel: Channel = room.messages.channel
 
+    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
+
     private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
 
     private val eventBus = MutableSharedFlow<OccupancyEvent>(
@@ -108,11 +111,7 @@ internal class DefaultOccupancy(
             internalChannelListener(it)
         }
 
-        channel.subscribe(occupancyListener)
-
-        occupancySubscription = Subscription {
-            channel.unsubscribe(occupancyListener)
-        }
+        occupancySubscription = channelWrapper.subscribe(occupancyListener).asChatSubscription()
     }
 
     // (CHA-O4)

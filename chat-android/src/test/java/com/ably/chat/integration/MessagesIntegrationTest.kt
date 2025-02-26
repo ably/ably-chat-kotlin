@@ -1,11 +1,13 @@
 package com.ably.chat.integration
 
+import com.ably.chat.BuildConfig
 import com.ably.chat.Message
 import com.ably.chat.MessageEvent
 import com.ably.chat.MessageMetadata
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
+import io.ably.lib.realtime.channelOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -246,6 +248,17 @@ class MessagesIntegrationTest {
         assertEquals(deletedMessage.clientId, receivedMsg2.clientId)
         assertEquals(deletedMessage.roomId, receivedMsg2.roomId)
         assertEquals(deletedMessage.action, receivedMsg2.action)
+    }
+
+    @Test
+    fun `messages channel should include agent channel param`() = runTest {
+        val chatClient = sandbox.createSandboxChatClient()
+        val roomId = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomId)
+        assertEquals(
+            "chat-kotlin/${BuildConfig.APP_VERSION}",
+            room.messages.channel.channelOptions?.params?.get("agent"),
+        )
     }
 
     companion object {

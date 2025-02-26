@@ -1,5 +1,6 @@
 package com.ably.chat.room.lifecycle
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoomLifecycle
 import com.ably.chat.ErrorCode
@@ -14,9 +15,9 @@ import com.ably.chat.detachCoroutine
 import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createMockLogger
 import com.ably.chat.room.createRoomFeatureMocks
-import com.ably.chat.room.setState
 import com.ably.chat.serverError
 import com.ably.chat.setPrivateField
+import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
@@ -56,7 +57,7 @@ class AttachTest {
 
     @After
     fun tearDown() {
-        unmockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
+        unmockkStatic(RealtimeChannel::attachCoroutine)
     }
 
     @Test
@@ -170,9 +171,9 @@ class AttachTest {
     fun `(CHA-RL1f, CHA-RC2e) Attach op should attach each contributor channel sequentially`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        val capturedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        val capturedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
             capturedChannels.add(firstArg())
         }
 
@@ -186,7 +187,7 @@ class AttachTest {
 
         Assert.assertEquals(5, capturedChannels.size)
         repeat(5) {
-            Assert.assertEquals(contributors[it].channel.name, capturedChannels[it].name)
+            Assert.assertEquals(contributors[it].channelWrapper.name, capturedChannels[it].name)
         }
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
@@ -199,8 +200,8 @@ class AttachTest {
     fun `(CHA-RL1g) When all contributor channels ATTACH, op is complete and room should be considered ATTACHED`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } returns Unit
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } returns Unit
 
         val contributors = createRoomFeatureMocks("1234")
         val contributorErrors = mutableListOf<ErrorInfo>()
@@ -214,7 +215,7 @@ class AttachTest {
         val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true) {
             val pendingDiscontinuityEvents = mutableMapOf<ContributesToRoomLifecycle, ErrorInfo?>().apply {
                 for (contributor in contributors) {
-                    put(contributor, ErrorInfo("${contributor.channel.name} error", 500))
+                    put(contributor, ErrorInfo("${contributor.channelWrapper.name} error", 500))
                 }
             }
             this.setPrivateField("pendingDiscontinuityEvents", pendingDiscontinuityEvents)
@@ -243,17 +244,18 @@ class AttachTest {
     }
 
     // All of the following tests cover sub-spec points under CHA-RL1h ( channel attach failure )
+    @OptIn(InternalAPI::class)
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL1h1, CHA-RL1h2) If a one of the contributors fails to attach (enters suspended state), attach throws related error and room enters suspended state`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("reactions" in channel.name) {
                 // Throw error for typing contributor, likely to throw because it uses different channel
-                channel.setState(ChannelState.suspended)
+                every { channel.state } returns ChannelState.suspended
                 throw serverError("error attaching channel ${channel.name}")
             }
         }
@@ -278,13 +280,14 @@ class AttachTest {
     fun `(CHA-RL1h1, CHA-RL1h4) If a one of the contributors fails to attach (enters failed state), attach throws related error and room enters failed state`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("typing" in channel.name) {
                 // Throw error for typing contributor, likely to throw because it uses different channel
                 val error = ErrorInfo("error attaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
                 throw ablyException(error)
             }
         }
@@ -311,12 +314,12 @@ class AttachTest {
     fun `(CHA-RL1h3) When room enters suspended state (CHA-RL1h2), it should enter recovery loop as per (CHA-RL5)`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("reactions" in channel.name) {
                 // Throw error for typing contributor, likely to throw because it uses different channel
-                channel.setState(ChannelState.suspended)
+                every { channel.state } returns ChannelState.suspended
                 throw serverError("error attaching channel ${channel.name}")
             }
         }
@@ -349,19 +352,20 @@ class AttachTest {
     fun `(CHA-RL1h5, CHA-RC2e) When room enters failed state (CHA-RL1h4), room detach all channels not in failed state`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("typing" in channel.name) {
                 // Throw error for typing contributor, likely to throw because it uses different channel
                 val error = ErrorInfo("error attaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
                 throw ablyException(error)
             }
         }
 
-        val detachedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        val detachedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             delay(200)
             detachedChannels.add(firstArg())
         }
@@ -393,23 +397,24 @@ class AttachTest {
 
     @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RL1h6, CHA-RC2e) When room enters failed state, when CHA-RL1h5 fails to detach, op will be repeated till all channels are detached`() = runTest {
+    fun `(CHA--RL1h6, CHA-RC2e) When room enters failed state, when CHA-RL1h5 fails to detach, op will be repeated till all channels are detached`() = runTest {
         val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
 
-        mockkStatic(io.ably.lib.realtime.Channel::attachCoroutine)
-        coEvery { any<io.ably.lib.realtime.Channel>().attachCoroutine() } coAnswers {
-            val channel = firstArg<io.ably.lib.realtime.Channel>()
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
             if ("typing" in channel.name) {
                 // Throw error for typing contributor, likely to throw because it uses different channel
                 val error = ErrorInfo("error attaching channel ${channel.name}", 500)
-                channel.setState(ChannelState.failed, error)
+                every { channel.state } returns ChannelState.failed
+                every { channel.reason } returns error
                 throw ablyException(error)
             }
         }
 
         var failDetachTimes = 5
-        val detachedChannels = mutableListOf<io.ably.lib.realtime.Channel>()
-        coEvery { any<io.ably.lib.realtime.Channel>().detachCoroutine() } coAnswers {
+        val detachedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             delay(200)
             if (--failDetachTimes >= 0) {
                 error("failed to detach channel")

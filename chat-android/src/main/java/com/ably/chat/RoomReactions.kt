@@ -2,6 +2,8 @@
 
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
+import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
@@ -112,7 +114,10 @@ internal class DefaultRoomReactions(
 
     private val roomReactionsChannelName = "${room.roomId}::\$chat::\$reactions"
 
-    override val channel: AblyRealtimeChannel = room.realtimeClient.channels.get(roomReactionsChannelName, ChatChannelOptions()) // CHA-RC2f
+    override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(roomReactionsChannelName, ChatChannelOptions())
+
+    @OptIn(InternalAPI::class)
+    override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC2f
 
     override val attachmentErrorCode: ErrorCode = ErrorCode.ReactionsAttachmentFailed
 
@@ -138,7 +143,7 @@ internal class DefaultRoomReactions(
             }
         }
         room.ensureAttached(logger) // TODO - This check might be removed in the future due to core spec change
-        channel.publishCoroutine(pubSubMessage)
+        channelWrapper.publishCoroutine(pubSubMessage)
     }
 
     override fun subscribe(listener: RoomReactions.Listener): Subscription {
@@ -159,11 +164,10 @@ internal class DefaultRoomReactions(
             )
             listener.onReaction(reaction)
         }
-        channel.subscribe(RoomReactionEventType.Reaction.eventName, messageListener)
-        return Subscription { channel.unsubscribe(RoomReactionEventType.Reaction.eventName, messageListener) }
+        return channelWrapper.subscribe(RoomReactionEventType.Reaction.eventName, messageListener).asChatSubscription()
     }
 
     override fun release() {
-        room.realtimeClient.channels.release(channel.name)
+        room.realtimeClient.channels.release(channelWrapper.name)
     }
 }

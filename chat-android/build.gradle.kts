@@ -51,6 +51,7 @@ buildConfig {
 
 dependencies {
     api(libs.ably.android)
+    implementation(libs.ably.pubsub.adapter)
     implementation(libs.gson)
     implementation(libs.coroutine.core)
 
@@ -58,6 +59,8 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.coroutine.test)
     testImplementation(libs.bundles.ktor.client)
+    testImplementation(libs.nanohttpd)
+    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.junit)

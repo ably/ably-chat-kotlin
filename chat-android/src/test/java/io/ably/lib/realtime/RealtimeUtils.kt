@@ -1,6 +1,7 @@
 package io.ably.lib.realtime
 
 import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
+import io.ably.lib.types.ChannelOptions
 import io.ably.lib.types.ClientOptions
 import io.ably.lib.types.ErrorInfo
 
@@ -37,3 +38,6 @@ fun buildRealtimeConnection() = AblyRealtime(
         autoConnect = false
     },
 ).connection
+
+val ChannelBase.channelOptions: ChannelOptions?
+    get() = options

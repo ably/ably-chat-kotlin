@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeClient
 import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
@@ -264,6 +265,7 @@ internal class DefaultRoom(
                             featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
                             attachDeferred.complete(Unit)
                         }
+
                         RoomStatus.Attaching -> statusLifecycle.onChangeOnce {
                             if (it.current == RoomStatus.Attached) {
                                 featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
@@ -275,6 +277,7 @@ internal class DefaultRoom(
                                 attachDeferred.completeExceptionally(exception)
                             }
                         }
+
                         else -> {
                             featureLogger.error(
                                 "ensureAttached(); waiting complete, room ATTACHING failed with error: ${statusLifecycle.error}",

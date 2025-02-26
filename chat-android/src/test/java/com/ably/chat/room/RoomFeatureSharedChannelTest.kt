@@ -1,6 +1,5 @@
 package com.ably.chat.room
 
-import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.ChannelMode
 import io.ably.lib.types.ChannelOptions
 import io.mockk.every
@@ -19,12 +18,13 @@ class RoomFeatureSharedChannelTest {
     fun `(CHA-RC3a, CHA-RC2f) Features with shared channel should call channels#get only once with combined modes+options`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val capturedChannelOptions = mutableListOf<ChannelOptions>()
+        val channels = mockRealtimeClient.channels
 
         every {
-            mockRealtimeClient.channels.get("1234::\$chat::\$chatMessages", any<ChannelOptions>())
+            channels.get("1234::\$chat::\$chatMessages", any<ChannelOptions>())
         } answers {
             capturedChannelOptions.add(secondArg())
-            buildRealtimeChannel()
+            createMockRealtimeChannel("1234::\$chat::\$chatMessages")
         }
 
         // Create room with all feature enabled,
@@ -51,19 +51,19 @@ class RoomFeatureSharedChannelTest {
 
         // channels.get is called only once for Messages, occupancy and presence since they share the same channel
         verify(exactly = 1) {
-            mockRealtimeClient.channels.get("1234::\$chat::\$chatMessages", any<ChannelOptions>())
+            channels.get("1234::\$chat::\$chatMessages", any<ChannelOptions>())
         }
         // channels.get called separately for typing since it uses it's own channel
         verify(exactly = 1) {
-            mockRealtimeClient.channels.get("1234::\$chat::\$typingIndicators", any<ChannelOptions>())
+            channels.get("1234::\$chat::\$typingIndicators", any<ChannelOptions>())
         }
         // channels.get called separately for reactions since it uses it's own channel
         verify(exactly = 1) {
-            mockRealtimeClient.channels.get("1234::\$chat::\$reactions", any<ChannelOptions>())
+            channels.get("1234::\$chat::\$reactions", any<ChannelOptions>())
         }
         // channels.get is called thrice for all features
         verify(exactly = 3) {
-            mockRealtimeClient.channels.get(any<String>(), any<ChannelOptions>())
+            channels.get(any<String>(), any<ChannelOptions>())
         }
     }
 }

@@ -1,8 +1,9 @@
 package com.ably.chat
 
+import com.ably.pubsub.WrapperSdkProxyOptions
+import com.ably.pubsub.createWrapperSdkProxy
 import io.ably.lib.realtime.AblyRealtime
-
-typealias RealtimeClient = AblyRealtime
+import io.ably.lib.realtime.RealtimeClient
 
 /**
  * This is the core client for Ably chat. It provides access to chat rooms.
@@ -27,7 +28,7 @@ interface ChatClient {
     /**
      * The underlying Ably Realtime client.
      */
-    val realtime: RealtimeClient
+    val realtime: AblyRealtime
 
     /**
      * The resolved client options for the client, including any defaults that have been set.
@@ -35,13 +36,19 @@ interface ChatClient {
     val clientOptions: ClientOptions
 }
 
-fun ChatClient(realtimeClient: RealtimeClient, clientOptions: ClientOptions = ClientOptions()): ChatClient =
+fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ClientOptions = ClientOptions()): ChatClient =
     DefaultChatClient(realtimeClient, clientOptions)
 
 internal class DefaultChatClient(
-    override val realtime: RealtimeClient,
+    override val realtime: AblyRealtime,
     override val clientOptions: ClientOptions,
 ) : ChatClient {
+
+    private val realtimeClientWrapper = RealtimeClient(realtime).createWrapperSdkProxy(
+        WrapperSdkProxyOptions(
+            agents = mapOf("chat-kotlin" to BuildConfig.APP_VERSION),
+        ),
+    )
 
     private val logger: Logger = if (clientOptions.logHandler != null) {
         CustomLogger(
@@ -53,10 +60,10 @@ internal class DefaultChatClient(
         AndroidLogger(clientOptions.logLevel, buildLogContext())
     }
 
-    private val chatApi = ChatApi(realtime, clientId, logger.withContext(tag = "AblyChatAPI"))
+    private val chatApi = ChatApi(realtimeClientWrapper, clientId, logger.withContext(tag = "AblyChatAPI"))
 
     override val rooms: Rooms = DefaultRooms(
-        realtimeClient = realtime,
+        realtimeClient = realtimeClientWrapper,
         chatApi = chatApi,
         clientOptions = clientOptions,
         clientId = clientId,
@@ -64,12 +71,12 @@ internal class DefaultChatClient(
     )
 
     override val connection: Connection = DefaultConnection(
-        pubSubConnection = realtime.connection,
+        pubSubConnection = realtimeClientWrapper.connection,
         logger = logger.withContext(tag = "RealtimeConnection"),
     )
 
     override val clientId: String
-        get() = realtime.auth.clientId
+        get() = realtimeClientWrapper.auth.clientId
 
     private fun buildLogContext() = LogContext(
         tag = "ChatClient",
@@ -78,8 +85,8 @@ internal class DefaultChatClient(
             "instanceId" to generateUUID(),
         ),
         dynamicContext = mapOf(
-            "connectionId" to { realtime.connection.id },
-            "connectionState" to { realtime.connection.state.name },
+            "connectionId" to { realtimeClientWrapper.connection.id },
+            "connectionState" to { realtimeClientWrapper.connection.state.name },
         ),
     )
 }
