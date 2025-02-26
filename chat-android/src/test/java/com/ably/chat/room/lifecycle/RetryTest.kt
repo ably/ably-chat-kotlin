@@ -149,11 +149,17 @@ class RetryTest {
         val contributors = createRoomFeatureMocks()
         val messagesContributor = contributors.first { it.featureName == "messages" }
 
+        // Ignore room monitoring listeners
+        contributors.forEach {
+            justRun { it.channel.on(any<ChannelStateListener>()) }
+        }
+
         every {
             messagesContributor.channel.once(eq(ChannelState.attached), any<ChannelStateListener>())
         } answers {
             secondArg<ChannelStateListener>().onChannelStateChanged(null)
         }
+
         justRun {
             messagesContributor.channel.once(eq(ChannelState.failed), any<ChannelStateListener>())
         }
