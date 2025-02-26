@@ -19,6 +19,8 @@ mockk = "1.13.13"
 coroutine = "1.9.0"
 build-config = "5.5.1"
 ktor = "3.0.1"
+nanohttpd = "2.3.0"
+turbine = "1.2.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -51,6 +53,9 @@ coroutine-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-t
 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+
+nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 [bundles]
 ktor-client = ["ktor-client-core", "ktor-client-cio"]

@@ -59,6 +59,8 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.coroutine.test)
     testImplementation(libs.bundles.ktor.client)
+    testImplementation(libs.nanohttpd)
+    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.junit)
