@@ -72,6 +72,8 @@ data class OccupancyEvent(
     val presenceMembers: Int,
 )
 
+const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
+
 internal class DefaultOccupancy(
     private val room: DefaultRoom,
 ) : Occupancy, ContributesToRoomLifecycleImpl(room.logger) {
@@ -111,7 +113,7 @@ internal class DefaultOccupancy(
             internalChannelListener(it)
         }
 
-        occupancySubscription = channelWrapper.subscribe(occupancyListener).asChatSubscription()
+        occupancySubscription = channelWrapper.subscribe(META_OCCUPANCY_EVENT_NAME, occupancyListener).asChatSubscription()
     }
 
     // (CHA-O4)
