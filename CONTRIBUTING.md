@@ -111,6 +111,8 @@ The source of truth for documentation for the Ably Chat SDKs can be found on the
 
 Please ensure that you merge any pull requests in that repository promptly after releasing your change.
 
+Any releases must be accompanied by a PR to bump the library install version in the setup/install guide, at minimum.
+
 ## Release Process
 
 ### Prerequisites for Release
@@ -153,9 +155,10 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
     - Also ensure that the "Full Changelog" link points to the new version tag instead of the `HEAD`.
 
 4. Commit [CHANGELOG](./CHANGELOG.md)
-5. Make a PR against `main`
-6. Once the PR is approved, merge it into `main`
-7. From the updated `main` branch on your local workstation, assemble and upload:
+5. Create a PR on the [website docs](https://github.com/ably/docs) that updates that SDK version in the setup/installation guide.
+6. Make a PR against `main`
+7. Once the PR is approved, merge it into `main`
+8. From the updated `main` branch on your local workstation, assemble and upload:
     ```sh
       ./gradlew publishAndReleaseToMavenCentral
     ```
@@ -165,7 +168,7 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
         - Missing POM file information
         - Invalid signatures
         - Incomplete Javadoc
-8. Add a tag and push to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`
-9. Create the release on Github including populating the release notes
-10. Merge any [docs](https://github.com/ably/docs) PRs related to your changes.
-11. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
+9. Add a tag and push to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`
+10. Create the release on Github including populating the release notes
+11. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes, including the one you created in Step 5.
+12. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
