@@ -31,17 +31,17 @@ interface ChatClient {
     val realtime: AblyRealtime
 
     /**
-     * The resolved client options for the client, including any defaults that have been set.
+     * The chat client options for the client, including any defaults that have been set.
      */
-    val clientOptions: ClientOptions
+    val clientOptions: ChatClientOptions
 }
 
-fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ClientOptions = ClientOptions()): ChatClient =
+fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ChatClientOptions = ChatClientOptions()): ChatClient =
     DefaultChatClient(realtimeClient, clientOptions)
 
 internal class DefaultChatClient(
     override val realtime: AblyRealtime,
-    override val clientOptions: ClientOptions,
+    override val clientOptions: ChatClientOptions,
 ) : ChatClient {
 
     private val realtimeClientWrapper = RealtimeClient(realtime).createWrapperSdkProxy(

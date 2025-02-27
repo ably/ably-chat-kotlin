@@ -3,7 +3,7 @@ package com.ably.chat
 /**
  * Configuration options for the chat client.
  */
-data class ClientOptions(
+data class ChatClientOptions(
     /**
      * A custom log handler that will be used to log messages from the client.
      * @defaultValue The client will log messages to the console.
