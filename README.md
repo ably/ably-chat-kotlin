@@ -2,7 +2,7 @@
 
 <p style="text-align: left">
     <img src="https://badgen.net/github/license/3scale/saas-operator" alt="License" />
-    <img src="https://img.shields.io/badge/version-0.1.1-2ea44f" alt="version: 0.1.1" />
+    <img src="https://img.shields.io/badge/version-0.2.0-2ea44f" alt="version: 0.2.0" />
     <a href="https://github.com/ably/ably-chat-kotlin/actions/workflows/coverage.yml"><img src="https://img.shields.io/static/v1?label=coverage&message=80%2B%25&color=2ea44f" alt="coverage - 80+%"></a>
 </p>
 
@@ -53,13 +53,13 @@ The Ably Chat SDK is available on the Maven Central Repository. To include the d
 For Groovy:
 
 ```groovy
-implementation 'com.ably.chat:chat-android:0.1.1'
+implementation 'com.ably.chat:chat-android:0.2.0'
 ```
 
 For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat-android:0.1.1")
+implementation("com.ably.chat:chat-android:0.2.0")
 ```
 
 ### Dependency on ably-android

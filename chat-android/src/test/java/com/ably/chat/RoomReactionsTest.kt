@@ -1,13 +1,11 @@
 package com.ably.chat
 
-import com.ably.chat.room.createMockChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
 import com.google.gson.JsonObject
-import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.MessageExtras
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
@@ -17,23 +15,12 @@ import org.junit.Before
 import org.junit.Test
 
 class RoomReactionsTest {
-    private lateinit var realtimeChannel: Channel
     private lateinit var roomReactions: DefaultRoomReactions
     private lateinit var room: DefaultRoom
 
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
-        realtimeChannel = realtimeClient.createMockChannel("room1::\$chat::\$reactions")
-
-        every { realtimeClient.channels.get(any(), any()) } answers {
-            val channelName = firstArg<String>()
-            if (channelName == "room1::\$chat::\$reactions") {
-                realtimeChannel
-            } else {
-                buildRealtimeChannel(channelName)
-            }
-        }
         room = createMockRoom("room1", "client1", realtimeClient = realtimeClient)
         roomReactions = DefaultRoomReactions(room)
     }
@@ -58,7 +45,7 @@ class RoomReactionsTest {
     fun `should be able to subscribe to incoming reactions`() = runTest {
         val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
 
-        every { realtimeChannel.subscribe("roomReaction", capture(pubSubMessageListenerSlot)) } returns Unit
+        every { roomReactions.channelWrapper.subscribe("roomReaction", capture(pubSubMessageListenerSlot)) } returns mockk(relaxed = true)
 
         val deferredValue = CompletableDeferred<Reaction>()
 
@@ -66,12 +53,13 @@ class RoomReactionsTest {
             deferredValue.complete(it)
         }
 
-        verify { realtimeChannel.subscribe("roomReaction", any()) }
+        verify { roomReactions.channelWrapper.subscribe("roomReaction", any()) }
 
         pubSubMessageListenerSlot.captured.onMessage(
             PubSubMessage().apply {
                 data = JsonObject().apply {
                     addProperty("type", "like")
+                    add("metadata", JsonObject())
                 }
                 clientId = "clientId"
                 timestamp = 1000L
@@ -95,7 +83,7 @@ class RoomReactionsTest {
                 type = "like",
                 createdAt = 1000L,
                 clientId = "clientId",
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 isSelf = false,
             ),

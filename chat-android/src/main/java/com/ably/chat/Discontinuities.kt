@@ -1,17 +1,17 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
-import io.ably.lib.realtime.ChannelBase as AblyRealtimeChannel
 
 /**
  * Represents an object that has a channel and therefore may care about discontinuities.
  */
-interface HandlesDiscontinuity {
+internal interface HandlesDiscontinuity {
     /**
      * The channel that this object is associated with.
      */
-    val channel: AblyRealtimeChannel
+    val channelWrapper: RealtimeChannel
 
     /**
      * Called when a discontinuity is detected on the channel.

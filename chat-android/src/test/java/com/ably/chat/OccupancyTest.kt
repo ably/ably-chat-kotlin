@@ -1,12 +1,14 @@
 package com.ably.chat
 
-import com.ably.chat.room.createMockChannel
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
 import com.google.gson.JsonObject
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -15,20 +17,19 @@ import org.junit.Test
 
 class OccupancyTest {
 
-    private lateinit var occupancy: Occupancy
+    private lateinit var occupancy: DefaultOccupancy
     private val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
     private val realtimeClient = createMockRealtimeClient()
 
     @Before
     fun setUp() {
-        val mockRealtimeChannel = realtimeClient.createMockChannel()
-        every { mockRealtimeChannel.subscribe(capture(pubSubMessageListenerSlot)) } returns Unit
-
-        every { realtimeClient.channels.get(any(), any()) } returns mockRealtimeChannel
-
+        val channel = createMockRealtimeChannel("room1::\$chat::\$chatMessages")
+        every { channel.subscribe(any<String>(), capture(pubSubMessageListenerSlot)) } returns mockk(relaxUnitFun = true)
+        val channels = realtimeClient.channels
+        every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
         val mockChatApi = createMockChatApi(realtimeClient)
         val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi)
-        occupancy = DefaultOccupancy(room)
+        occupancy = room.occupancy as DefaultOccupancy
     }
 
     /**
@@ -142,5 +143,12 @@ class OccupancyTest {
         pubSubMessageListenerSlot.captured.onMessage(fakeMessage)
 
         assertEquals(OccupancyEvent(connections = 1, presenceMembers = 1), deferredEvent.await())
+    }
+
+    @Test
+    fun `should filter occupancy messages by event name`() = runTest {
+        verify(exactly = 1) {
+            occupancy.channelWrapper.subscribe("[meta]occupancy", any())
+        }
     }
 }

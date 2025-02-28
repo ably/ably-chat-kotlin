@@ -1,7 +1,8 @@
-@file:Suppress("StringLiteralDuplication", "NotImplementedDeclaration")
+@file:Suppress("StringLiteralDuplication")
 
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import io.ably.lib.realtime.Channel
@@ -71,6 +72,8 @@ data class OccupancyEvent(
     val presenceMembers: Int,
 )
 
+const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
+
 internal class DefaultOccupancy(
     private val room: DefaultRoom,
 ) : Occupancy, ContributesToRoomLifecycleImpl(room.logger) {
@@ -84,6 +87,8 @@ internal class DefaultOccupancy(
     private val logger = room.logger.withContext(tag = "Occupancy")
 
     override val channel: Channel = room.messages.channel
+
+    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
 
     private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
 
@@ -108,11 +113,7 @@ internal class DefaultOccupancy(
             internalChannelListener(it)
         }
 
-        channel.subscribe(occupancyListener)
-
-        occupancySubscription = Subscription {
-            channel.unsubscribe(occupancyListener)
-        }
+        occupancySubscription = channelWrapper.subscribe(META_OCCUPANCY_EVENT_NAME, occupancyListener).asChatSubscription()
     }
 
     // (CHA-O4)

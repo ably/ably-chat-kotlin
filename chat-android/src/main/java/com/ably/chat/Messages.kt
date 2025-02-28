@@ -1,8 +1,8 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.OrderBy.NewestFirst
+import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
@@ -78,22 +78,12 @@ interface Messages : EmitsDiscontinuities {
      * The original message is not modified.
      * Spec: CHA-M8
      *
-     * @param message The message to update.
-     * @param text The new text of the message.
-     * @param opDescription Optional description for the update action.
-     * @param opMetadata Optional metadata for the update action.
-     * @param metadata Optional metadata of the message.
-     * @param headers Optional headers of the message.
+     * @param updatedMessage The updated copy of the message created using the `message.copy` method.
+     * @param operationDescription Optional description for the update action.
+     * @param operationMetadata Optional metadata for the update action.
      * @returns updated message.
      */
-    suspend fun update(
-        message: Message,
-        text: String,
-        opDescription: String? = null,
-        opMetadata: OperationMetadata? = null,
-        metadata: MessageMetadata? = null,
-        headers: MessageHeaders? = null,
-    ): Message
+    suspend fun update(updatedMessage: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * Delete a message in the chat room.
@@ -109,11 +99,11 @@ interface Messages : EmitsDiscontinuities {
      *
      * @returns when the message is deleted.
      * @param message - The message to delete.
-     * @param opDescription - Optional description for the delete action.
-     * @param opMetadata - Optional metadata for the delete action.
+     * @param operationDescription - Optional description for the delete action.
+     * @param operationMetadata - Optional metadata for the delete action.
      * @return A promise that resolves to the deleted message.
      */
-    suspend fun delete(message: Message, opDescription: String? = null, opMetadata: OperationMetadata? = null): Message
+    suspend fun delete(message: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * An interface for listening to new messaging event
@@ -248,8 +238,8 @@ internal data class UpdateMessageParams(
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
         add("message", message.toJsonObject())
-        description?.let { addProperty("description", it) }
-        metadata?.let { add("metadata", it.toJson()) }
+        description?.let { addProperty(MessageOperationProperty.Description, it) }
+        metadata?.let { add(MessageOperationProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -269,8 +259,8 @@ internal data class DeleteMessageParams(
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
-        description?.let { addProperty("description", it) }
-        metadata?.let { add("metadata", it.toJson()) }
+        description?.let { addProperty(MessageOperationProperty.Description, it) }
+        metadata?.let { add(MessageOperationProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -331,7 +321,10 @@ internal class DefaultMessages(
      */
     private val messagesChannelName = "${room.roomId}::\$chat::\$chatMessages"
 
-    override val channel: Channel = realtimeChannels.get(messagesChannelName, room.options.messagesChannelOptions()) // CHA-RC2f
+    override val channelWrapper: RealtimeChannel = realtimeChannels.get(messagesChannelName, room.options.messagesChannelOptions())
+
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
 
     override val attachmentErrorCode: ErrorCode = ErrorCode.MessagesAttachmentFailed
 
@@ -352,7 +345,8 @@ internal class DefaultMessages(
                 updateChannelSerialsAfterDiscontinuity(requireAttachSerial())
             }
         }
-        channel.on(channelStateListener)
+        @OptIn(InternalAPI::class)
+        channelWrapper.javaChannel.on(channelStateListener)
     }
 
     // CHA-M5c, CHA-M5d - Updated channel serial after discontinuity
@@ -382,7 +376,7 @@ internal class DefaultMessages(
                 clientId = pubSubMessage.clientId,
                 serial = pubSubMessage.serial,
                 text = data.text,
-                metadata = data.metadata,
+                metadata = data.metadata ?: MessageMetadata(),
                 headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
                 version = pubSubMessage.version,
@@ -393,10 +387,10 @@ internal class DefaultMessages(
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
-        channel.subscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
+        val subscription = channelWrapper.subscribe(PubSubEventName.ChatMessage, messageListener)
         logger.debug("subscribe(); roomId=$roomId, subscribed to messages")
         // (CHA-M5) setting subscription point
-        if (channel.state == ChannelState.attached) {
+        if (channelWrapper.state == ChannelState.attached) {
             channelSerialMap[messageListener] = CompletableDeferred(requireChannelSerial())
         }
 
@@ -405,7 +399,7 @@ internal class DefaultMessages(
             roomId = roomId,
             subscription = {
                 channelSerialMap.remove(messageListener)
-                channel.unsubscribe(PubSubEventName.CHAT_MESSAGE, messageListener)
+                subscription.unsubscribe()
             },
             fromSerialProvider = {
                 channelSerialMap[messageListener]
@@ -432,50 +426,52 @@ internal class DefaultMessages(
     }
 
     override suspend fun update(
-        message: Message,
-        text: String,
-        opDescription: String?,
-        opMetadata: OperationMetadata?,
-        metadata: MessageMetadata?,
-        headers: MessageHeaders?,
+        updatedMessage: Message,
+        operationDescription: String?,
+        operationMetadata: OperationMetadata?,
     ): Message {
-        logger.trace("update(); roomId=$roomId, serial=${message.serial}, text=$text, metadata=$metadata, headers=$headers")
+        logger.trace("update(); roomId=$roomId, serial=${updatedMessage.serial}")
         return chatApi.updateMessage(
-            message,
+            updatedMessage,
             UpdateMessageParams(
-                message = SendMessageParams(text, metadata, headers),
-                description = opDescription,
-                metadata = opMetadata,
+                message = SendMessageParams(updatedMessage.text, updatedMessage.metadata, updatedMessage.headers),
+                description = operationDescription,
+                metadata = operationMetadata,
             ),
         )
     }
 
-    override suspend fun delete(message: Message, opDescription: String?, opMetadata: OperationMetadata?): Message {
-        logger.trace("delete(); roomId=$roomId, serial=${message.serial}, opDescription=$opDescription, opMetadata=$opMetadata")
+    override suspend fun delete(
+        message: Message,
+        operationDescription: String?,
+        operationMetadata: OperationMetadata?,
+    ): Message {
+        logger.trace("delete(); roomId=$roomId, serial=${message.serial}")
         return chatApi.deleteMessage(
             message,
             DeleteMessageParams(
-                description = opDescription,
-                metadata = opMetadata,
+                description = operationDescription,
+                metadata = operationMetadata,
             ),
         )
     }
 
     private fun requireChannelSerial(): String {
-        return channel.properties.channelSerial
+        return channelWrapper.properties.channelSerial
             ?: throw clientError("Channel has been attached, but channelSerial is not defined")
     }
 
     private fun requireAttachSerial(): String {
-        return channel.properties.attachSerial
+        return channelWrapper.properties.attachSerial
             ?: throw clientError("Channel has been attached, but attachSerial is not defined")
     }
 
     override fun release() {
         logger.trace("release(); roomId=$roomId")
-        channel.off(channelStateListener)
+        @OptIn(InternalAPI::class)
+        channelWrapper.javaChannel.off(channelStateListener)
         channelSerialMap.clear()
-        realtimeChannels.release(channel.name)
+        realtimeChannels.release(channelWrapper.name)
     }
 }
 

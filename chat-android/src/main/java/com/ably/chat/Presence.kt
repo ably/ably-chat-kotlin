@@ -1,7 +1,9 @@
-@file:Suppress("StringLiteralDuplication", "NotImplementedDeclaration")
+@file:Suppress("StringLiteralDuplication")
 
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
+import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
@@ -146,9 +148,11 @@ internal class DefaultPresence(
 
     override val channel: Channel = room.messages.channel
 
+    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
+
     private val logger = room.logger.withContext(tag = "Presence")
 
-    private val presence = channel.presence
+    private val presence: RealtimePresence = channelWrapper.presence
 
     override suspend fun get(waitForSync: Boolean, clientId: String?, connectionId: String?): List<PresenceMember> {
         room.ensureAttached(logger) // CHA-PR6d, CHA-PR6c, CHA-PR6h
@@ -190,11 +194,7 @@ internal class DefaultPresence(
             listener.onEvent(presenceEvent)
         }
 
-        presence.subscribe(presenceListener)
-
-        return Subscription {
-            presence.unsubscribe(presenceListener)
-        }
+        return presence.subscribe(presenceListener).asChatSubscription()
     }
 
     private fun wrapInUserCustomData(data: PresenceData?) = data?.let {

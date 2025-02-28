@@ -1,16 +1,16 @@
 package com.ably.chat
 
-import com.ably.chat.room.createMockChannel
+import com.ably.annotations.InternalAPI
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
 import com.google.gson.JsonObject
-import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.ChannelBase
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.realtime.buildChannelStateChange
 import io.ably.lib.types.AblyException
+import io.ably.lib.types.ChannelProperties
 import io.ably.lib.types.MessageAction
 import io.ably.lib.types.MessageExtras
 import io.mockk.every
@@ -28,18 +28,17 @@ import org.junit.Test
 class MessagesTest {
 
     private val realtimeClient = createMockRealtimeClient()
-    private val realtimeChannel = realtimeClient.createMockChannel()
 
     private lateinit var messages: DefaultMessages
     private val channelStateListenerSlot = slot<ChannelStateListener>()
 
+    @OptIn(InternalAPI::class)
     @Before
     fun setUp() {
-        every { realtimeClient.channels.get(any(), any()) } returns realtimeChannel
-        every { realtimeChannel.on(capture(channelStateListenerSlot)) } answers {
-            println("Channel state listener registered")
-        }
-
+        val channel = createMockRealtimeChannel("room1::\$chat::\$chatMessages")
+        every { channel.javaChannel.on(capture(channelStateListenerSlot)) } returns mockk()
+        val channels = realtimeClient.channels
+        every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
         val chatApi = createMockChatApi(realtimeClient)
         val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = chatApi)
 
@@ -54,8 +53,8 @@ class MessagesTest {
         mockSendMessageApiResponse(
             realtimeClient,
             JsonObject().apply {
-                addProperty("serial", "abcdefghij@1672531200000-123")
-                addProperty("createdAt", 1_000_000)
+                addProperty(MessageProperty.Serial, "abcdefghij@1672531200000-123")
+                addProperty(MessageProperty.CreatedAt, 1_000_000)
             },
             roomId = "room1",
         )
@@ -90,9 +89,7 @@ class MessagesTest {
     fun `should be able to subscribe to incoming messages`() = runTest {
         val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
 
-        every { realtimeChannel.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } answers {
-            println("Pub/Sub message listener registered")
-        }
+        every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
 
         val deferredValue = CompletableDeferred<MessageEvent>()
 
@@ -100,12 +97,13 @@ class MessagesTest {
             deferredValue.complete(it)
         }
 
-        verify { realtimeChannel.subscribe("chat.message", any()) }
+        verify { messages.channelWrapper.subscribe("chat.message", any()) }
 
         pubSubMessageListenerSlot.captured.onMessage(
             PubSubMessage().apply {
                 data = JsonObject().apply {
                     addProperty("text", "some text")
+                    add("metadata", JsonObject())
                 }
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
@@ -136,7 +134,7 @@ class MessagesTest {
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "some text",
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
                 version = "abcdefghij@1672531200000-123",
@@ -167,13 +165,13 @@ class MessagesTest {
      */
     @Test
     fun `every subscription should have own channel serial`() = runTest {
-        messages.channel.properties.channelSerial = "channel-serial-1"
-        messages.channel.state = ChannelState.attached
+        every { messages.channelWrapper.state } returns ChannelState.attached
+        every { messages.channelWrapper.properties } returns ChannelProperties().apply { channelSerial = "channel-serial-1" }
 
         val subscription1 = (messages.subscribe {}) as DefaultMessagesSubscription
         assertEquals("channel-serial-1", subscription1.fromSerialProvider().await())
 
-        messages.channel.properties.channelSerial = "channel-serial-2"
+        every { messages.channelWrapper.properties } returns ChannelProperties().apply { channelSerial = "channel-serial-2" }
         val subscription2 = (messages.subscribe {}) as DefaultMessagesSubscription
 
         assertEquals("channel-serial-2", subscription2.fromSerialProvider().await())
@@ -185,14 +183,16 @@ class MessagesTest {
      */
     @Test
     fun `subscription should update channel serial after reattach with resume = false`() = runTest {
-        messages.channel.properties.channelSerial = "channel-serial-1"
-        messages.channel.state = ChannelState.attached
+        every { messages.channelWrapper.state } returns ChannelState.attached
+        every { messages.channelWrapper.properties } returns ChannelProperties().apply { channelSerial = "channel-serial-1" }
 
         val subscription1 = (messages.subscribe {}) as DefaultMessagesSubscription
         assertEquals("channel-serial-1", subscription1.fromSerialProvider().await())
 
-        messages.channel.properties.channelSerial = "channel-serial-2"
-        messages.channel.properties.attachSerial = "attach-serial-2"
+        every { messages.channelWrapper.properties } returns ChannelProperties().apply {
+            channelSerial = "channel-serial-2"
+            attachSerial = "attach-serial-2"
+        }
         channelStateListenerSlot.captured.onChannelStateChanged(
             buildChannelStateChange(
                 current = ChannelState.attached,
@@ -204,8 +204,8 @@ class MessagesTest {
         assertEquals("attach-serial-2", subscription1.fromSerialProvider().await())
 
         // Check channelSerial is used at the point of subscription when state is attached
-        messages.channel.properties.channelSerial = "channel-serial-3"
-        messages.channel.state = ChannelState.attached
+        every { messages.channelWrapper.properties } returns ChannelProperties().apply { channelSerial = "channel-serial-3" }
+        every { messages.channelWrapper.state } returns ChannelState.attached
 
         val subscription2 = (messages.subscribe {}) as DefaultMessagesSubscription
         assertEquals("channel-serial-3", subscription2.fromSerialProvider().await())
@@ -216,30 +216,31 @@ class MessagesTest {
         val listener1 = mockk<Messages.Listener>(relaxed = true)
         val listener2 = mockk<Messages.Listener>(relaxed = true)
 
-        messages.subscribe(listener1)
+        val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
 
-        messages.channel.channelMulticaster.onMessage(buildDummyPubSubMessage())
+        every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
+
+        messages.subscribe(listener1)
+        val capturedSlots = mutableListOf(pubSubMessageListenerSlot.captured)
+
+        capturedSlots.forEach { it.onMessage(buildDummyPubSubMessage()) }
 
         verify(exactly = 1) { listener1.onEvent(any()) }
 
         messages.subscribe(listener2)
+        capturedSlots.add(pubSubMessageListenerSlot.captured)
 
-        messages.channel.channelMulticaster.onMessage(buildDummyPubSubMessage())
+        capturedSlots.forEach { it.onMessage(buildDummyPubSubMessage()) }
 
         verify(exactly = 2) { listener1.onEvent(any()) }
         verify(exactly = 1) { listener2.onEvent(any()) }
     }
 }
 
-private val Channel.channelMulticaster: ChannelBase.MessageListener
-    get() {
-        val eventListeners = getPrivateField<HashMap<*, *>>("eventListeners")
-        return eventListeners["chat.message"] as ChannelBase.MessageListener
-    }
-
 private fun buildDummyPubSubMessage() = PubSubMessage().apply {
     data = JsonObject().apply {
         addProperty("text", "dummy text")
+        add("metadata", JsonObject())
     }
     serial = "abcdefghij@1672531200000-123"
     clientId = "dummy"

@@ -56,7 +56,7 @@ data class Message(
      * Do not use metadata for authoritative information. There is no server-side
      * validation. When reading the metadata treat it like user input.
      */
-    val metadata: MessageMetadata?,
+    val metadata: MessageMetadata,
 
     /**
      * The headers of a chat message. Headers enable attaching extra info to a message,
@@ -97,19 +97,19 @@ data class Message(
     val operation: Message.Operation? = null,
 )
 
-fun toMessageOperation(jsonObject: JsonObject?): Message.Operation? {
+internal fun buildMessageOperation(jsonObject: JsonObject?): Message.Operation? {
     if (jsonObject == null) {
         return null
     }
     val operation = Message.Operation()
-    if (jsonObject.has("clientId")) {
-        operation.clientId = jsonObject.get("clientId").asString
+    if (jsonObject.has(MessageOperationProperty.ClientId)) {
+        operation.clientId = jsonObject.get(MessageOperationProperty.ClientId).asString
     }
-    if (jsonObject.has("description")) {
-        operation.description = jsonObject.get("description").asString
+    if (jsonObject.has(MessageOperationProperty.Description)) {
+        operation.description = jsonObject.get(MessageOperationProperty.Description).asString
     }
-    if (jsonObject.has("metadata")) {
-        val metadataObject = jsonObject.getAsJsonObject("metadata")
+    if (jsonObject.has(MessageOperationProperty.Metadata)) {
+        val metadataObject = jsonObject.getAsJsonObject(MessageOperationProperty.Metadata)
         operation.metadata = mutableMapOf()
         for ((key, value) in metadataObject.entrySet()) {
             operation.metadata[key] = value.asString
@@ -118,10 +118,36 @@ fun toMessageOperation(jsonObject: JsonObject?): Message.Operation? {
     return operation
 }
 
-fun toMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
+internal fun buildMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
     val operation = Message.Operation()
     operation.clientId = clientId
     operation.description = description
     operation.metadata = metadata
     return operation
+}
+
+/**
+ * MessageProperty object representing the properties of a message.
+ */
+internal object MessageProperty {
+    const val Serial = "serial"
+    const val ClientId = "clientId"
+    const val RoomId = "roomId"
+    const val Text = "text"
+    const val CreatedAt = "createdAt"
+    const val Metadata = "metadata"
+    const val Headers = "headers"
+    const val Action = "action"
+    const val Version = "version"
+    const val Timestamp = "timestamp"
+    const val Operation = "operation"
+}
+
+/**
+ * MessageOperationProperty object representing the properties of a message operation.
+ */
+internal object MessageOperationProperty {
+    const val ClientId = "clientId"
+    const val Description = "description"
+    const val Metadata = "metadata"
 }

@@ -17,8 +17,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,12 +47,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ably.chat.ChatClient
 import com.ably.chat.Message
-import com.ably.chat.RealtimeClient
+import com.ably.chat.MessageEventType
+import com.ably.chat.MessageMetadata
 import com.ably.chat.Room
 import com.ably.chat.RoomOptions
 import com.ably.chat.Typing
 import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
+import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.types.ClientOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
@@ -61,7 +67,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val realtimeClient = RealtimeClient(
+        val realtimeClient = AblyRealtime(
             ClientOptions().apply {
                 key = BuildConfig.ABLY_KEY
                 clientId = randomClientId
@@ -145,7 +151,7 @@ fun App(chatClient: ChatClient) {
     }
 }
 
-@SuppressWarnings("LongMethod")
+@SuppressWarnings("LongMethod", "CognitiveComplexMethod")
 @Composable
 fun Chat(room: Room, modifier: Modifier = Modifier) {
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
@@ -154,12 +160,48 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var receivedReactions by remember { mutableStateOf<List<String>>(listOf()) }
+    var edited: Message? by remember { mutableStateOf(null) }
+    val updating = edited != null
+
+    val handleSend = {
+        coroutineScope.launch {
+            room.messages.send(
+                text = messageText.text,
+            )
+            messageText = TextFieldValue("")
+            sending = false
+        }
+    }
+
+    val handleEdit = handleEdit@{
+        val editedMessage = edited ?: return@handleEdit
+        coroutineScope.launch {
+            room.messages.update(
+                editedMessage.copy(text = messageText.text),
+            )
+            messageText = TextFieldValue("")
+            edited = null
+            sending = false
+        }
+    }
 
     DisposableEffect(Unit) {
-        val subscription = room.messages.subscribe {
-            messages += it.message
-            coroutineScope.launch {
-                listState.animateScrollToItem(messages.size - 1)
+        val subscription = room.messages.subscribe { event ->
+            when (event.type) {
+                MessageEventType.Created -> {
+                    messages += event.message
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(messages.size - 1)
+                    }
+                }
+
+                MessageEventType.Updated -> messages = messages.map {
+                    if (it.serial != event.message.serial) it else event.message
+                }
+
+                MessageEventType.Deleted -> messages = messages.filter {
+                    it.serial != event.message.serial
+                }
             }
         }
 
@@ -195,11 +237,23 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             state = listState,
         ) {
             items(messages.size) { index ->
-                MessageBubble(messages[index])
+                MessageBubble(
+                    message = messages[index],
+                    onEdit = {
+                        edited = messages[index]
+                        messageText = TextFieldValue(messages[index].text)
+                    },
+                    onDelete = {
+                        coroutineScope.launch {
+                            room.messages.delete(messages[index])
+                        }
+                    },
+                )
             }
         }
 
         ChatInputField(
+            updating = updating,
             sending = sending,
             messageInput = messageText,
             onMessageChange = {
@@ -210,12 +264,9 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             },
             onSendClick = {
                 sending = true
-                coroutineScope.launch {
-                    room.messages.send(
-                        text = messageText.text,
-                    )
-                    messageText = TextFieldValue("")
-                    sending = false
+                when {
+                    updating -> handleEdit()
+                    else -> handleSend()
                 }
             },
             onReactionClick = {
@@ -230,8 +281,12 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
     }
 }
 
+@Suppress("LongMethod")
 @Composable
-fun MessageBubble(message: Message) {
+fun MessageBubble(message: Message, onEdit: () -> Unit = {}, onDelete: () -> Unit = {}) {
+    var expanded by remember { mutableStateOf(false) }
+    var confirmationDialogShown by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -251,12 +306,63 @@ fun MessageBubble(message: Message) {
                 color = Color.White,
             )
         }
+        if (message.clientId == randomClientId) {
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "More Options")
+                }
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            expanded = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            expanded = false
+                            confirmationDialogShown = true
+                        },
+                    )
+                }
+            }
+        }
+        // Delete Confirmation Dialog
+        if (confirmationDialogShown) {
+            AlertDialog(
+                onDismissRequest = { confirmationDialogShown = false },
+                title = { Text("Delete Message") },
+                text = { Text("Are you sure you want to delete this message?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onDelete()
+                            confirmationDialogShown = false
+                        },
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { confirmationDialogShown = false }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
     }
 }
 
 @Composable
 fun ChatInputField(
     sending: Boolean = false,
+    updating: Boolean = false,
     messageInput: TextFieldValue,
     onMessageChange: (TextFieldValue) -> Unit,
     onSendClick: () -> Unit,
@@ -278,13 +384,17 @@ fun ChatInputField(
                 .background(Color.White),
             placeholder = { Text("Type a message...") },
         )
-        if (messageInput.text.isNotEmpty()) {
-            Button(enabled = !sending, onClick = onSendClick) {
-                Text("Send")
+        when {
+            updating -> Button(enabled = !sending, onClick = onSendClick) {
+                Text("Update")
             }
-        } else {
-            Button(onClick = onReactionClick) {
+
+            messageInput.text.isEmpty() -> Button(onClick = onReactionClick) {
                 Text("\uD83D\uDC4D")
+            }
+
+            else -> Button(enabled = !sending, onClick = onSendClick) {
+                Text("Send")
             }
         }
     }
@@ -318,7 +428,7 @@ fun MessageBubblePreview() {
                 roomId = "roomId",
                 clientId = "clientId",
                 createdAt = System.currentTimeMillis(),
-                metadata = null,
+                metadata = MessageMetadata(),
                 headers = mapOf(),
                 action = MessageAction.MESSAGE_CREATE,
                 version = "fake",

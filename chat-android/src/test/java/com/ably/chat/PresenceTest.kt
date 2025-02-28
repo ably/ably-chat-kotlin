@@ -1,12 +1,13 @@
 package com.ably.chat
 
-import com.ably.chat.room.createMockChannel
+import com.ably.chat.room.DEFAULT_ROOM_ID
+import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
+import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import io.ably.lib.realtime.Presence.PresenceListener
-import io.ably.lib.types.ChannelOptions
 import io.ably.lib.types.PresenceMessage
 import io.mockk.every
 import io.mockk.mockk
@@ -16,21 +17,19 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import io.ably.lib.realtime.Presence as PubSubPresence
 
 class PresenceTest {
 
-    private val pubSubPresence = mockk<PubSubPresence>(relaxed = true)
+    private val realtimeClient = createMockRealtimeClient()
+    private lateinit var pubSubPresence: RealtimePresence
     private lateinit var presence: DefaultPresence
 
     @Before
     fun setUp() {
-        val realtimeClient = createMockRealtimeClient()
-        val mockRealtimeChannel = realtimeClient.createMockChannel("room1::\$chat::\$messages")
-        mockRealtimeChannel.setPrivateField("presence", pubSubPresence)
-
-        every { realtimeClient.channels.get(any<String>(), any<ChannelOptions>()) } returns mockRealtimeChannel
-
+        val channel = createMockRealtimeChannel("$DEFAULT_ROOM_ID::\$chat::\$chatMessages")
+        val channels = realtimeClient.channels
+        every { channels.get("$DEFAULT_ROOM_ID::\$chat::\$chatMessages", any()) } returns channel
+        pubSubPresence = channel.presence
         presence = DefaultPresence(createMockRoom(realtimeClient = realtimeClient))
     }
 
@@ -41,7 +40,7 @@ class PresenceTest {
     fun `should transform PresenceMessage into Chat's PresenceEvent if there is no data`() = runTest {
         val presenceListenerSlot = slot<PresenceListener>()
 
-        every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns Unit
+        every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns mockk(relaxed = true)
 
         val deferredValue = CompletableDeferred<PresenceEvent>()
 
@@ -77,7 +76,7 @@ class PresenceTest {
     fun `should transform PresenceMessage into Chat's PresenceEvent if there is no 'userCustomData'`() = runTest {
         val presenceListenerSlot = slot<PresenceListener>()
 
-        every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns Unit
+        every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns mockk(relaxUnitFun = true)
 
         val deferredValue = CompletableDeferred<PresenceEvent>()
 
@@ -114,7 +113,7 @@ class PresenceTest {
     fun `should transform PresenceMessage into Chat's PresenceEvent if 'userCustomData' is primitive`() = runTest {
         val presenceListenerSlot = slot<PresenceListener>()
 
-        every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns Unit
+        every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns mockk(relaxUnitFun = true)
 
         val deferredValue = CompletableDeferred<PresenceEvent>()
 

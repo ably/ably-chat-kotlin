@@ -1,11 +1,13 @@
 package com.ably.chat.integration
 
+import com.ably.chat.BuildConfig
 import com.ably.chat.Message
 import com.ably.chat.MessageEvent
 import com.ably.chat.MessageMetadata
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
+import io.ably.lib.realtime.channelOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -162,17 +164,16 @@ class MessagesIntegrationTest {
         val updatedText = "hello updated"
         val updatedMetadata = MessageMetadata()
         updatedMetadata.addProperty("foo", "baz")
-        val description = "Updating message"
-        val opMetadata = mapOf("operation" to "update")
         val headers = mapOf("headerKey" to "headerValue")
 
+        val opDescription = "Updating message"
+        val opMetadata = mapOf("operation" to "update")
+
+        val messageCopy = sentMessage.copy(text = updatedText, metadata = updatedMetadata, headers = headers)
         val updatedMessage = room.messages.update(
-            message = sentMessage,
-            text = updatedText,
-            opDescription = description,
-            opMetadata = opMetadata,
-            metadata = updatedMetadata,
-            headers = headers,
+            messageCopy,
+            opDescription,
+            opMetadata,
         )
 
         assertEquals(MessageAction.MESSAGE_UPDATE, updatedMessage.action)
@@ -223,8 +224,8 @@ class MessagesIntegrationTest {
 
         val deletedMessage = room.messages.delete(
             message = sentMessage,
-            opDescription = description,
-            opMetadata = opMetadata,
+            operationDescription = description,
+            operationMetadata = opMetadata,
         )
 
         assertEquals(MessageAction.MESSAGE_DELETE, deletedMessage.action)
@@ -247,6 +248,17 @@ class MessagesIntegrationTest {
         assertEquals(deletedMessage.clientId, receivedMsg2.clientId)
         assertEquals(deletedMessage.roomId, receivedMsg2.roomId)
         assertEquals(deletedMessage.action, receivedMsg2.action)
+    }
+
+    @Test
+    fun `messages channel should include agent channel param`() = runTest {
+        val chatClient = sandbox.createSandboxChatClient()
+        val roomId = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomId)
+        assertEquals(
+            "chat-kotlin/${BuildConfig.APP_VERSION}",
+            room.messages.channel.channelOptions?.params?.get("agent"),
+        )
     }
 
     companion object {

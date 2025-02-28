@@ -1,7 +1,7 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
+import com.ably.http.HttpMethod
+import com.ably.pubsub.RealtimeClient
 import com.google.gson.JsonElement
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
@@ -34,26 +34,26 @@ internal class ChatApi(
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
             url = "/chat/v2/rooms/$roomId/messages",
-            method = "GET",
+            method = HttpMethod.Get,
             params = params,
         ) {
             val messageJsonObject = it.requireJsonObject()
-            val latestAction = messageJsonObject.get("action")?.asString?.let { name -> messageActionNameToAction[name] }
-            val operation = messageJsonObject.getAsJsonObject("operation")
+            val latestAction = messageJsonObject.get(MessageProperty.Action)?.asString?.let { name -> messageActionNameToAction[name] }
+            val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
             latestAction?.let { action ->
                 logger.debug("getMessages(); messageJsonObject=$messageJsonObject")
                 Message(
-                    serial = messageJsonObject.requireString("serial"),
-                    clientId = messageJsonObject.requireString("clientId"),
-                    roomId = messageJsonObject.requireString("roomId"),
-                    text = messageJsonObject.requireString("text"),
-                    createdAt = messageJsonObject.requireLong("createdAt"),
-                    metadata = messageJsonObject.getAsJsonObject("metadata"),
-                    headers = messageJsonObject.get("headers")?.toMap() ?: mapOf(),
+                    serial = messageJsonObject.requireString(MessageProperty.Serial),
+                    clientId = messageJsonObject.requireString(MessageProperty.ClientId),
+                    roomId = messageJsonObject.requireString(MessageProperty.RoomId),
+                    text = messageJsonObject.requireString(MessageProperty.Text),
+                    createdAt = messageJsonObject.requireLong(MessageProperty.CreatedAt),
+                    metadata = messageJsonObject.getAsJsonObject(MessageProperty.Metadata) ?: MessageMetadata(),
+                    headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),
                     action = action,
-                    version = messageJsonObject.requireString("version"),
-                    timestamp = messageJsonObject.requireLong("timestamp"),
-                    operation = toMessageOperation(operation),
+                    version = messageJsonObject.requireString(MessageProperty.Version),
+                    timestamp = messageJsonObject.requireLong(MessageProperty.Timestamp),
+                    operation = buildMessageOperation(operation),
                 )
             }
         }
@@ -68,11 +68,11 @@ internal class ChatApi(
 
         return makeAuthorizedRequest(
             "/chat/v2/rooms/$roomId/messages",
-            "POST",
+            HttpMethod.Post,
             body,
         )?.let {
-            val serial = it.requireString("serial")
-            val createdAt = it.requireLong("createdAt")
+            val serial = it.requireString(MessageProperty.Serial)
+            val createdAt = it.requireLong(MessageProperty.CreatedAt)
             logger.debug("sendMessage(); roomId=$roomId, response=$it")
             // CHA-M3a
             Message(
@@ -100,11 +100,11 @@ internal class ChatApi(
         // CHA-M8c
         return makeAuthorizedRequest(
             "/chat/v2/rooms/${message.roomId}/messages/${message.serial}",
-            "PUT",
+            HttpMethod.Put,
             body,
         )?.let {
-            val version = it.requireString("version")
-            val timestamp = it.requireLong("timestamp")
+            val version = it.requireString(MessageProperty.Version)
+            val timestamp = it.requireLong(MessageProperty.Timestamp)
             logger.debug("updateMessage(); messageSerial=${message.serial}, response=$it")
             // CHA-M8b
             Message(
@@ -118,7 +118,7 @@ internal class ChatApi(
                 action = MessageAction.MESSAGE_UPDATE,
                 version = version,
                 timestamp = timestamp,
-                operation = toMessageOperation(clientId, params.description, params.metadata),
+                operation = buildMessageOperation(clientId, params.description, params.metadata),
             )
         } ?: throw serverError("Update message endpoint returned empty value") // CHA-M8d
     }
@@ -132,11 +132,11 @@ internal class ChatApi(
 
         return makeAuthorizedRequest(
             "/chat/v2/rooms/${message.roomId}/messages/${message.serial}/delete",
-            "POST",
+            HttpMethod.Post,
             body,
         )?.let {
-            val version = it.requireString("version")
-            val timestamp = it.requireLong("timestamp")
+            val version = it.requireString(MessageProperty.Version)
+            val timestamp = it.requireLong(MessageProperty.Timestamp)
             logger.debug("deleteMessage(); messageSerial=${message.serial}, response=$it")
             // CHA-M9b
             Message(
@@ -150,7 +150,7 @@ internal class ChatApi(
                 action = MessageAction.MESSAGE_DELETE,
                 version = version,
                 timestamp = timestamp,
-                operation = toMessageOperation(clientId, params.description, params.metadata),
+                operation = buildMessageOperation(clientId, params.description, params.metadata),
             )
         } ?: throw serverError("Delete message endpoint returned empty value") // CHA-M9c
     }
@@ -160,7 +160,7 @@ internal class ChatApi(
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
         logger.trace("getOccupancy(); roomId=$roomId")
-        return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", "GET")?.let {
+        return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy(); roomId=$roomId, response=$it")
             OccupancyEvent(
                 connections = it.requireInt("connections"),
@@ -171,17 +171,17 @@ internal class ChatApi(
 
     private suspend fun makeAuthorizedRequest(
         url: String,
-        method: String,
+        method: HttpMethod,
         body: JsonElement? = null,
     ): JsonElement? = suspendCancellableCoroutine { continuation ->
         val requestBody = body.toRequestBody()
         realtimeClient.requestAsync(
-            method,
-            url,
-            arrayOf(apiProtocolParam),
-            requestBody,
-            arrayOf(),
-            object : AsyncHttpPaginatedResponse.Callback {
+            path = url,
+            method = method,
+            params = listOf(apiProtocolParam),
+            body = requestBody,
+            headers = listOf(),
+            callback = object : AsyncHttpPaginatedResponse.Callback {
                 override fun onResponse(response: AsyncHttpPaginatedResponse?) {
                     continuation.resume(response?.items()?.firstOrNull())
                 }
@@ -205,17 +205,17 @@ internal class ChatApi(
 
     private suspend fun <T> makeAuthorizedPaginatedRequest(
         url: String,
-        method: String,
+        method: HttpMethod,
         params: List<Param> = listOf(),
         transform: (JsonElement) -> T?,
     ): PaginatedResult<T> = suspendCancellableCoroutine { continuation ->
         realtimeClient.requestAsync(
-            method,
-            url,
-            (params + apiProtocolParam).toTypedArray(),
-            null,
-            arrayOf(),
-            object : AsyncHttpPaginatedResponse.Callback {
+            method = method,
+            path = url,
+            params = params + apiProtocolParam,
+            body = null,
+            headers = listOf(),
+            callback = object : AsyncHttpPaginatedResponse.Callback {
                 override fun onResponse(response: AsyncHttpPaginatedResponse?) {
                     continuation.resume(response.toPaginatedResult(transform))
                 }

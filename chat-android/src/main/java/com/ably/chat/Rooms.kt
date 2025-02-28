@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

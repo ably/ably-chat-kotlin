@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
@@ -11,7 +12,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
-import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 /**
  * An interface for features that contribute to the room status.
@@ -22,11 +22,6 @@ internal interface ContributesToRoomLifecycle : EmitsDiscontinuities, HandlesDis
      * Name of the feature
      */
     val featureName: String
-
-    /**
-     * The channel on which the feature operates
-     */
-    override val channel: AblyRealtimeChannel
 
     /**
      * Gets the ErrorInfo code that should be used when the feature fails to attach.
@@ -245,7 +240,7 @@ internal class RoomLifecycleManager(
         }
 
         // If given suspended contributor channel has reattached, then we can retry the attach
-        if (contributor.channel.state == ChannelState.attached) {
+        if (contributor.channelWrapper.state == ChannelState.attached) {
             logger.debug("doRetry(); feature: ${contributor.featureName} reattached, retrying attach for others")
             return doAttachWithRetry()
         }
@@ -279,10 +274,12 @@ internal class RoomLifecycleManager(
                 continuation.resume(Unit)
             }
         }
-        contributor.channel.once(ChannelState.attached) {
+        @OptIn(InternalAPI::class)
+        contributor.channelWrapper.javaChannel.once(ChannelState.attached) {
             resumeIfAttached()
         }
-        if (contributor.channel.state == ChannelState.attached) { // Just being on the safer side, check if channel got into ATTACHED state
+        // Just being on the safer side, check if channel got into ATTACHED state
+        if (contributor.channelWrapper.state == ChannelState.attached) {
             resumeIfAttached()
         }
 
@@ -298,11 +295,13 @@ internal class RoomLifecycleManager(
                 continuation.resumeWithException(exception)
             }
         }
-        contributor.channel.once(ChannelState.failed) {
+        @OptIn(InternalAPI::class)
+        contributor.channelWrapper.javaChannel.once(ChannelState.failed) {
             resumeWithExceptionIfFailed(it.reason)
         }
-        if (contributor.channel.state == ChannelState.failed) { // Just being on the safer side, check if channel got into FAILED state
-            resumeWithExceptionIfFailed(contributor.channel.reason)
+        // Just being on the safer side, check if channel got into FAILED state
+        if (contributor.channelWrapper.state == ChannelState.failed) {
+            resumeWithExceptionIfFailed(contributor.channelWrapper.reason)
         }
     }
 
@@ -389,7 +388,7 @@ internal class RoomLifecycleManager(
         for (feature in contributors) { // CHA-RL1f - attach each feature sequentially
             try {
                 logger.debug("doAttach(); attaching feature: ${feature.featureName}")
-                feature.channel.attachCoroutine()
+                feature.channelWrapper.attachCoroutine()
                 firstAttachesCompleted[feature] = true
                 logger.debug("doAttach(); attached feature: ${feature.featureName}")
             } catch (ex: Throwable) { // CHA-RL1h - handle channel attach failure
@@ -397,20 +396,20 @@ internal class RoomLifecycleManager(
                 attachResult.throwable = ex
                 attachResult.failedFeatureField = feature
                 attachResult.errorField = lifeCycleErrorInfo(
-                    "failed to attach ${feature.featureName} feature${feature.channel.errorMessage}",
+                    "failed to attach ${feature.featureName} feature${feature.channelWrapper.errorMessage}",
                     feature.attachmentErrorCode,
                 )
 
                 // The current feature should be in one of two states, it will be either suspended or failed
                 // If it's in suspended, we wind down the other channels and wait for the reattach
                 // If it's failed, we can fail the entire room
-                when (feature.channel.state) {
+                when (feature.channelWrapper.state) {
                     ChannelState.suspended -> attachResult.statusField = RoomStatus.Suspended
                     ChannelState.failed -> attachResult.statusField = RoomStatus.Failed
                     else -> {
                         attachResult.statusField = RoomStatus.Failed
                         attachResult.errorField = lifeCycleErrorInfo(
-                            "unexpected channel state in doAttach ${feature.channel.state}${feature.channel.errorMessage}",
+                            "unexpected channel state in doAttach ${feature.channelWrapper.state}${feature.channelWrapper.errorMessage}",
                             ErrorCode.RoomLifecycleError,
                         )
                     }
@@ -474,17 +473,17 @@ internal class RoomLifecycleManager(
             async {
                 // CHA-RL5a1 - If its the contributor we want to wait for a conclusion on, then we should not detach it
                 // Unless we're in a failed state, in which case we should detach it
-                if (contributor.channel === except?.channel && statusLifecycle.status !== RoomStatus.Failed) {
+                if (contributor.channelWrapper === except?.channelWrapper && statusLifecycle.status != RoomStatus.Failed) {
                     logger.debug("doChannelWindDown(); ignoring feature: ${contributor.featureName} as per except param")
                     return@async
                 }
                 // If the room's already in the failed state, or it's releasing, we should not detach a failed channel
                 if ((
-                        statusLifecycle.status === RoomStatus.Failed ||
-                            statusLifecycle.status === RoomStatus.Releasing ||
-                            statusLifecycle.status === RoomStatus.Released
+                        statusLifecycle.status == RoomStatus.Failed ||
+                            statusLifecycle.status == RoomStatus.Releasing ||
+                            statusLifecycle.status == RoomStatus.Released
                         ) &&
-                    contributor.channel.state === ChannelState.failed
+                    contributor.channelWrapper.state == ChannelState.failed
                 ) {
                     logger.debug("doChannelWindDown(); ignoring feature: ${contributor.featureName} since it's already in failed state")
                     return@async
@@ -492,18 +491,18 @@ internal class RoomLifecycleManager(
 
                 try {
                     logger.debug("doChannelWindDown(); detaching feature: ${contributor.featureName}")
-                    contributor.channel.detachCoroutine()
+                    contributor.channelWrapper.detachCoroutine()
                 } catch (throwable: Throwable) {
                     logger.warn("doChannelWindDown(); failed to detach feature: ${contributor.featureName}", throwable)
                     // CHA-RL2h2 - If the contributor is in a failed state and we're not ignoring failed states, we should fail the room
                     if (
-                        contributor.channel.state === ChannelState.failed &&
-                        statusLifecycle.status !== RoomStatus.Failed &&
-                        statusLifecycle.status !== RoomStatus.Releasing &&
-                        statusLifecycle.status !== RoomStatus.Released
+                        contributor.channelWrapper.state == ChannelState.failed &&
+                        statusLifecycle.status != RoomStatus.Failed &&
+                        statusLifecycle.status != RoomStatus.Releasing &&
+                        statusLifecycle.status != RoomStatus.Released
                     ) {
                         val contributorError = lifeCycleErrorInfo(
-                            "failed to detach ${contributor.featureName} feature${contributor.channel.errorMessage}",
+                            "failed to detach ${contributor.featureName} feature${contributor.channelWrapper.errorMessage}",
                             contributor.detachmentErrorCode,
                         )
                         statusLifecycle.setStatus(RoomStatus.Failed, contributorError)
@@ -661,18 +660,18 @@ internal class RoomLifecycleManager(
         contributors.map { contributor: ContributesToRoomLifecycle ->
             async {
                 // CHA-RL3e - Failed channels, we can ignore
-                if (contributor.channel.state == ChannelState.failed) {
+                if (contributor.channelWrapper.state == ChannelState.failed) {
                     logger.debug("doRelease(); ignoring feature: ${contributor.featureName} since it's in failed state")
                     return@async
                 }
                 // Detached channels, we can ignore
-                if (contributor.channel.state == ChannelState.detached) {
+                if (contributor.channelWrapper.state == ChannelState.detached) {
                     logger.debug("doRelease(); ignoring feature: ${contributor.featureName} since it's already detached")
                     return@async
                 }
                 try {
                     logger.debug("doRelease(); detaching feature: ${contributor.featureName}")
-                    contributor.channel.detachCoroutine()
+                    contributor.channelWrapper.detachCoroutine()
                     logger.debug("doRelease(); successfully detached feature: ${contributor.featureName}")
                 } catch (ex: Throwable) {
                     logger.warn("doRelease(); failed to detach feature: ${contributor.featureName}", ex)
