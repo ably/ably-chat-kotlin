@@ -136,7 +136,7 @@ internal class DefaultTyping(
 
         val presenceListener = PresenceListener {
             if (it.clientId == null) {
-                logger.error("unable to handle typing event; no clientId", staticContext = mapOf("member" to it.toString()))
+                logger.error("unable to handle typing event; no clientId", context = mapOf("member" to it.toString()))
             } else {
                 eventBus.tryEmit(Unit)
             }

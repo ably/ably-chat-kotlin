@@ -278,9 +278,9 @@ internal class DefaultMessagesSubscription(
     private val roomId: String,
     private val subscription: Subscription,
     internal val fromSerialProvider: () -> CompletableDeferred<String>,
-    logger: Logger,
+    parentLogger: Logger,
 ) : MessagesSubscription {
-    private val logger = logger.withContext(tag = "DefaultMessagesSubscription")
+    private val logger = parentLogger.withContext(tag = "DefaultMessagesSubscription")
 
     override fun unsubscribe() {
         logger.trace("unsubscribe(); roomId=$roomId")
@@ -364,7 +364,7 @@ internal class DefaultMessages(
     override fun subscribe(listener: Messages.Listener): MessagesSubscription {
         logger.trace("subscribe(); roomId=$roomId")
         val messageListener = PubSubMessageListener {
-            logger.debug("subscribe(); roomId=$roomId, received message: $it")
+            logger.debug("subscribe(); received message for roomId=$roomId", context = mapOf("message" to it.toString()))
             val pubSubMessage = it ?: throw clientError("Got empty pubsub channel message")
             val eventType = messageActionToEventType[pubSubMessage.action]
                 ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
@@ -405,7 +405,7 @@ internal class DefaultMessages(
                 channelSerialMap[messageListener]
                     ?: throw clientError("This messages subscription instance was already unsubscribed")
             },
-            logger = logger,
+            parentLogger = logger,
         )
     }
 
@@ -418,7 +418,8 @@ internal class DefaultMessages(
     }
 
     override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message {
-        logger.trace("send(); roomId=$roomId, text=$text, metadata=$metadata, headers=$headers")
+        logger.trace("send(); roomId=$roomId, text=$text",
+            context = mapOf("metadata" to metadata.toString(), "headers" to headers.toString()))
         return chatApi.sendMessage(
             roomId,
             SendMessageParams(text, metadata, headers),
@@ -430,7 +431,8 @@ internal class DefaultMessages(
         operationDescription: String?,
         operationMetadata: OperationMetadata?,
     ): Message {
-        logger.trace("update(); roomId=$roomId, serial=${updatedMessage.serial}")
+        logger.trace("update(); roomId=$roomId, serial=${updatedMessage.serial}",
+            context = mapOf("description" to operationDescription.toString(), "metadata" to operationMetadata.toString()))
         return chatApi.updateMessage(
             updatedMessage,
             UpdateMessageParams(
@@ -446,7 +448,8 @@ internal class DefaultMessages(
         operationDescription: String?,
         operationMetadata: OperationMetadata?,
     ): Message {
-        logger.trace("delete(); roomId=$roomId, serial=${message.serial}")
+        logger.trace("delete(); roomId=$roomId, serial=${message.serial}",
+            context = mapOf("description" to operationDescription.toString(), "metadata" to operationMetadata.toString()))
         return chatApi.deleteMessage(
             message,
             DeleteMessageParams(

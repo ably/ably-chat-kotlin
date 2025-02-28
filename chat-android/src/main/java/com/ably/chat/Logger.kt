@@ -28,7 +28,7 @@ internal interface Logger {
         level: LogLevel,
         throwable: Throwable? = null,
         newTag: String? = null,
-        newStaticContext: Map<String, String> = mapOf(),
+        context: Map<String, String> = mapOf(),
     )
 }
 
@@ -36,35 +36,35 @@ internal fun Logger.trace(
     message: String,
     throwable: Throwable? = null,
     tag: String? = null,
-    staticContext: Map<String, String> = mapOf(),
+    context: Map<String, String> = mapOf(),
 ) {
-    log(message, LogLevel.Trace, throwable, tag, staticContext)
+    log(message, LogLevel.Trace, throwable, tag, context)
 }
 
 internal fun Logger.debug(
     message: String,
     throwable: Throwable? = null,
     tag: String? = null,
-    staticContext: Map<String, String> = mapOf(),
+    context: Map<String, String> = mapOf(),
 ) {
-    log(message, LogLevel.Debug, throwable, tag, staticContext)
+    log(message, LogLevel.Debug, throwable, tag, context)
 }
 
-internal fun Logger.info(message: String, throwable: Throwable? = null, tag: String? = null, staticContext: Map<String, String> = mapOf()) {
-    log(message, LogLevel.Info, throwable, tag, staticContext)
+internal fun Logger.info(message: String, throwable: Throwable? = null, tag: String? = null, context: Map<String, String> = mapOf()) {
+    log(message, LogLevel.Info, throwable, tag, context)
 }
 
-internal fun Logger.warn(message: String, throwable: Throwable? = null, tag: String? = null, staticContext: Map<String, String> = mapOf()) {
-    log(message, LogLevel.Warn, throwable, tag, staticContext)
+internal fun Logger.warn(message: String, throwable: Throwable? = null, tag: String? = null, context: Map<String, String> = mapOf()) {
+    log(message, LogLevel.Warn, throwable, tag, context)
 }
 
 internal fun Logger.error(
     message: String,
     throwable: Throwable? = null,
     tag: String? = null,
-    staticContext: Map<String, String> = mapOf(),
+    context: Map<String, String> = mapOf(),
 ) {
-    log(message, LogLevel.Error, throwable, tag, staticContext)
+    log(message, LogLevel.Error, throwable, tag, context)
 }
 
 internal fun LogContext.mergeWith(
@@ -91,9 +91,9 @@ internal class AndroidLogger(
         )
     }
 
-    override fun log(message: String, level: LogLevel, throwable: Throwable?, newTag: String?, newStaticContext: Map<String, String>) {
+    override fun log(message: String, level: LogLevel, throwable: Throwable?, newTag: String?, context: Map<String, String>) {
         if (level.logLevelValue < minimalVisibleLogLevel.logLevelValue) return
-        val finalContext = context.mergeWith(newTag, newStaticContext)
+        val finalContext = this.context.mergeWith(newTag, context)
         val tag = "ably-chat:${finalContext.tag}"
         val completeContext = finalContext.staticContext + finalContext.dynamicContext.mapValues { it.value() }
 
@@ -126,9 +126,9 @@ internal class CustomLogger(
         )
     }
 
-    override fun log(message: String, level: LogLevel, throwable: Throwable?, newTag: String?, newStaticContext: Map<String, String>) {
+    override fun log(message: String, level: LogLevel, throwable: Throwable?, newTag: String?, context: Map<String, String>) {
         if (level.logLevelValue < minimalVisibleLogLevel.logLevelValue) return
-        val finalContext = context.mergeWith(newTag, newStaticContext)
+        val finalContext = this.context.mergeWith(newTag, context)
         logHandler.log(
             message = message,
             level = level,
