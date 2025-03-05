@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import io.ably.lib.realtime.Connection as PubSubConnection
 
@@ -110,6 +111,13 @@ public interface Connection {
          */
         public fun connectionStatusChanged(change: ConnectionStatusChange)
     }
+}
+
+/**
+ * @return [ConnectionStatusChange] events as a [Flow]
+ */
+public fun Connection.statusAsFlow(): Flow<ConnectionStatusChange> = transformCallbackAsFlow {
+    onStatusChange(it)
 }
 
 internal class DefaultConnection(

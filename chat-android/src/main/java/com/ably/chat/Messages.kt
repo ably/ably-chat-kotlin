@@ -9,6 +9,7 @@ import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 internal typealias PubSubMessageListener = AblyRealtimeChannel.MessageListener
@@ -119,6 +120,13 @@ public interface Messages : EmitsDiscontinuities {
          */
         public fun onEvent(event: MessageEvent)
     }
+}
+
+/**
+ * @return [MessageEvent] events as a [Flow]
+ */
+public fun Messages.asFlow(): Flow<MessageEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**

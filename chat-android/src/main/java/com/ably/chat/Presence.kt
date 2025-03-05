@@ -8,6 +8,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.types.PresenceMessage
+import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Presence.PresenceListener as PubSubPresenceListener
 
 public typealias PresenceData = JsonElement
@@ -79,6 +80,13 @@ public interface Presence : EmitsDiscontinuities {
          */
         public fun onEvent(event: PresenceEvent)
     }
+}
+
+/**
+ * @return [PresenceEvent] events as a [Flow]
+ */
+public fun Presence.asFlow(): Flow<PresenceEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**
