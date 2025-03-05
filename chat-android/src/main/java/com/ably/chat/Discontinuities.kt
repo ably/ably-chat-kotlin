@@ -23,22 +23,22 @@ internal interface HandlesDiscontinuity {
 /**
  * An interface to be implemented by objects that can emit discontinuities to listeners.
  */
-interface EmitsDiscontinuities {
+public interface EmitsDiscontinuities {
     /**
      * Register a listener to be called when a discontinuity is detected.
      * @param listener The listener to be called when a discontinuity is detected.
      */
-    fun onDiscontinuity(listener: Listener): Subscription
+    public fun onDiscontinuity(listener: Listener): Subscription
 
     /**
      * An interface for listening when discontinuity happens
      */
-    fun interface Listener {
+    public fun interface Listener {
         /**
          * A function that can be called when discontinuity happens.
          * @param reason reason for discontinuity
          */
-        fun discontinuityEmitted(reason: ErrorInfo?)
+        public fun discontinuityEmitted(reason: ErrorInfo?)
     }
 }
 

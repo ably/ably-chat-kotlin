@@ -11,24 +11,24 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 /**
  * Represents the result of a paginated query.
  */
-interface PaginatedResult<T> {
+public interface PaginatedResult<T> {
 
     /**
      * The items returned by the query.
      */
-    val items: List<T>
+    public val items: List<T>
 
     /**
      * Fetches the next page of items.
      */
-    suspend fun next(): PaginatedResult<T>
+    public suspend fun next(): PaginatedResult<T>
 
     /**
      * Whether there are more items to query.
      *
      * @returns `true` if there are more items to query, `false` otherwise.
      */
-    fun hasNext(): Boolean
+    public fun hasNext(): Boolean
 }
 
 internal fun <T> AsyncHttpPaginatedResponse?.toPaginatedResult(transform: (JsonElement) -> T?): PaginatedResult<T> =

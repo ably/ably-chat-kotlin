@@ -8,35 +8,35 @@ import io.ably.lib.realtime.RealtimeClient
 /**
  * This is the core client for Ably chat. It provides access to chat rooms.
  */
-interface ChatClient {
+public interface ChatClient {
     /**
      * The rooms object, which provides access to chat rooms.
      */
-    val rooms: Rooms
+    public val rooms: Rooms
 
     /**
      * The underlying connection to Ably, which can be used to monitor the clients
      * connection to Ably servers.
      */
-    val connection: Connection
+    public val connection: Connection
 
     /**
      * The clientId of the current client.
      */
-    val clientId: String
+    public val clientId: String
 
     /**
      * The underlying Ably Realtime client.
      */
-    val realtime: AblyRealtime
+    public val realtime: AblyRealtime
 
     /**
      * The chat client options for the client, including any defaults that have been set.
      */
-    val clientOptions: ChatClientOptions
+    public val clientOptions: ChatClientOptions
 }
 
-fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ChatClientOptions = ChatClientOptions()): ChatClient =
+public fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ChatClientOptions = ChatClientOptions()): ChatClient =
     DefaultChatClient(realtimeClient, clientOptions)
 
 internal class DefaultChatClient(

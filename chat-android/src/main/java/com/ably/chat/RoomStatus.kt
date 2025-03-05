@@ -7,7 +7,7 @@ import io.ably.lib.util.EventEmitter
  * (CHA-RS1)
  * The different states that a room can be in throughout its lifecycle.
  */
-enum class RoomStatus(val stateName: String) {
+public enum class RoomStatus(public val stateName: String) {
     /**
      * (CHA-RS1a)
      * A temporary state for when the library is first initialized.
@@ -67,7 +67,7 @@ enum class RoomStatus(val stateName: String) {
  * Represents a change in the status of the room.
  * (CHA-RS4)
  */
-data class RoomStatusChange(
+public data class RoomStatusChange(
     /**
      * The new status of the room.
      */
@@ -88,7 +88,7 @@ data class RoomStatusChange(
 /**
  * Represents the status of a Room.
  */
-interface RoomLifecycle {
+internal interface RoomLifecycle {
     /**
      * (CHA-RS2a)
      * The current status of the room.
@@ -106,23 +106,7 @@ interface RoomLifecycle {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    fun onChange(listener: Listener): Subscription
-
-    /**
-     * An interface for listening to changes for the room status
-     */
-    fun interface Listener {
-        /**
-         * A function that can be called when the room status changes.
-         * @param change The change in status.
-         */
-        fun roomStatusChanged(change: RoomStatusChange)
-    }
-
-    /**
-     * Removes all listeners that were added by the `onChange` method.
-     */
-    fun offAll()
+    fun onChange(listener: Room.Listener): Subscription
 }
 
 /**
@@ -151,7 +135,7 @@ internal interface InternalRoomLifecycle : RoomLifecycle {
      * Registers a listener that will be called once when the room status changes.
      * @param listener The function to call when the status changes.
      */
-    fun onChangeOnce(listener: RoomLifecycle.Listener)
+    fun onChangeOnce(listener: Room.Listener)
 
     /**
      * Sets the status of the room.
@@ -161,10 +145,10 @@ internal interface InternalRoomLifecycle : RoomLifecycle {
     fun setStatus(params: NewRoomStatus)
 }
 
-internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, RoomLifecycle.Listener>() {
+internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, Room.Listener>() {
     private val logger = logger.withContext("RoomStatusEventEmitter")
 
-    override fun apply(listener: RoomLifecycle.Listener?, event: RoomStatus?, vararg args: Any?) {
+    override fun apply(listener: Room.Listener?, event: RoomStatus?, vararg args: Any?) {
         try {
             if (args.isNotEmpty() && args[0] is RoomStatusChange) {
                 listener?.roomStatusChanged(args[0] as RoomStatusChange)
@@ -192,18 +176,18 @@ internal class DefaultRoomLifecycle(logger: Logger) : InternalRoomLifecycle {
     private val externalEmitter = RoomStatusEventEmitter(logger)
     private val internalEmitter = RoomStatusEventEmitter(logger)
 
-    override fun onChange(listener: RoomLifecycle.Listener): Subscription {
+    override fun onChange(listener: Room.Listener): Subscription {
         externalEmitter.on(listener)
         return Subscription {
             externalEmitter.off(listener)
         }
     }
 
-    override fun offAll() {
+    fun offAll() {
         externalEmitter.off()
     }
 
-    override fun onChangeOnce(listener: RoomLifecycle.Listener) {
+    override fun onChangeOnce(listener: Room.Listener) {
         internalEmitter.once(listener)
     }
 

@@ -21,7 +21,7 @@ internal const val TRANSIENT_TIMEOUT = 5000
 /**
  * (CHA-CS1) The different states that the connection can be in through its lifecycle.
  */
-enum class ConnectionStatus(val stateName: String) {
+public enum class ConnectionStatus(public val stateName: String) {
     /**
      * (CHA-CS1a) A temporary state for when the library is first initialized.
      */
@@ -56,7 +56,7 @@ enum class ConnectionStatus(val stateName: String) {
 /**
  * Represents a change in the status of the connection.
  */
-data class ConnectionStatusChange(
+public data class ConnectionStatusChange(
     /**
      * The new status of the connection.
      */
@@ -82,33 +82,33 @@ data class ConnectionStatusChange(
 /**
  * Represents a connection to Ably.
  */
-interface Connection {
+public interface Connection {
     /**
      * (CHA-CS2a) The current status of the connection.
      */
-    val status: ConnectionStatus
+    public val status: ConnectionStatus
 
     /**
      * (CHA-CS2b) The current error, if any, that caused the connection to enter the current status.
      */
-    val error: ErrorInfo?
+    public val error: ErrorInfo?
 
     /**
      * (CHA-CS4) Registers a listener that will be called whenever the connection status changes.
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    fun onStatusChange(listener: Listener): Subscription
+    public fun onStatusChange(listener: Listener): Subscription
 
     /**
      * An interface for listening to changes for the connection status
      */
-    fun interface Listener {
+    public fun interface Listener {
         /**
          * A function that can be called when the connection status changes.
          * @param change The change in status.
          */
-        fun connectionStatusChanged(change: ConnectionStatusChange)
+        public fun connectionStatusChanged(change: ConnectionStatusChange)
     }
 }
 

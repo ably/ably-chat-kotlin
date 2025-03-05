@@ -7,17 +7,17 @@ import io.ably.lib.types.MessageAction
 /**
  * [Headers type for chat messages.
  */
-typealias MessageHeaders = Headers
+public typealias MessageHeaders = Headers
 
 /**
  * [Metadata] type for chat messages.
  */
-typealias MessageMetadata = Metadata
+public typealias MessageMetadata = Metadata
 
 /**
  * Represents a single message in a chat room.
  */
-data class Message(
+public data class Message(
     /**
      * The unique identifier of the message.
      * Spec: CHA-M2d

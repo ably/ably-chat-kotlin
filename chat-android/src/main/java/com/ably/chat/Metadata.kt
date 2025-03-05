@@ -15,4 +15,4 @@ import com.google.gson.JsonObject
  * The key `ably-chat` is reserved and cannot be used. Ably may populate
  * this with different values in the future.
  */
-typealias Metadata = JsonObject
+public typealias Metadata = JsonObject

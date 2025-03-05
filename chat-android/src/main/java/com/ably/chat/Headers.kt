@@ -16,4 +16,4 @@ package com.ably.chat
  * The key prefix `ably-chat` is reserved and cannot be used. Ably may add
  * headers prefixed with `ably-chat` in the future.
  */
-typealias Headers = Map<String, String>
+public typealias Headers = Map<String, String>

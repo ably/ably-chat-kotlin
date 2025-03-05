@@ -3,17 +3,17 @@ package com.ably.chat
 /**
  * [Headers] type for chat messages.
  */
-typealias ReactionHeaders = Headers
+public typealias ReactionHeaders = Headers
 
 /**
  * [Metadata] type for chat messages.
  */
-typealias ReactionMetadata = Metadata
+public typealias ReactionMetadata = Metadata
 
 /**
  * Represents a room-level reaction.
  */
-data class Reaction(
+public data class Reaction(
     /**
      * The type of the reaction, for example "like" or "love".
      */
