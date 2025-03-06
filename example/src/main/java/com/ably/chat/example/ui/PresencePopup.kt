@@ -11,49 +11,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
-import com.ably.chat.ChatClient
-import com.ably.chat.PresenceMember
-import com.ably.chat.RoomOptions
-import com.ably.chat.Subscription
-import com.ably.chat.example.Settings
+import com.ably.chat.Room
+import com.ably.chat.annotations.ExperimentalChatApi
+import com.ably.chat.extensions.compose.collectAsPresenceMembers
 import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 @Suppress("LongMethod")
+@OptIn(ExperimentalChatApi::class)
 @Composable
-fun PresencePopup(chatClient: ChatClient, onDismiss: () -> Unit) {
-    var members by remember { mutableStateOf(listOf<PresenceMember>()) }
+fun PresencePopup(room: Room, onDismiss: () -> Unit) {
+    val members = room.collectAsPresenceMembers()
     val coroutineScope = rememberCoroutineScope()
-    val presence = runBlocking {
-        chatClient.rooms.get(Settings.ROOM_ID, RoomOptions.default).presence
-    }
-
-    DisposableEffect(Unit) {
-        var subscription: Subscription? = null
-
-        coroutineScope.launch {
-            members = presence.get()
-            subscription = presence.subscribe {
-                coroutineScope.launch {
-                    members = presence.get()
-                }
-            }
-        }
-
-        onDispose {
-            subscription?.unsubscribe()
-        }
-    }
+    val presence = room.presence
 
     Popup(
         onDismissRequest = onDismiss,
