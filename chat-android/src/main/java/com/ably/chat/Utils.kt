@@ -121,7 +121,7 @@ internal val RealtimeChannel.errorMessage: String
         ", ${reason?.message}"
     }
 
-val List<String>.joinWithBrackets: String get() = joinToString(prefix = "[", postfix = "]") { it }
+internal val List<String>.joinWithBrackets: String get() = joinToString(prefix = "[", postfix = "]") { it }
 
 @Suppress("FunctionName")
 internal fun ChatChannelOptions(init: (ChannelOptions.() -> Unit)? = null): ChannelOptions {

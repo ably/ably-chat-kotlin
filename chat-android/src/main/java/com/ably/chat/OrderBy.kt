@@ -3,7 +3,7 @@ package com.ably.chat
 /**
  * Represents direction to query messages in.
  */
-enum class OrderBy {
+public enum class OrderBy {
     /**
      * The response will include messages from the start of the time window to the end.
      */

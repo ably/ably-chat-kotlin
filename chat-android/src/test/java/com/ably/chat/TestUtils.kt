@@ -100,7 +100,7 @@ private fun Class<*>.findField(name: String): Field {
     var currentClass = this
     while (result.isFailure && currentClass.superclass != null) // stop when we got field or reached top of class hierarchy
     {
-        currentClass = currentClass.superclass
+        currentClass = currentClass.superclass!!
         result = kotlin.runCatching { currentClass.getDeclaredField(name) }
     }
     if (result.isFailure) {

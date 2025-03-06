@@ -5,7 +5,7 @@ import io.ably.lib.types.MessageAction
 /**
  * All chat message events.
  */
-enum class MessageEventType(val eventName: String) {
+public enum class MessageEventType(public val eventName: String) {
     /** Fires when a new chat message is received. */
     Created("message.created"),
 
@@ -19,9 +19,9 @@ enum class MessageEventType(val eventName: String) {
 /**
  * Realtime chat message names.
  */
-object PubSubEventName {
+public object PubSubEventName {
     /** Represents a regular chat message. */
-    const val ChatMessage = "chat.message"
+    public const val ChatMessage: String = "chat.message"
 }
 
 internal val messageActionNameToAction = mapOf(
@@ -51,7 +51,7 @@ internal val messageActionToEventType = mapOf(
 /**
  * Enum representing presence events.
  */
-enum class PresenceEventType(val eventName: String) {
+public enum class PresenceEventType(public val eventName: String) {
     /**
      * Event triggered when a user enters.
      */
@@ -73,7 +73,7 @@ enum class PresenceEventType(val eventName: String) {
     Present("present"),
 }
 
-enum class TypingEventType(val eventName: String) {
+public enum class TypingEventType(public val eventName: String) {
     /** The set of currently typing users has changed. */
     Changed("typing.changed"),
 }
@@ -82,7 +82,7 @@ enum class TypingEventType(val eventName: String) {
  * Room reaction events. This is used for the realtime system since room reactions
  * have only one event: "roomReaction".
  */
-enum class RoomReactionEventType(val eventName: String) {
+public enum class RoomReactionEventType(public val eventName: String) {
     /**
      * Event triggered when a room reaction was received.
      */

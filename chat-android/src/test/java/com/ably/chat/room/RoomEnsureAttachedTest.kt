@@ -5,7 +5,7 @@ import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomLifecycle
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
-import com.ably.chat.RoomLifecycle
+import com.ably.chat.Room
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
@@ -87,9 +87,9 @@ class RoomEnsureAttachedTest {
 
         val roomLifecycleMock = spyk(DefaultRoomLifecycle(logger))
         every {
-            roomLifecycleMock.onChangeOnce(any<RoomLifecycle.Listener>())
+            roomLifecycleMock.onChangeOnce(any<Room.Listener>())
         } answers {
-            val listener = firstArg<RoomLifecycle.Listener>()
+            val listener = firstArg<Room.Listener>()
             listener.roomStatusChanged(RoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
         }
         room.setPrivateField("statusLifecycle", roomLifecycleMock)
@@ -101,7 +101,7 @@ class RoomEnsureAttachedTest {
         room.ensureAttached(logger)
 
         verify(exactly = 1) {
-            roomLifecycleMock.onChangeOnce(any<RoomLifecycle.Listener>())
+            roomLifecycleMock.onChangeOnce(any<Room.Listener>())
         }
     }
 

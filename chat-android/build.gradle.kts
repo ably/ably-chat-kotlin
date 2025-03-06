@@ -43,6 +43,10 @@ android {
     }
 }
 
+kotlin {
+    explicitApi()
+}
+
 buildConfig {
     packageName("com.ably.chat")
     useKotlinOutput { internalVisibility = true }

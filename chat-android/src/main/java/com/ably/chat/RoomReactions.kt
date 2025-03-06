@@ -15,14 +15,14 @@ import io.ably.lib.realtime.Channel as AblyRealtimeChannel
  *
  * Get an instance via [Room.reactions].
  */
-interface RoomReactions : EmitsDiscontinuities {
+public interface RoomReactions : EmitsDiscontinuities {
     /**
      * Returns an instance of the Ably realtime channel used for room-level reactions.
      * Avoid using this directly unless special features that cannot otherwise be implemented are needed.
      *
      * @return The Ably realtime channel instance.
      */
-    val channel: AblyRealtimeChannel
+    public val channel: AblyRealtimeChannel
 
     /**
      * Sends a reaction to the specified room along with optional metadata.
@@ -38,7 +38,7 @@ interface RoomReactions : EmitsDiscontinuities {
      * possible to receive your own reaction via the reactions listener before
      * this method completes.
      */
-    suspend fun send(type: String, metadata: ReactionMetadata? = null, headers: ReactionHeaders? = null)
+    public suspend fun send(type: String, metadata: ReactionMetadata? = null, headers: ReactionHeaders? = null)
 
     /**
      * Subscribe to receive room-level reactions.
@@ -46,17 +46,17 @@ interface RoomReactions : EmitsDiscontinuities {
      * @param listener The listener function to be called when a reaction is received.
      * @returns A response object that allows you to control the subscription.
      */
-    fun subscribe(listener: Listener): Subscription
+    public fun subscribe(listener: Listener): Subscription
 
     /**
      * An interface for listening to new reaction events
      */
-    fun interface Listener {
+    public fun interface Listener {
         /**
          * A function that can be called when the new reaction happens.
          * @param event The event that happened.
          */
-        fun onReaction(event: Reaction)
+        public fun onReaction(event: Reaction)
     }
 }
 
