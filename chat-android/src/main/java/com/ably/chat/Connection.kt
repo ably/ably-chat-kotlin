@@ -72,12 +72,12 @@ public data class ConnectionStatusChange(
      * An error that provides a reason why the connection has
      * entered the new status, if applicable.
      */
-    val error: ErrorInfo?,
+    val error: ErrorInfo? = null,
 
     /**
      * The time in milliseconds that the client will wait before attempting to reconnect.
      */
-    val retryIn: Long?,
+    val retryIn: Long? = null,
 )
 
 /**
