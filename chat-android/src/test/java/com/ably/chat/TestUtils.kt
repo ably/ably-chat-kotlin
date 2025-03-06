@@ -60,7 +60,7 @@ fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonE
 
 internal class EmptyLogger(override val context: LogContext) : Logger {
     override fun withContext(tag: String?, staticContext: Map<String, String>, dynamicContext: Map<String, () -> String>): Logger = this
-    override fun log(message: String, level: LogLevel, throwable: Throwable?, newTag: String?, newStaticContext: Map<String, String>) = Unit
+    override fun log(message: String, level: LogLevel, throwable: Throwable?, tag: String?, context: Map<String, String>) = Unit
 }
 
 fun Occupancy.subscribeOnce(listener: Occupancy.Listener) {
@@ -100,7 +100,7 @@ private fun Class<*>.findField(name: String): Field {
     var currentClass = this
     while (result.isFailure && currentClass.superclass != null) // stop when we got field or reached top of class hierarchy
     {
-        currentClass = currentClass.superclass
+        currentClass = currentClass.superclass!!
         result = kotlin.runCatching { currentClass.getDeclaredField(name) }
     }
     if (result.isFailure) {
