@@ -208,7 +208,6 @@ internal data class SendMessageParams(
     val headers: MessageHeaders? = null,
 )
 
-@Suppress("StringLiteralDuplication")
 internal fun SendMessageParams.toJsonObject(): JsonObject {
     return JsonObject().apply {
         addProperty("text", text)

@@ -1,5 +1,3 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
 import com.ably.http.HttpMethod
