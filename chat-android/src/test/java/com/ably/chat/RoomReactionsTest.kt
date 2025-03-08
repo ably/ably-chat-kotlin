@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import app.cash.turbine.test
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createMockRoom
 import com.google.gson.JsonObject
@@ -89,5 +90,28 @@ class RoomReactionsTest {
             ),
             reaction,
         )
+    }
+
+    @Test
+    fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
+        val roomReactions: RoomReactions = mockk()
+        val subscription: Subscription = mockk()
+        lateinit var callback: RoomReactions.Listener
+
+        every { roomReactions.subscribe(any()) } answers {
+            callback = firstArg()
+            subscription
+        }
+
+        roomReactions.asFlow().test {
+            val reaction = mockk<Reaction>()
+            callback.onReaction(reaction)
+            assertEquals(reaction, awaitItem())
+            cancel()
+        }
+
+        verify(exactly = 1) {
+            subscription.unsubscribe()
+        }
     }
 }

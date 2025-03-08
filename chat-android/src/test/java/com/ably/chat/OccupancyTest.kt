@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import app.cash.turbine.test
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
@@ -149,6 +150,29 @@ class OccupancyTest {
     fun `should filter occupancy messages by event name`() = runTest {
         verify(exactly = 1) {
             occupancy.channelWrapper.subscribe("[meta]occupancy", any())
+        }
+    }
+
+    @Test
+    fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
+        val occupancy: Occupancy = mockk()
+        val subscription: Subscription = mockk()
+        lateinit var callback: Occupancy.Listener
+
+        every { occupancy.subscribe(any()) } answers {
+            callback = firstArg()
+            subscription
+        }
+
+        occupancy.asFlow().test {
+            val event = OccupancyEvent(connections = 2, presenceMembers = 1)
+            callback.onEvent(event)
+            assertEquals(event, awaitItem())
+            cancel()
+        }
+
+        verify(exactly = 1) {
+            subscription.unsubscribe()
         }
     }
 }

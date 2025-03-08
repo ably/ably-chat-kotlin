@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import app.cash.turbine.test
 import com.ably.chat.room.DEFAULT_ROOM_ID
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
@@ -12,6 +13,7 @@ import io.ably.lib.types.PresenceMessage
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -143,5 +145,28 @@ class PresenceTest {
             ),
             presenceEvent,
         )
+    }
+
+    @Test
+    fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
+        val presence: Presence = mockk()
+        val subscription: Subscription = mockk()
+        lateinit var callback: Presence.Listener
+
+        every { presence.subscribe(any()) } answers {
+            callback = firstArg()
+            subscription
+        }
+
+        presence.asFlow().test {
+            val event = mockk<PresenceEvent>()
+            callback.onEvent(event)
+            assertEquals(event, awaitItem())
+            cancel()
+        }
+
+        verify(exactly = 1) {
+            subscription.unsubscribe()
+        }
     }
 }

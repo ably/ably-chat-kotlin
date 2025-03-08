@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /**
@@ -112,6 +113,13 @@ public interface Room {
          */
         public fun roomStatusChanged(change: RoomStatusChange)
     }
+}
+
+/**
+ * @return [RoomStatusChange] events as a [Flow]
+ */
+public fun Room.statusAsFlow(): Flow<RoomStatusChange> = transformCallbackAsFlow {
+    onStatusChange(it)
 }
 
 internal class DefaultRoom(

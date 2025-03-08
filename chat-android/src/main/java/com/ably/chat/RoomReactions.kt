@@ -8,6 +8,7 @@ import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.MessageExtras
+import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 /**
@@ -58,6 +59,13 @@ public interface RoomReactions : EmitsDiscontinuities {
          */
         public fun onReaction(event: Reaction)
     }
+}
+
+/**
+ * @return [Reaction] events as a [Flow]
+ */
+public fun RoomReactions.asFlow(): Flow<Reaction> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**

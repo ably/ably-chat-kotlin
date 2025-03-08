@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import app.cash.turbine.test
 import com.ably.chat.room.DEFAULT_CLIENT_ID
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
@@ -132,5 +134,28 @@ class TypingTest {
         testScheduler.runCurrent()
 
         verify(exactly = 1) { pubSubPresence.leaveClient("clientId", any(), any()) }
+    }
+
+    @Test
+    fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
+        val typing: Typing = mockk()
+        val subscription: Subscription = mockk()
+        lateinit var callback: Typing.Listener
+
+        every { typing.subscribe(any()) } answers {
+            callback = firstArg()
+            subscription
+        }
+
+        typing.asFlow().test {
+            val event = mockk<TypingEvent>()
+            callback.onEvent(event)
+            assertEquals(event, awaitItem())
+            cancel()
+        }
+
+        verify(exactly = 1) {
+            subscription.unsubscribe()
+        }
     }
 }
