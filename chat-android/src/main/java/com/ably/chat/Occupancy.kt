@@ -1,5 +1,3 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
 import com.ably.pubsub.RealtimeChannel
@@ -158,7 +156,7 @@ internal class DefaultOccupancy(
         if (data == null) {
             logger.error(
                 "invalid occupancy event received; data is not an object",
-                staticContext = mapOf(
+                context = mapOf(
                     "message" to message.toString(),
                 ),
             )
@@ -171,7 +169,7 @@ internal class DefaultOccupancy(
         if (metrics == null) {
             logger.error(
                 "invalid occupancy event received; metrics is missing",
-                staticContext = mapOf(
+                context = mapOf(
                     "data" to data.toString(),
                 ),
             )
@@ -184,7 +182,7 @@ internal class DefaultOccupancy(
         if (connections == null) {
             logger.error(
                 "invalid occupancy event received; connections is missing",
-                staticContext = mapOf(
+                context = mapOf(
                     "data" to data.toString(),
                 ),
             )
@@ -197,7 +195,7 @@ internal class DefaultOccupancy(
         if (presenceMembers == null) {
             logger.error(
                 "invalid occupancy event received; presenceMembers is missing",
-                staticContext = mapOf(
+                context = mapOf(
                     "data" to data.toString(),
                 ),
             )
