@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
@@ -86,6 +87,13 @@ public interface Typing : EmitsDiscontinuities {
          */
         public fun onEvent(event: TypingEvent)
     }
+}
+
+/**
+ * @return [TypingEvent] events as a [Flow]
+ */
+public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**
@@ -181,6 +189,7 @@ internal class DefaultTyping(
         logger.trace("DefaultTyping.stop()")
         typingScope.launch {
             typingJob?.cancel()
+            typingJob = null
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
             channelWrapper.presence.leaveClientCoroutine(room.clientId)
         }.join()

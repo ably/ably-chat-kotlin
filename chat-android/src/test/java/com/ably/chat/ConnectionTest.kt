@@ -1,13 +1,16 @@
 package com.ably.chat
 
+import app.cash.turbine.test
 import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.realtime.ConnectionStateListener
 import io.ably.lib.realtime.ConnectionStateListener.ConnectionStateChange
 import io.ably.lib.realtime.buildRealtimeConnection
 import io.ably.lib.types.ErrorInfo
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
+import io.mockk.verify
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -143,6 +146,29 @@ class ConnectionTest {
         testScheduler.runCurrent()
 
         assertEquals(ConnectionStatus.Connected, status)
+    }
+
+    @Test
+    fun `statusAsFlow() should automatically unsubscribe then it's done`() = runTest {
+        val connection: Connection = mockk()
+        val subscription: Subscription = mockk()
+        lateinit var callback: Connection.Listener
+
+        every { connection.onStatusChange(any()) } answers {
+            callback = firstArg()
+            subscription
+        }
+
+        connection.statusAsFlow().test {
+            val event = mockk<ConnectionStatusChange>()
+            callback.connectionStatusChanged(event)
+            assertEquals(event, awaitItem())
+            cancel()
+        }
+
+        verify(exactly = 1) {
+            subscription.unsubscribe()
+        }
     }
 
     private fun fireConnected() = pubSubConnectionStateListenerSlot.captured.onConnectionStateChanged(

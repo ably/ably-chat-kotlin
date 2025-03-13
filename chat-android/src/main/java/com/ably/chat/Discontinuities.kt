@@ -3,6 +3,7 @@ package com.ably.chat
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Represents an object that has a channel and therefore may care about discontinuities.
@@ -40,6 +41,13 @@ public interface EmitsDiscontinuities {
          */
         public fun discontinuityEmitted(reason: ErrorInfo?)
     }
+}
+
+/**
+ * @return [ConnectionStatusChange] events as a [Flow]
+ */
+public fun EmitsDiscontinuities.discontinuityAsFlow(): Flow<ErrorInfo?> = transformCallbackAsFlow {
+    onDiscontinuity(it)
 }
 
 internal class DiscontinuityEmitter(logger: Logger) : EventEmitter<String, EmitsDiscontinuities.Listener>() {

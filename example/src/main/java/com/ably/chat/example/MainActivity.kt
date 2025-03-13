@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -32,8 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.State
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,20 +44,24 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ably.chat.ChatClient
+import com.ably.chat.ChatClientOptions
+import com.ably.chat.LogLevel
 import com.ably.chat.Message
-import com.ably.chat.MessageEventType
 import com.ably.chat.MessageMetadata
+import com.ably.chat.Reaction
 import com.ably.chat.Room
 import com.ably.chat.RoomOptions
-import com.ably.chat.Typing
+import com.ably.chat.annotations.ExperimentalChatApi
+import com.ably.chat.asFlow
 import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
+import com.ably.chat.extensions.compose.collectAsCurrentlyTyping
+import com.ably.chat.extensions.compose.collectAsPagingMessagesState
 import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.types.ClientOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 val randomClientId = UUID.randomUUID().toString()
 
@@ -75,7 +77,7 @@ class MainActivity : ComponentActivity() {
             },
         )
 
-        val chatClient = ChatClient(realtimeClient)
+        val chatClient = ChatClient(realtimeClient, ChatClientOptions(logLevel = LogLevel.Trace))
 
         enableEdgeToEdge()
         setContent {
@@ -86,30 +88,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalChatApi::class)
 @Composable
 fun App(chatClient: ChatClient) {
     var showPopup by remember { mutableStateOf(false) }
-    val room = remember {
-        runBlocking {
-            chatClient.rooms.get(
-                Settings.ROOM_ID,
-                RoomOptions.default,
-            )
-        }
-    }
-    val coroutineScope = rememberCoroutineScope()
-    val currentlyTyping by typingUsers(room.typing)
+    var room by remember { mutableStateOf<Room?>(null) }
+    val currentlyTyping = room?.collectAsCurrentlyTyping() ?: setOf()
 
-    DisposableEffect(Unit) {
-        coroutineScope.launch {
-            room.attach()
-        }
-        onDispose {
-            coroutineScope.launch {
-                room.detach()
-            }
-        }
+    LaunchedEffect(Unit) {
+        val chatRoom = chatClient.rooms.get(
+            Settings.ROOM_ID,
+            RoomOptions.default,
+        )
+        chatRoom.attach()
+        room = chatRoom
     }
 
     Scaffold(
@@ -139,29 +131,36 @@ fun App(chatClient: ChatClient) {
                     ),
                 )
             }
-            Chat(
-                room,
-                modifier = Modifier.padding(16.dp),
-            )
+            room?.let {
+                Chat(it, modifier = Modifier.padding(16.dp))
+            }
         }
 
-        if (showPopup) {
-            PresencePopup(chatClient, onDismiss = { showPopup = false })
+        room?.let {
+            if (showPopup) {
+                PresencePopup(it, onDismiss = { showPopup = false })
+            }
         }
     }
 }
 
 @SuppressWarnings("LongMethod", "CognitiveComplexMethod")
+@OptIn(ExperimentalChatApi::class)
 @Composable
 fun Chat(room: Room, modifier: Modifier = Modifier) {
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
-    var sending by remember { mutableStateOf(false) }
-    var messages by remember { mutableStateOf(listOf<Message>()) }
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    var receivedReactions by remember { mutableStateOf<List<String>>(listOf()) }
     var edited: Message? by remember { mutableStateOf(null) }
+    var sending by remember { mutableStateOf(false) }
     val updating = edited != null
+    val coroutineScope = rememberCoroutineScope()
+    val paginatedMessages = room.collectAsPagingMessagesState(scrollThreshold = 10, fetchSize = 15)
+    val receivedReactions = remember { mutableListOf<Reaction>() }
+
+    LaunchedEffect(Unit) {
+        room.reactions.asFlow().collect {
+            receivedReactions.add(it)
+        }
+    }
 
     val handleSend = {
         coroutineScope.launch {
@@ -185,67 +184,30 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
         }
     }
 
-    DisposableEffect(Unit) {
-        val subscription = room.messages.subscribe { event ->
-            when (event.type) {
-                MessageEventType.Created -> {
-                    messages += event.message
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(messages.size - 1)
-                    }
-                }
-
-                MessageEventType.Updated -> messages = messages.map {
-                    if (it.serial != event.message.serial) it else event.message
-                }
-
-                MessageEventType.Deleted -> messages = messages.filter {
-                    it.serial != event.message.serial
-                }
-            }
-        }
-
-        coroutineScope.launch {
-            messages = subscription.getPreviousMessages().items.reversed()
-            if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
-        }
-
-        onDispose {
-            subscription.unsubscribe()
-        }
-    }
-
-    DisposableEffect(Unit) {
-        val subscription = room.reactions.subscribe {
-            receivedReactions += it.type
-        }
-
-        onDispose {
-            subscription.unsubscribe()
-        }
-    }
-
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
+        if (paginatedMessages.loading) Text("Loading...")
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
                 .padding(16.dp),
+            reverseLayout = true,
             userScrollEnabled = true,
-            state = listState,
+            state = paginatedMessages.listState,
         ) {
-            items(messages.size) { index ->
+            items(paginatedMessages.loaded.size) { index ->
+                val message = paginatedMessages.loaded[index]
                 MessageBubble(
-                    message = messages[index],
+                    message = message,
                     onEdit = {
-                        edited = messages[index]
-                        messageText = TextFieldValue(messages[index].text)
+                        edited = message
+                        messageText = TextFieldValue(message.text)
                     },
                     onDelete = {
                         coroutineScope.launch {
-                            room.messages.delete(messages[index])
+                            room.messages.delete(message)
                         }
                     },
                 )
@@ -276,7 +238,10 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             },
         )
         if (receivedReactions.isNotEmpty()) {
-            Text("Received reactions: ${receivedReactions.joinToString()}", modifier = Modifier.padding(16.dp))
+            Text(
+                "Received reactions: ${receivedReactions.joinToString()}",
+                modifier = Modifier.padding(16.dp),
+            )
         }
     }
 }
@@ -398,23 +363,6 @@ fun ChatInputField(
             }
         }
     }
-}
-
-@Composable
-fun typingUsers(typing: Typing): State<Set<String>> {
-    val currentlyTyping = remember { mutableStateOf(emptySet<String>()) }
-
-    DisposableEffect(typing) {
-        val subscription = typing.subscribe { typingEvent ->
-            currentlyTyping.value = typingEvent.currentlyTyping - randomClientId
-        }
-
-        onDispose {
-            subscription.unsubscribe()
-        }
-    }
-
-    return currentlyTyping
 }
 
 @Preview

@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
@@ -53,6 +54,13 @@ public interface Occupancy : EmitsDiscontinuities {
          */
         public fun onEvent(event: OccupancyEvent)
     }
+}
+
+/**
+ * @return [OccupancyEvent] events as a [Flow]
+ */
+public fun Occupancy.asFlow(): Flow<OccupancyEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**

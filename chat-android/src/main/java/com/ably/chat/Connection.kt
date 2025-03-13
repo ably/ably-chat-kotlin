@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import io.ably.lib.realtime.Connection as PubSubConnection
 
@@ -71,12 +72,12 @@ public data class ConnectionStatusChange(
      * An error that provides a reason why the connection has
      * entered the new status, if applicable.
      */
-    val error: ErrorInfo?,
+    val error: ErrorInfo? = null,
 
     /**
      * The time in milliseconds that the client will wait before attempting to reconnect.
      */
-    val retryIn: Long?,
+    val retryIn: Long? = null,
 )
 
 /**
@@ -110,6 +111,13 @@ public interface Connection {
          */
         public fun connectionStatusChanged(change: ConnectionStatusChange)
     }
+}
+
+/**
+ * @return [ConnectionStatusChange] events as a [Flow]
+ */
+public fun Connection.statusAsFlow(): Flow<ConnectionStatusChange> = transformCallbackAsFlow {
+    onStatusChange(it)
 }
 
 internal class DefaultConnection(
