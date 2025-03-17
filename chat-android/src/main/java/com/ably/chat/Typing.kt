@@ -99,7 +99,29 @@ public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
 /**
  * Represents a typing event.
  */
-public data class TypingEvent(val currentlyTyping: Set<String>)
+public data class TypingEvent(
+    /**
+     * The set of user clientIds that are currently typing.
+     */
+    val currentlyTyping: Set<String>,
+
+    /**
+     * The change that caused this event.
+     */
+    val change: TypingChange,
+) {
+    public data class TypingChange(
+        /**
+         * The client ID of the user who started or stopped typing.
+         */
+        val clientId: String,
+
+        /**
+         * The type of typing event.
+         */
+        val type: TypingEventType,
+    )
+}
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
