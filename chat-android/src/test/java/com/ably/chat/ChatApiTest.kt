@@ -16,7 +16,7 @@ class ChatApiTest {
 
     private val realtime = mockk<RealtimeClient>(relaxed = true)
     private val chatApi =
-        ChatApi(realtime, "clientId", logger = EmptyLogger(LogContext(tag = "TEST")))
+        ChatApi(realtime, "clientId", parentLogger = EmptyLogger(LogContext(tag = "TEST")))
 
     /**
      * @nospec

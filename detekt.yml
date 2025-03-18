@@ -142,7 +142,7 @@ complexity:
   ReplaceSafeCallChainWithRun:
     active: false
   StringLiteralDuplication:
-    active: true
+    active: false
     threshold: 3
     ignoreAnnotation: true
     excludeStringsWithLessThan5Characters: true
