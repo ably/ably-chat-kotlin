@@ -6,9 +6,10 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.types.PresenceMessage
+import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Presence.PresenceListener as PubSubPresenceListener
 
-typealias PresenceData = JsonElement
+public typealias PresenceData = JsonElement
 
 /**
  * This interface is used to interact with presence in a chat room: subscribing to presence events,
@@ -16,12 +17,12 @@ typealias PresenceData = JsonElement
  *
  * Get an instance via [Room.presence].
  */
-interface Presence : EmitsDiscontinuities {
+public interface Presence : EmitsDiscontinuities {
     /**
      * Get the underlying Ably realtime channel used for presence in this chat room.
      * @returns The realtime channel.
      */
-    val channel: Channel
+    public val channel: Channel
 
     /**
      *  Method to get list of the current online users and returns the latest presence messages associated to it.
@@ -31,58 +32,65 @@ interface Presence : EmitsDiscontinuities {
      *  @throws [io.ably.lib.types.AblyException] object which explains the error.
      *  @return list of the current online users
      */
-    suspend fun get(waitForSync: Boolean = true, clientId: String? = null, connectionId: String? = null): List<PresenceMember>
+    public suspend fun get(waitForSync: Boolean = true, clientId: String? = null, connectionId: String? = null): List<PresenceMember>
 
     /**
      * Method to check if user with supplied clientId is online
      * @param {string} clientId - The client ID to check if it is present in the room.
      * @returns true if user with specified clientId is present, false otherwise
      */
-    suspend fun isUserPresent(clientId: String): Boolean
+    public suspend fun isUserPresent(clientId: String): Boolean
 
     /**
      * Method to join room presence, will emit an enter event to all subscribers. Repeat calls will trigger more enter events.
      * @param data The users data, a JSON serializable object that will be sent to all subscribers.
      * @throws [io.ably.lib.types.AblyException] object which explains the error.
      */
-    suspend fun enter(data: PresenceData? = null)
+    public suspend fun enter(data: PresenceData? = null)
 
     /**
      * Method to update room presence, will emit an update event to all subscribers. If the user is not present, it will be treated as a join event.
      * @param data The users data, a JSON serializable object that will be sent to all subscribers.
      * @throws [io.ably.lib.types.AblyException] object which explains the error.
      */
-    suspend fun update(data: PresenceData? = null)
+    public suspend fun update(data: PresenceData? = null)
 
     /**
      * Method to leave room presence, will emit a leave event to all subscribers. If the user is not present, it will be treated as a no-op.
      * @param data The users data, a JSON serializable object that will be sent to all subscribers.
      * @throws [io.ably.lib.types.AblyException] object which explains the error.
      */
-    suspend fun leave(data: PresenceData? = null)
+    public suspend fun leave(data: PresenceData? = null)
 
     /**
      * Subscribe the given listener to all presence events.
      * @param listener listener to subscribe
      */
-    fun subscribe(listener: Listener): Subscription
+    public fun subscribe(listener: Listener): Subscription
 
     /**
      * An interface for listening to new presence event
      */
-    fun interface Listener {
+    public fun interface Listener {
         /**
          * A function that can be called when the new presence event happens.
          * @param event The event that happened.
          */
-        fun onEvent(event: PresenceEvent)
+        public fun onEvent(event: PresenceEvent)
     }
+}
+
+/**
+ * @return [PresenceEvent] events as a [Flow]
+ */
+public fun Presence.asFlow(): Flow<PresenceEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**
  * Type for PresenceMember
  */
-data class PresenceMember(
+public data class PresenceMember(
     /**
      * The clientId of the presence member.
      */
@@ -112,7 +120,7 @@ data class PresenceMember(
 /**
  * Type for PresenceEvent
  */
-data class PresenceEvent(
+public data class PresenceEvent(
     /**
      * The type of the presence event.
      */

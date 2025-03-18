@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
@@ -19,38 +20,45 @@ import kotlinx.coroutines.launch
  *
  * Get an instance via [Room.occupancy].
  */
-interface Occupancy : EmitsDiscontinuities {
+public interface Occupancy : EmitsDiscontinuities {
     /**
      * Get underlying Ably channel for occupancy events.
      *
      * @returns The underlying Ably channel for occupancy events.
      */
-    val channel: Channel
+    public val channel: Channel
 
     /**
      * Subscribe a given listener to occupancy updates of the chat room.
      *
      * @param listener A listener to be called when the occupancy of the room changes.
      */
-    fun subscribe(listener: Listener): Subscription
+    public fun subscribe(listener: Listener): Subscription
 
     /**
      * Get the current occupancy of the chat room.
      *
      * @returns the current occupancy of the chat room.
      */
-    suspend fun get(): OccupancyEvent
+    public suspend fun get(): OccupancyEvent
 
     /**
      * An interface for listening to new occupancy event
      */
-    fun interface Listener {
+    public fun interface Listener {
         /**
          * A function that can be called when the new occupancy event happens.
          * @param event The event that happened.
          */
-        fun onEvent(event: OccupancyEvent)
+        public fun onEvent(event: OccupancyEvent)
     }
+}
+
+/**
+ * @return [OccupancyEvent] events as a [Flow]
+ */
+public fun Occupancy.asFlow(): Flow<OccupancyEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**
@@ -58,7 +66,7 @@ interface Occupancy : EmitsDiscontinuities {
  *
  * (CHA-O2)
  */
-data class OccupancyEvent(
+public data class OccupancyEvent(
     /**
      * The number of connections to the chat room.
      */
@@ -70,7 +78,7 @@ data class OccupancyEvent(
     val presenceMembers: Int,
 )
 
-const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
+private const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
 
 internal class DefaultOccupancy(
     private val room: DefaultRoom,

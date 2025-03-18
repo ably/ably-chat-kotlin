@@ -3,7 +3,7 @@ package com.ably.chat
 /**
  * Error codes for the Chat SDK.
  */
-enum class ErrorCode(val code: Int) {
+public enum class ErrorCode(public val code: Int) {
 
     /**
      * The messages feature failed to attach.
@@ -118,19 +118,19 @@ enum class ErrorCode(val code: Int) {
 /**
  * Http Status Codes
  */
-object HttpStatusCode {
+public object HttpStatusCode {
 
-    const val BadRequest = 400
+    public const val BadRequest: Int = 400
 
-    const val Unauthorized = 401
+    public const val Unauthorized: Int = 401
 
-    const val InternalServerError = 500
+    public const val InternalServerError: Int = 500
 
-    const val NotImplemented = 501
+    public const val NotImplemented: Int = 501
 
-    const val ServiceUnavailable = 502
+    public const val ServiceUnavailable: Int = 502
 
-    const val GatewayTimeout = 503
+    public const val GatewayTimeout: Int = 503
 
-    const val Timeout = 504
+    public const val Timeout: Int = 504
 }

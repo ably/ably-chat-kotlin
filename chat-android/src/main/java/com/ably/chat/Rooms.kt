@@ -11,12 +11,12 @@ import kotlinx.coroutines.launch
 /**
  * Manages the lifecycle of chat rooms.
  */
-interface Rooms {
+public interface Rooms {
     /**
      * Get the chat client options used to create the Chat instance.
      * @returns ChatClientOptions
      */
-    val clientOptions: ChatClientOptions
+    public val clientOptions: ChatClientOptions
 
     /**
      * Gets a room reference by ID. The Rooms class ensures that only one reference
@@ -37,7 +37,7 @@ interface Rooms {
      * @returns Room A new or existing Room object.
      * Spec: CHA-RC1f
      */
-    suspend fun get(roomId: String, options: RoomOptions = RoomOptions()): Room
+    public suspend fun get(roomId: String, options: RoomOptions = RoomOptions()): Room
 
     /**
      * Release the Room object if it exists. This method only releases the reference
@@ -52,7 +52,7 @@ interface Rooms {
      * @param roomId The ID of the room.
      * Spec: CHA-RC1g, CHA-RC1g1
      */
-    suspend fun release(roomId: String)
+    public suspend fun release(roomId: String)
 }
 
 /**

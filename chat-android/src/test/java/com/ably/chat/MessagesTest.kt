@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import app.cash.turbine.test
 import com.ably.annotations.InternalAPI
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
@@ -234,6 +235,29 @@ class MessagesTest {
 
         verify(exactly = 2) { listener1.onEvent(any()) }
         verify(exactly = 1) { listener2.onEvent(any()) }
+    }
+
+    @Test
+    fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
+        val messages: Messages = mockk()
+        val subscription: MessagesSubscription = mockk()
+        lateinit var callback: Messages.Listener
+
+        every { messages.subscribe(any()) } answers {
+            callback = firstArg()
+            subscription
+        }
+
+        messages.asFlow().test {
+            val event = mockk<MessageEvent>()
+            callback.onEvent(event)
+            assertEquals(event, awaitItem())
+            cancel()
+        }
+
+        verify(exactly = 1) {
+            subscription.unsubscribe()
+        }
     }
 }
 

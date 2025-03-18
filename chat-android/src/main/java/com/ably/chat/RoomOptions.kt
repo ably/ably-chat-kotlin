@@ -6,7 +6,7 @@ import io.ably.lib.types.ChannelOptions
 /**
  * Represents the options for a given chat room.
  */
-data class RoomOptions(
+public data class RoomOptions(
     /**
      * The presence options for the room. To enable presence in the room, set this property. You may
      * use [RoomOptionsDefaults.presence] to enable presence with default options.
@@ -32,11 +32,11 @@ data class RoomOptions(
      */
     val occupancy: OccupancyOptions? = null,
 ) {
-    companion object {
+    public companion object {
         /**
          * Supports all room options with default values
          */
-        val default = RoomOptions(
+        public val default: RoomOptions = RoomOptions(
             typing = TypingOptions(),
             presence = PresenceOptions(),
             reactions = RoomReactionsOptions(),
@@ -48,7 +48,7 @@ data class RoomOptions(
 /**
  * Represents the presence options for a chat room.
  */
-data class PresenceOptions(
+public data class PresenceOptions(
     /**
      * Whether the underlying Realtime channel should use the presence enter mode, allowing entry into presence.
      * This property does not affect the presence lifecycle, and users must still call [Presence.enter]
@@ -69,7 +69,7 @@ data class PresenceOptions(
 /**
  * Represents the typing options for a chat room.
  */
-data class TypingOptions(
+public data class TypingOptions(
     /**
      * The timeout for typing events in milliseconds. If typing.start() is not called for this amount of time, a stop
      * typing event will be fired, resulting in the user being removed from the currently typing set.
@@ -84,9 +84,9 @@ data class TypingOptions(
  * Note: This class is currently empty but allows for future extensions
  * while maintaining backward compatibility.
  */
-class RoomReactionsOptions {
-    override fun equals(other: Any?) = other is RoomReactionsOptions
-    override fun hashCode() = javaClass.hashCode()
+public class RoomReactionsOptions {
+    override fun equals(other: Any?): Boolean = other is RoomReactionsOptions
+    override fun hashCode(): Int = javaClass.hashCode()
 }
 
 /**
@@ -95,9 +95,9 @@ class RoomReactionsOptions {
  * Note: This class is currently empty but allows for future extensions
  * while maintaining backward compatibility.
  */
-class OccupancyOptions {
-    override fun equals(other: Any?) = other is OccupancyOptions
-    override fun hashCode() = javaClass.hashCode()
+public class OccupancyOptions {
+    override fun equals(other: Any?): Boolean = other is OccupancyOptions
+    override fun hashCode(): Int = javaClass.hashCode()
 }
 
 /**

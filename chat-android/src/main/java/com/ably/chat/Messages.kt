@@ -9,6 +9,7 @@ import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 internal typealias PubSubMessageListener = AblyRealtimeChannel.MessageListener
@@ -20,20 +21,20 @@ internal typealias PubSubMessage = io.ably.lib.types.Message
  *
  * Get an instance via [Room.messages].
  */
-interface Messages : EmitsDiscontinuities {
+public interface Messages : EmitsDiscontinuities {
     /**
      * Get the underlying Ably realtime channel used for the messages in this chat room.
      *
      * @returns the realtime channel
      */
-    val channel: AblyRealtimeChannel
+    public val channel: AblyRealtimeChannel
 
     /**
      * Subscribe to new messages in this chat room.
      * @param listener callback that will be called
      * @return A response object that allows you to control the subscription.
      */
-    fun subscribe(listener: Listener): MessagesSubscription
+    public fun subscribe(listener: Listener): MessagesSubscription
 
     /**
      * Get messages that have been previously sent to the chat room, based on the provided options.
@@ -45,7 +46,7 @@ interface Messages : EmitsDiscontinuities {
      *
      * @return Paginated result of messages. This paginated result can be used to fetch more messages if available.
      */
-    suspend fun get(
+    public suspend fun get(
         start: Long? = null,
         end: Long? = null,
         limit: Int = 100,
@@ -68,7 +69,7 @@ interface Messages : EmitsDiscontinuities {
      *
      * @return The message was published.
      */
-    suspend fun send(text: String, metadata: MessageMetadata? = null, headers: MessageHeaders? = null): Message
+    public suspend fun send(text: String, metadata: MessageMetadata? = null, headers: MessageHeaders? = null): Message
 
     /**
      * Update a message in the chat room.
@@ -83,7 +84,11 @@ interface Messages : EmitsDiscontinuities {
      * @param operationMetadata Optional metadata for the update action.
      * @returns updated message.
      */
-    suspend fun update(updatedMessage: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
+    public suspend fun update(
+        updatedMessage: Message,
+        operationDescription: String? = null,
+        operationMetadata: OperationMetadata? = null,
+    ): Message
 
     /**
      * Delete a message in the chat room.
@@ -103,24 +108,31 @@ interface Messages : EmitsDiscontinuities {
      * @param operationMetadata - Optional metadata for the delete action.
      * @return A promise that resolves to the deleted message.
      */
-    suspend fun delete(message: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
+    public suspend fun delete(message: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * An interface for listening to new messaging event
      */
-    fun interface Listener {
+    public fun interface Listener {
         /**
          * A function that can be called when the new messaging event happens.
          * @param event The event that happened.
          */
-        fun onEvent(event: MessageEvent)
+        public fun onEvent(event: MessageEvent)
     }
+}
+
+/**
+ * @return [MessageEvent] events as a [Flow]
+ */
+public fun Messages.asFlow(): Flow<MessageEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 /**
  * Options for querying messages in a chat room.
  */
-data class QueryOptions(
+public data class QueryOptions(
     /**
      * The start of the time window to query from. If provided, the response will include
      * messages with timestamps equal to or greater than this value.
@@ -151,7 +163,7 @@ data class QueryOptions(
 /**
  * Payload for a message event.
  */
-data class MessageEvent(
+public data class MessageEvent(
     /**
      * The type of the message event.
      */
@@ -264,13 +276,13 @@ internal fun DeleteMessageParams.toJsonObject(): JsonObject {
     }
 }
 
-interface MessagesSubscription : Subscription {
+public interface MessagesSubscription : Subscription {
     /**
      * (CHA-M5j)
      * Get the previous messages that were sent to the room before the listener was subscribed.
      * @return paginated result of messages, in newest-to-oldest order.
      */
-    suspend fun getPreviousMessages(start: Long? = null, end: Long? = null, limit: Int = 100): PaginatedResult<Message>
+    public suspend fun getPreviousMessages(start: Long? = null, end: Long? = null, limit: Int = 100): PaginatedResult<Message>
 }
 
 internal class DefaultMessagesSubscription(

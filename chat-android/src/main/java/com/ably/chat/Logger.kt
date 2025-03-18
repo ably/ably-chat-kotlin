@@ -5,11 +5,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-fun interface LogHandler {
-    fun log(message: String, level: LogLevel, throwable: Throwable?, context: LogContext)
+public fun interface LogHandler {
+    public fun log(message: String, level: LogLevel, throwable: Throwable?, context: LogContext)
 }
 
-data class LogContext(
+public data class LogContext(
     val tag: String,
     val staticContext: Map<String, String> = mapOf(),
     val dynamicContext: Map<String, () -> String> = mapOf(),
