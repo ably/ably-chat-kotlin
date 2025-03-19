@@ -17,7 +17,7 @@ class TypingIntegrationTest {
         val chatClient1 = sandbox.createSandboxChatClient("client1")
         val chatClient2 = sandbox.createSandboxChatClient("client2")
         val roomId = UUID.randomUUID().toString()
-        val roomOptions = RoomOptions(typing = TypingOptions(timeoutMs = 10_000))
+        val roomOptions = RoomOptions(typing = TypingOptions(heartbeatThrottleMs = 10_000))
         val chatClient1Room = chatClient1.rooms.get(roomId, roomOptions)
         chatClient1Room.attach()
         val chatClient2Room = chatClient2.rooms.get(roomId, roomOptions)

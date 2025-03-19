@@ -70,12 +70,11 @@ public data class PresenceOptions(
  * Represents the typing options for a chat room.
  */
 public data class TypingOptions(
+
     /**
-     * The timeout for typing events in milliseconds. If typing.start() is not called for this amount of time, a stop
-     * typing event will be fired, resulting in the user being removed from the currently typing set.
-     * @defaultValue 5000
+     * The throttle for typing events in milliseconds. This is the minimum time between typing events being sent.
      */
-    val timeoutMs: Long = 5000,
+    val heartbeatThrottleMs: Long = 10_000,
 )
 
 /**
@@ -106,9 +105,9 @@ public class OccupancyOptions {
  */
 internal fun RoomOptions.validateRoomOptions(logger: Logger) {
     typing?.let {
-        if (typing.timeoutMs <= 0) {
-            logger.error("Typing timeout must be greater than 0, found ${typing.timeoutMs}")
-            throw ablyException("Typing timeout must be greater than 0", ErrorCode.InvalidRequestBody)
+        if (typing.heartbeatThrottleMs <= 0) {
+            logger.error("Typing heartbeatThrottleMs must be greater than 0, found ${typing.heartbeatThrottleMs}")
+            throw ablyException("Typing heartbeatThrottleMs must be greater than 0", ErrorCode.InvalidRequestBody)
         }
     }
 }

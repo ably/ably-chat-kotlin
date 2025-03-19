@@ -57,6 +57,7 @@ fun createMockRealtimeChannel(channelName: String = "channel"): RealtimeChannel 
         every { subscribe(any()) } returns mockk(relaxUnitFun = true)
     }
     every { subscribe(any<String>(), any()) } returns mockk(relaxUnitFun = true)
+    every { subscribe(any<List<String>>(), any()) } returns mockk(relaxUnitFun = true)
     every { subscribe(any()) } returns mockk(relaxUnitFun = true)
 }
 

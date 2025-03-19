@@ -91,7 +91,7 @@ class RoomGetTest {
         val room5 = rooms.get(
             "7890",
             RoomOptions(
-                typing = TypingOptions(timeoutMs = 1500),
+                typing = TypingOptions(heartbeatThrottleMs = 1500),
                 presence = PresenceOptions(
                     enter = true,
                     subscribe = false,
@@ -104,7 +104,7 @@ class RoomGetTest {
         val room6 = rooms.get(
             "7890",
             RoomOptions(
-                typing = TypingOptions(timeoutMs = 1500),
+                typing = TypingOptions(heartbeatThrottleMs = 1500),
                 presence = PresenceOptions(
                     enter = true,
                     subscribe = false,
