@@ -8,6 +8,7 @@ import com.ably.chat.ConnectionStatus
 import com.ably.chat.ConnectionStatusChange
 import com.ably.chat.Subscription
 import com.ably.chat.annotations.ExperimentalChatApi
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -50,4 +51,9 @@ class EmittingConnection(mock: Connection) : Connection by mock {
             it.connectionStatusChanged(event)
         }
     }
+}
+
+fun ConnectionStatusChange(current: ConnectionStatus, previous: ConnectionStatus): ConnectionStatusChange = mockk {
+    every { this@mockk.previous } returns previous
+    every { this@mockk.current } returns current
 }

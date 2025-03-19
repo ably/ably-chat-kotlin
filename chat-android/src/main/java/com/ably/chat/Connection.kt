@@ -57,28 +57,35 @@ public enum class ConnectionStatus(public val stateName: String) {
 /**
  * Represents a change in the status of the connection.
  */
-public data class ConnectionStatusChange(
+public interface ConnectionStatusChange {
     /**
      * The new status of the connection.
      */
-    val current: ConnectionStatus,
+    public val current: ConnectionStatus
 
     /**
      * The previous status of the connection.
      */
-    val previous: ConnectionStatus,
+    public val previous: ConnectionStatus
 
     /**
      * An error that provides a reason why the connection has
      * entered the new status, if applicable.
      */
-    val error: ErrorInfo? = null,
+    public val error: ErrorInfo?
 
     /**
      * The time in milliseconds that the client will wait before attempting to reconnect.
      */
-    val retryIn: Long? = null,
-)
+    public val retryIn: Long?
+}
+
+internal data class DefaultConnectionStatusChange(
+    override val current: ConnectionStatus,
+    override val previous: ConnectionStatus,
+    override val error: ErrorInfo? = null,
+    override val retryIn: Long? = null,
+) : ConnectionStatusChange
 
 /**
  * Represents a connection to Ably.
@@ -182,7 +189,7 @@ internal class DefaultConnection(
         this.error = error
         logger.info("Connection state changed from ${previous.stateName} to ${nextStatus.stateName}")
         emitStateChange(
-            ConnectionStatusChange(
+            DefaultConnectionStatusChange(
                 current = status,
                 previous = previous,
                 error = error,
