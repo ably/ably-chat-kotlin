@@ -45,7 +45,7 @@ internal class ChatApi(
             val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
             latestAction?.let { action ->
                 logger.debug("getMessages();", context = mapOf("roomId" to roomId, "message" to messageJsonObject.toString()))
-                Message(
+                DefaultMessage(
                     serial = messageJsonObject.requireString(MessageProperty.Serial),
                     clientId = messageJsonObject.requireString(MessageProperty.ClientId),
                     roomId = messageJsonObject.requireString(MessageProperty.RoomId),
@@ -78,7 +78,7 @@ internal class ChatApi(
             val createdAt = it.requireLong(MessageProperty.CreatedAt)
             logger.debug("sendMessage();", context = mapOf("roomId" to roomId, "response" to it.toString()))
             // CHA-M3a
-            Message(
+            DefaultMessage(
                 serial = serial,
                 clientId = clientId,
                 roomId = roomId,
@@ -110,7 +110,7 @@ internal class ChatApi(
             val timestamp = it.requireLong(MessageProperty.Timestamp)
             logger.debug("updateMessage();", context = mapOf("messageSerial" to message.serial, "response" to it.toString()))
             // CHA-M8b
-            Message(
+            DefaultMessage(
                 serial = message.serial,
                 clientId = clientId,
                 roomId = message.roomId,
@@ -142,7 +142,7 @@ internal class ChatApi(
             val timestamp = it.requireLong(MessageProperty.Timestamp)
             logger.debug("deleteMessage();", context = mapOf("messageSerial" to message.serial, "response" to it.toString()))
             // CHA-M9b
-            Message(
+            DefaultMessage(
                 serial = message.serial,
                 clientId = clientId,
                 roomId = message.roomId,
@@ -165,7 +165,7 @@ internal class ChatApi(
         logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
         return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
-            OccupancyEvent(
+            DefaultOccupancyEvent(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),
             )

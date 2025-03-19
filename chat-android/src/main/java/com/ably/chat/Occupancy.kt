@@ -66,17 +66,22 @@ public fun Occupancy.asFlow(): Flow<OccupancyEvent> = transformCallbackAsFlow {
  *
  * (CHA-O2)
  */
-public data class OccupancyEvent(
+public interface OccupancyEvent {
     /**
      * The number of connections to the chat room.
      */
-    val connections: Int,
+    public val connections: Int
 
     /**
      * The number of presence members in the chat room - members who have entered presence.
      */
-    val presenceMembers: Int,
-)
+    public val presenceMembers: Int
+}
+
+internal data class DefaultOccupancyEvent(
+    override val connections: Int,
+    override val presenceMembers: Int,
+) : OccupancyEvent
 
 private const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
 
@@ -205,7 +210,7 @@ internal class DefaultOccupancy(
 
         eventBus.tryEmit(
             // (CHA-04c)
-            OccupancyEvent(
+            DefaultOccupancyEvent(
                 connections = connections.asInt,
                 presenceMembers = presenceMembers.asInt,
             ),

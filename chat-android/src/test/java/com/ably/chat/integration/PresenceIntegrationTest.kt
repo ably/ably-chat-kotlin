@@ -12,7 +12,7 @@ class PresenceIntegrationTest {
     @Test
     fun `should return empty list of presence members if nobody is entered`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val room = chatClient.rooms.get(UUID.randomUUID().toString(), RoomOptions.default)
+        val room = chatClient.rooms.get(UUID.randomUUID().toString(), RoomOptions.AllFeaturesEnabled)
         room.attach()
         val members = room.presence.get()
         assertEquals(0, members.size)
@@ -21,7 +21,7 @@ class PresenceIntegrationTest {
     @Test
     fun `should return yourself as presence member after you entered`() = runTest {
         val chatClient = sandbox.createSandboxChatClient("sandbox-client")
-        val room = chatClient.rooms.get(UUID.randomUUID().toString(), RoomOptions.default)
+        val room = chatClient.rooms.get(UUID.randomUUID().toString(), RoomOptions.AllFeaturesEnabled)
         room.attach()
         room.presence.enter()
         val members = room.presence.get()

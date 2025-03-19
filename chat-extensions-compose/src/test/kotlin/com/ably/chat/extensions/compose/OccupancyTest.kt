@@ -31,12 +31,12 @@ class OccupancyTest {
         moleculeFlow(RecompositionMode.Immediate) {
             room.collectAsOccupancy()
         }.test {
-            assertEquals(CurrentOccupancy(0, 0), awaitItem())
-            assertEquals(CurrentOccupancy(1, 0), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(0, 0), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(1, 0), awaitItem())
             occupancy.emit(OccupancyEvent(1, 1))
-            assertEquals(CurrentOccupancy(1, 1), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(1, 1), awaitItem())
             occupancy.emit(OccupancyEvent(2, 1))
-            assertEquals(CurrentOccupancy(2, 1), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(2, 1), awaitItem())
         }
     }
 
@@ -47,12 +47,12 @@ class OccupancyTest {
         moleculeFlow(RecompositionMode.Immediate) {
             room.collectAsOccupancy()
         }.test {
-            assertEquals(CurrentOccupancy(), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(), awaitItem())
             occupancy.emit(OccupancyEvent(1, 0))
-            assertEquals(CurrentOccupancy(1, 0), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(1, 0), awaitItem())
             occupancy.resume()
             occupancy.emit(OccupancyEvent(2, 1))
-            assertEquals(CurrentOccupancy(2, 1), awaitItem())
+            assertEquals(DefaultCurrentOccupancy(2, 1), awaitItem())
         }
     }
 }
@@ -87,4 +87,9 @@ class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
             it.onEvent(event)
         }
     }
+}
+
+fun OccupancyEvent(connections: Int, presenceMembers: Int): OccupancyEvent = mockk {
+    every { this@mockk.connections } returns connections
+    every { this@mockk.presenceMembers } returns presenceMembers
 }

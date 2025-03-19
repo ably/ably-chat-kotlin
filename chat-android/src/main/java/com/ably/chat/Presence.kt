@@ -90,57 +90,72 @@ public fun Presence.asFlow(): Flow<PresenceEvent> = transformCallbackAsFlow {
 /**
  * Type for PresenceMember
  */
-public data class PresenceMember(
+public interface PresenceMember {
     /**
      * The clientId of the presence member.
      */
-    val clientId: String,
+    public val clientId: String
 
     /**
      * The data associated with the presence member.
      */
-    val data: PresenceData?,
+    public val data: PresenceData?
 
     /**
      * The current state of the presence member.
      */
-    val action: PresenceMessage.Action,
+    public val action: PresenceMessage.Action
 
     /**
      * The timestamp of when the last change in state occurred for this presence member.
      */
-    val updatedAt: Long,
+    public val updatedAt: Long
 
     /**
      * The extras associated with the presence member.
      */
-    val extras: Map<String, String>? = null,
-)
+    public val extras: JsonObject
+}
 
 /**
  * Type for PresenceEvent
  */
-public data class PresenceEvent(
+public interface PresenceEvent {
     /**
      * The type of the presence event.
      */
-    val action: PresenceMessage.Action,
+    public val action: PresenceMessage.Action
 
     /**
      * The clientId of the client that triggered the presence event.
      */
-    val clientId: String,
+    public val clientId: String
 
     /**
      * The timestamp of the presence event.
      */
-    val timestamp: Long,
+    public val timestamp: Long
 
     /**
      * The data associated with the presence event.
      */
-    val data: PresenceData?,
-)
+    public val data: PresenceData?
+}
+
+internal data class DefaultPresenceMember(
+    override val clientId: String,
+    override val data: PresenceData?,
+    override val action: PresenceMessage.Action,
+    override val updatedAt: Long,
+    override val extras: JsonObject = JsonObject(),
+) : PresenceMember
+
+internal data class DefaultPresenceEvent(
+    override val action: PresenceMessage.Action,
+    override val clientId: String,
+    override val timestamp: Long,
+    override val data: PresenceData?,
+) : PresenceEvent
 
 internal class DefaultPresence(
     private val room: DefaultRoom,
@@ -163,7 +178,7 @@ internal class DefaultPresence(
     override suspend fun get(waitForSync: Boolean, clientId: String?, connectionId: String?): List<PresenceMember> {
         room.ensureAttached(logger) // CHA-PR6d, CHA-PR6c, CHA-PR6h
         return presence.getCoroutine(waitForSync, clientId, connectionId).map { user ->
-            PresenceMember(
+            DefaultPresenceMember(
                 clientId = user.clientId,
                 action = user.action,
                 data = (user.data as? JsonObject)?.get("userCustomData"),
@@ -191,7 +206,7 @@ internal class DefaultPresence(
 
     override fun subscribe(listener: Presence.Listener): Subscription {
         val presenceListener = PubSubPresenceListener {
-            val presenceEvent = PresenceEvent(
+            val presenceEvent = DefaultPresenceEvent(
                 action = it.action,
                 clientId = it.clientId,
                 timestamp = it.timestamp,

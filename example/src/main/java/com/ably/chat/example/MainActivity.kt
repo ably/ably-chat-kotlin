@@ -44,22 +44,20 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ably.chat.ChatClient
-import com.ably.chat.ChatClientOptions
 import com.ably.chat.LogLevel
 import com.ably.chat.Message
-import com.ably.chat.MessageMetadata
 import com.ably.chat.Reaction
 import com.ably.chat.Room
 import com.ably.chat.RoomOptions
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.asFlow
+import com.ably.chat.copy
 import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
 import com.ably.chat.extensions.compose.collectAsCurrentlyTyping
 import com.ably.chat.extensions.compose.collectAsPagingMessagesState
 import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.types.ClientOptions
-import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -77,7 +75,7 @@ class MainActivity : ComponentActivity() {
             },
         )
 
-        val chatClient = ChatClient(realtimeClient, ChatClientOptions(logLevel = LogLevel.Trace))
+        val chatClient = ChatClient(realtimeClient) { logLevel = LogLevel.Trace }
 
         enableEdgeToEdge()
         setContent {
@@ -98,7 +96,7 @@ fun App(chatClient: ChatClient) {
     LaunchedEffect(Unit) {
         val chatRoom = chatClient.rooms.get(
             Settings.ROOM_ID,
-            RoomOptions.default,
+            RoomOptions.AllFeaturesEnabled,
         )
         chatRoom.attach()
         room = chatRoom
@@ -362,27 +360,6 @@ fun ChatInputField(
                 Text("Send")
             }
         }
-    }
-}
-
-@Preview
-@Composable
-fun MessageBubblePreview() {
-    AblyChatExampleTheme {
-        MessageBubble(
-            message = Message(
-                text = "Hello World!",
-                serial = "fake",
-                roomId = "roomId",
-                clientId = "clientId",
-                createdAt = System.currentTimeMillis(),
-                metadata = MessageMetadata(),
-                headers = mapOf(),
-                action = MessageAction.MESSAGE_CREATE,
-                version = "fake",
-                timestamp = System.currentTimeMillis(),
-            ),
-        )
     }
 }
 

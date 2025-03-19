@@ -13,34 +13,43 @@ public typealias ReactionMetadata = Metadata
 /**
  * Represents a room-level reaction.
  */
-public data class Reaction(
+public interface Reaction {
     /**
      * The type of the reaction, for example "like" or "love".
      */
-    val type: String,
+    public val type: String
 
     /**
      * Metadata of the reaction. If no metadata was set this is an empty object.
      */
-    val metadata: ReactionMetadata?,
+    public val metadata: ReactionMetadata
 
     /**
      * Headers of the reaction. If no headers were set this is an empty object.
      */
-    val headers: ReactionHeaders = mapOf(),
+    public val headers: ReactionHeaders
 
     /**
      * The timestamp at which the reaction was sent.
      */
-    val createdAt: Long,
+    public val createdAt: Long
 
     /**
      * The clientId of the user who sent the reaction.
      */
-    val clientId: String,
+    public val clientId: String
 
     /**
      * Whether the reaction was sent by the current user.
      */
-    val isSelf: Boolean,
-)
+    public val isSelf: Boolean
+}
+
+internal data class DefaultReaction(
+    override val type: String,
+    override val metadata: ReactionMetadata,
+    override val headers: ReactionHeaders,
+    override val createdAt: Long,
+    override val clientId: String,
+    override val isSelf: Boolean,
+) : Reaction

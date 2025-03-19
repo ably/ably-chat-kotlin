@@ -97,7 +97,11 @@ public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
 /**
  * Represents a typing event.
  */
-public data class TypingEvent(val currentlyTyping: Set<String>)
+public interface TypingEvent {
+    public val currentlyTyping: Set<String>
+}
+
+internal data class DefaultTypingEvent(override val currentlyTyping: Set<String>) : TypingEvent
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
@@ -238,7 +242,7 @@ internal class DefaultTyping(
         if (lastTyping == currentlyTyping) return
         lastTyping = currentlyTyping
         listeners.forEach {
-            it.onEvent(TypingEvent(currentlyTyping))
+            it.onEvent(DefaultTypingEvent(currentlyTyping))
         }
     }
 }

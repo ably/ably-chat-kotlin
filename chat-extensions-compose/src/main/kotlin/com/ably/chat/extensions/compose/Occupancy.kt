@@ -13,10 +13,15 @@ import com.ably.chat.asFlow
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 
-public data class CurrentOccupancy(
-    val connections: Int = 0,
-    val presenceMembers: Int = 0,
-)
+public interface CurrentOccupancy {
+    public val connections: Int
+    public val presenceMembers: Int
+}
+
+internal data class DefaultCurrentOccupancy(
+    override val connections: Int = 0,
+    override val presenceMembers: Int = 0,
+) : CurrentOccupancy
 
 /**
  * @return current occupancy
@@ -24,7 +29,7 @@ public data class CurrentOccupancy(
 @ExperimentalChatApi
 @Composable
 public fun Room.collectAsOccupancy(): CurrentOccupancy {
-    var currentOccupancy by remember(this) { mutableStateOf(CurrentOccupancy()) }
+    var currentOccupancy by remember(this) { mutableStateOf(DefaultCurrentOccupancy()) }
     val roomStatus = collectAsStatus()
 
     LaunchedEffect(this, roomStatus) {
@@ -33,7 +38,7 @@ public fun Room.collectAsOccupancy(): CurrentOccupancy {
         val initialOccupancyGet = launch {
             runCatching {
                 val occupancyEvent = occupancy.get()
-                currentOccupancy = CurrentOccupancy(
+                currentOccupancy = DefaultCurrentOccupancy(
                     connections = occupancyEvent.connections,
                     presenceMembers = occupancyEvent.presenceMembers,
                 )
@@ -42,7 +47,7 @@ public fun Room.collectAsOccupancy(): CurrentOccupancy {
 
         occupancy.asFlow().collect {
             if (initialOccupancyGet.isActive) initialOccupancyGet.cancelAndJoin()
-            currentOccupancy = CurrentOccupancy(
+            currentOccupancy = DefaultCurrentOccupancy(
                 connections = it.connections,
                 presenceMembers = it.presenceMembers,
             )
