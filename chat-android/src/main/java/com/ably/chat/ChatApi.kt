@@ -19,8 +19,9 @@ private val apiProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, API_PROTOCOL_V
 internal class ChatApi(
     private val realtimeClient: RealtimeClient,
     private val clientId: String,
-    private val logger: Logger,
+    parentLogger: Logger,
 ) {
+    private val logger = parentLogger.withContext(tag = "ChatApi")
 
     /**
      * Get messages from the Chat Backend
@@ -28,6 +29,10 @@ internal class ChatApi(
      * @return paginated result with messages
      */
     suspend fun getMessages(roomId: String, options: QueryOptions, fromSerial: String? = null): PaginatedResult<Message> {
+        logger.trace(
+            "getMessages();",
+            context = mapOf("roomId" to roomId, "options" to options.toString(), "fromSerial" to fromSerial.toString()),
+        )
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
@@ -39,6 +44,7 @@ internal class ChatApi(
             val latestAction = messageJsonObject.get(MessageProperty.Action)?.asString?.let { name -> messageActionNameToAction[name] }
             val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
             latestAction?.let { action ->
+                logger.debug("getMessages();", context = mapOf("roomId" to roomId, "message" to messageJsonObject.toString()))
                 Message(
                     serial = messageJsonObject.requireString(MessageProperty.Serial),
                     clientId = messageJsonObject.requireString(MessageProperty.ClientId),
@@ -60,6 +66,7 @@ internal class ChatApi(
      * Spec: CHA-M3
      */
     suspend fun sendMessage(roomId: String, params: SendMessageParams): Message {
+        logger.trace("sendMessage();", context = mapOf("roomId" to roomId, "params" to params.toString()))
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
@@ -69,6 +76,7 @@ internal class ChatApi(
         )?.let {
             val serial = it.requireString(MessageProperty.Serial)
             val createdAt = it.requireLong(MessageProperty.CreatedAt)
+            logger.debug("sendMessage();", context = mapOf("roomId" to roomId, "response" to it.toString()))
             // CHA-M3a
             Message(
                 serial = serial,
@@ -90,6 +98,7 @@ internal class ChatApi(
      * Spec: CHA-M8
      */
     suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
+        logger.trace("updateMessage();", context = mapOf("message" to message.toString(), "params" to params.toString()))
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
@@ -99,6 +108,7 @@ internal class ChatApi(
         )?.let {
             val version = it.requireString(MessageProperty.Version)
             val timestamp = it.requireLong(MessageProperty.Timestamp)
+            logger.debug("updateMessage();", context = mapOf("messageSerial" to message.serial, "response" to it.toString()))
             // CHA-M8b
             Message(
                 serial = message.serial,
@@ -120,6 +130,7 @@ internal class ChatApi(
      * Spec: CHA-M9
      */
     suspend fun deleteMessage(message: Message, params: DeleteMessageParams): Message {
+        logger.trace("deleteMessage();", context = mapOf("message" to message.toString(), "params" to params.toString()))
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
@@ -129,6 +140,7 @@ internal class ChatApi(
         )?.let {
             val version = it.requireString(MessageProperty.Version)
             val timestamp = it.requireLong(MessageProperty.Timestamp)
+            logger.debug("deleteMessage();", context = mapOf("messageSerial" to message.serial, "response" to it.toString()))
             // CHA-M9b
             Message(
                 serial = message.serial,
@@ -150,7 +162,9 @@ internal class ChatApi(
      * return occupancy for specified room
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
+        logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
         return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
+            logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
             OccupancyEvent(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),
@@ -178,7 +192,7 @@ internal class ChatApi(
                 override fun onError(reason: ErrorInfo?) {
                     logger.error(
                         "ChatApi.makeAuthorizedRequest(); failed to make request",
-                        staticContext = mapOf(
+                        context = mapOf(
                             "url" to url,
                             "statusCode" to reason?.statusCode.toString(),
                             "errorCode" to reason?.code.toString(),
@@ -212,7 +226,7 @@ internal class ChatApi(
                 override fun onError(reason: ErrorInfo?) {
                     logger.error(
                         "ChatApi.makeAuthorizedPaginatedRequest(); failed to make request",
-                        staticContext = mapOf(
+                        context = mapOf(
                             "url" to url,
                             "statusCode" to reason?.statusCode.toString(),
                             "errorCode" to reason?.code.toString(),

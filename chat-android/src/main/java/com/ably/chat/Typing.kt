@@ -1,5 +1,3 @@
-@file:Suppress("StringLiteralDuplication")
-
 package com.ably.chat
 
 import com.ably.annotations.InternalAPI
@@ -166,7 +164,7 @@ internal class DefaultTyping(
         val typingListener = PubSubMessageListener { msg ->
             val typingEventType = TypingEventType.entries.first { it.eventName == msg.name }
             if (msg.data == null || msg.data !is String) {
-                logger.error("unable to handle typing event; no clientId", staticContext = mapOf("member" to msg.toString()))
+                logger.error("unable to handle typing event; no clientId", context = mapOf("member" to msg.toString()))
                 return@PubSubMessageListener
             }
             typingScope.launch {
