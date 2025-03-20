@@ -546,6 +546,12 @@ formatting:
     maxLineLength: 140
     indentSize: 4
 
+libraries:
+  active: true
+  ForbiddenPublicDataClass:
+    active: true
+    excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/jsTest/**', '**/iosTest/**' ]
+
 naming:
   active: true
   BooleanPropertyNaming:
