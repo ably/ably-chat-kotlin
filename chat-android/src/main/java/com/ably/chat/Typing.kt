@@ -200,14 +200,10 @@ internal class DefaultTyping(
                 return@async
             }
             isTypingInProgress = true
-            startTypingTimer()
-            val msgExtras = JsonObject().apply {
-                addProperty("ephemeral", true)
-            }
+            startHeartbeatTimer()
             try {
-                channelWrapper.publishCoroutine(Message(TypingEventType.Started.eventName, room.clientId, MessageExtras(msgExtras)))
+                sendTyping(TypingEventType.Started, room.clientId)
             } catch (e: Exception) {
-                logger.error("DefaultTyping.start(); failed to publish start typing event", e)
                 isTypingInProgress = false
                 throw e
             }
@@ -219,11 +215,21 @@ internal class DefaultTyping(
         typingScope.async {
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
             isTypingInProgress = false
-            val msgExtras = JsonObject().apply {
-                addProperty("ephemeral", true)
-            }
-            channelWrapper.publishCoroutine(Message(TypingEventType.Stopped.eventName, room.clientId, MessageExtras(msgExtras)))
+            sendTyping(TypingEventType.Stopped, room.clientId)
         }.await()
+    }
+
+    private suspend fun sendTyping(eventType: TypingEventType, clientId: String) {
+        logger.trace("DefaultTyping.sendTyping()")
+        val msgExtras = JsonObject().apply {
+            addProperty("ephemeral", true)
+        }
+        try {
+            channelWrapper.publishCoroutine(Message(eventType.eventName, clientId, MessageExtras(msgExtras)))
+        } catch (e: Exception) {
+            logger.error("DefaultTyping.sendTyping(); failed to publish typing event", e)
+            throw e
+        }
     }
 
     override fun release() {
@@ -232,11 +238,11 @@ internal class DefaultTyping(
         room.realtimeClient.channels.release(channelWrapper.name)
     }
 
-    private fun startTypingTimer() {
+    private fun startHeartbeatTimer() {
         logger.trace("DefaultTyping.startTypingTimer()")
         typingScope.launch {
             delay(heartbeatThrottleMs)
-            logger.debug("DefaultTyping.startTypingTimer(); timeout expired")
+            logger.debug("DefaultTyping.startTypingTimer(); heartbeatThrottleMs expired")
             isTypingInProgress = false
         }
     }
@@ -285,40 +291,30 @@ internal class DefaultTyping(
      * A [TimedTypingStartEventPruner] wrapper that automatically calls [removeTypingEvent]
      * when a timer set to [delayTimeMs] elapses.
      *
-     * @param coroutineScope The coroutine scope used for executing removeTypingEvent block.
+     * @param typingScope The coroutine scope used for executing removeTypingEvent block.
      * @param clientId The ID of the user tied to the typing event.
      * @param delayTimeMs The period of time it takes before the event is removed.
      * @param removeTypingEvent The lambda called when the stale typing event should be removed.
      */
     internal class TimedTypingStartEventPruner(
-        private val coroutineScope: CoroutineScope,
+        private val typingScope: CoroutineScope,
         private val clientId: String,
         private val delayTimeMs: Long,
         private val removeTypingEvent: (userId: String) -> Unit,
     ) {
         /**
-         * The current job.
-         * Cancel it before removing an instance.
+         * Starts the "cleaning" job that will call removeTypingEvent method after delayTimeMs.
          */
-        private var job: Job? = null
-
-        /**
-         * Starts the "cleaning" job.
-         */
-        init {
-            job = CoroutineScope(Dispatchers.Default).launch {
-                delay(delayTimeMs)
-                coroutineScope.launch {
-                    removeTypingEvent(clientId)
-                }
-            }
+        private val job: Job = typingScope.launch {
+            delay(delayTimeMs)
+            removeTypingEvent(clientId)
         }
 
         /**
          * Cancels the currently running job.
          */
         fun cancelJob() {
-            job?.cancel()
+            job.cancel()
         }
     }
 }
