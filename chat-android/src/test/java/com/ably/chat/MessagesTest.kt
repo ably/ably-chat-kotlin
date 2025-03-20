@@ -67,7 +67,7 @@ class MessagesTest {
         )
 
         assertEquals(
-            Message(
+            DefaultMessage(
                 serial = "abcdefghij@1672531200000-123",
                 clientId = "clientId",
                 roomId = "room1",
@@ -129,7 +129,7 @@ class MessagesTest {
 
         assertEquals(MessageEventType.Created, messageEvent.type)
         assertEquals(
-            Message(
+            DefaultMessage(
                 roomId = "room1",
                 createdAt = 1000L,
                 clientId = "clientId",

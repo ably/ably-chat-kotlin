@@ -53,3 +53,7 @@ class EmittingTyping(mock: Typing) : Typing by mock {
         }
     }
 }
+
+fun TypingEvent(currentlyTyping: Set<String>): TypingEvent = mockk {
+    every { this@mockk.currentlyTyping } returns currentlyTyping
+}

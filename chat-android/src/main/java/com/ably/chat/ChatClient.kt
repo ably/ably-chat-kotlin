@@ -36,8 +36,21 @@ public interface ChatClient {
     public val clientOptions: ChatClientOptions
 }
 
-public fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ChatClientOptions = ChatClientOptions()): ChatClient =
+/**
+ * @param realtimeClient The Ably Realtime client
+ * @param clientOptions The client options.
+ * @return [ChatClient] with the specified options
+ */
+public fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ChatClientOptions = buildChatClientOptions()): ChatClient =
     DefaultChatClient(realtimeClient, clientOptions)
+
+/**
+ * @param realtimeClient The Ably Realtime client
+ * @param init Kotlin type-safe builder for client options
+ * @return [ChatClient] with the specified options
+ */
+public fun ChatClient(realtimeClient: AblyRealtime, init: MutableChatClientOptions.() -> Unit): ChatClient =
+    ChatClient(realtimeClient, buildChatClientOptions(init))
 
 internal class DefaultChatClient(
     override val realtime: AblyRealtime,
@@ -50,15 +63,13 @@ internal class DefaultChatClient(
         ),
     )
 
-    private val logger: Logger = if (clientOptions.logHandler != null) {
+    private val logger: Logger = clientOptions.logHandler?.let {
         CustomLogger(
-            clientOptions.logHandler,
+            it,
             clientOptions.logLevel,
             buildLogContext(),
         )
-    } else {
-        AndroidLogger(clientOptions.logLevel, buildLogContext())
-    }
+    } ?: AndroidLogger(clientOptions.logLevel, buildLogContext())
 
     private val chatApi = ChatApi(realtimeClientWrapper, clientId, logger)
 
@@ -78,7 +89,7 @@ internal class DefaultChatClient(
     override val clientId: String
         get() = realtimeClientWrapper.auth.clientId
 
-    private fun buildLogContext() = LogContext(
+    private fun buildLogContext() = DefaultLogContext(
         tag = "ChatClient",
         staticContext = mapOf(
             "clientId" to clientId,

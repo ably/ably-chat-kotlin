@@ -2,6 +2,7 @@ package com.ably.chat.integration
 
 import com.ably.chat.ConnectionStatus
 import com.ably.chat.ConnectionStatusChange
+import com.ably.chat.DefaultConnectionStatusChange
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -18,7 +19,7 @@ class ConnectionIntegrationTest {
             if (it.current == ConnectionStatus.Connected) connectionStatusChange.complete(it)
         }
         assertEquals(
-            ConnectionStatusChange(
+            DefaultConnectionStatusChange(
                 current = ConnectionStatus.Connected,
                 previous = ConnectionStatus.Connecting,
                 error = null,

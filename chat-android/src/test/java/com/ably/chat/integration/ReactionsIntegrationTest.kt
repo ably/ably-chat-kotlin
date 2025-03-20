@@ -1,8 +1,8 @@
 package com.ably.chat.integration
 
 import com.ably.chat.Reaction
-import com.ably.chat.RoomOptions
-import com.ably.chat.RoomReactionsOptions
+import com.ably.chat.get
+import com.ably.chat.reactions
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -16,9 +16,8 @@ class ReactionsIntegrationTest {
     fun `should observe room reactions`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
         val roomId = UUID.randomUUID().toString()
-        val roomOptions = RoomOptions(reactions = RoomReactionsOptions())
 
-        val room = chatClient.rooms.get(roomId, roomOptions)
+        val room = chatClient.rooms.get(roomId) { reactions() }
         room.attach()
 
         val reactionEvent = CompletableDeferred<Reaction>()

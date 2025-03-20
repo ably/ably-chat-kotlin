@@ -61,7 +61,7 @@ class PresenceTest {
         val presenceEvent = deferredValue.await()
 
         assertEquals(
-            PresenceEvent(
+            DefaultPresenceEvent(
                 action = PresenceMessage.Action.leave,
                 clientId = "client1",
                 timestamp = 100_000L,
@@ -98,7 +98,7 @@ class PresenceTest {
         val presenceEvent = deferredValue.await()
 
         assertEquals(
-            PresenceEvent(
+            DefaultPresenceEvent(
                 action = PresenceMessage.Action.leave,
                 clientId = "client1",
                 timestamp = 100_000L,
@@ -137,7 +137,7 @@ class PresenceTest {
         val presenceEvent = deferredValue.await()
 
         assertEquals(
-            PresenceEvent(
+            DefaultPresenceEvent(
                 action = PresenceMessage.Action.leave,
                 clientId = "client1",
                 timestamp = 100_000L,
