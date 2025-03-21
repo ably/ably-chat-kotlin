@@ -73,9 +73,19 @@ public enum class PresenceEventType(public val eventName: String) {
     Present("present"),
 }
 
+/**
+ * Enum representing typing events.
+ */
 public enum class TypingEventType(public val eventName: String) {
-    /** The set of currently typing users has changed. */
-    Changed("typing.changed"),
+    /**
+     * Event triggered when a user starts typing.
+     */
+    Started("typing.started"),
+
+    /**
+     * Event triggered when a user stops typing.
+     */
+    Stopped("typing.stopped"),
 }
 
 /**

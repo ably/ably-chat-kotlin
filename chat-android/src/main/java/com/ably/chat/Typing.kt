@@ -2,39 +2,23 @@ package com.ably.chat
 
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
+import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.Presence.PresenceListener
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
+import io.ably.lib.types.Message
+import io.ably.lib.types.MessageExtras
 import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.math.min
-import kotlin.math.pow
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-
-/**
- * base retry interval, we double it each time
- */
-internal const val PRESENCE_GET_RETRY_INTERVAL_MS: Long = 1500
-
-/**
- * max retry interval
- */
-internal const val PRESENCE_GET_RETRY_MAX_INTERVAL_MS: Long = 30_000
-
-/**
- *  max num of retries
- */
-internal const val PRESENCE_GET_MAX_RETRIES = 5
 
 /**
  * This interface is used to interact with typing in a chat room including subscribing to typing events and
@@ -97,7 +81,29 @@ public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
 /**
  * Represents a typing event.
  */
-public data class TypingEvent(val currentlyTyping: Set<String>)
+public data class TypingEvent(
+    /**
+     * The set of user clientIds that are currently typing.
+     */
+    val currentlyTyping: Set<String>,
+
+    /**
+     * The change that caused this event.
+     */
+    val change: TypingChange,
+) {
+    public data class TypingChange(
+        /**
+         * The client ID of the user who started or stopped typing.
+         */
+        val clientId: String,
+
+        /**
+         * The type of typing event.
+         */
+        val type: TypingEventType,
+    )
+}
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
@@ -115,40 +121,58 @@ internal class DefaultTyping(
 
     private val typingScope = CoroutineScope(dispatcher.limitedParallelism(1) + SupervisorJob())
 
-    private val eventBus = MutableSharedFlow<Unit>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private var typingInProgressJob: Job? = null
 
     override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
 
-    private var typingJob: Job? = null
-
     private val listeners: MutableList<Typing.Listener> = CopyOnWriteArrayList()
 
-    private var lastTyping: Set<String> = setOf()
+    private var currentlyTypingMembers: MutableSet<String> = mutableSetOf()
 
-    private var presenceSubscription: Subscription
+    private var typingEventPubSubSubscription: Subscription
+
+    /**
+     * A mutable map of clientId to TimedTypingStartEventPruner.
+     * Each received typing start event is capable of timed death using [TimedTypingStartEventPruner.removeTypingEvent]
+     */
+    private val typingEvents = mutableMapOf<String, TimedTypingStartEventPruner>()
+
+    /**
+     * Defines how often a typing.started heartbeat can be sent (in milliseconds).
+     * This does not prevent a client from sending an typing.stopped heartbeat—doing so resets the interval timer
+     * and allows another typing.started to be sent.
+     */
+    private val heartbeatThrottleMs: Long = room.options.typing?.heartbeatThrottleMs ?: throw AblyException.fromErrorInfo(
+        ErrorInfo(
+            "Typing options hasn't been initialized",
+            ErrorCode.BadRequest.code,
+        ),
+    )
+
+    /**
+     * Defines how long to wait before marking a user as stopped typing.
+     * For example, if the last typing.started heartbeat was received 10s ago, the system will wait an additional 2s before declaring
+     * the client as no longer typing.
+     * @defaultValue 2000ms
+     */
+    private val timeoutMs: Long = 2000
 
     init {
-        typingScope.launch {
-            eventBus.collect {
-                processEvent()
+        val typingListener = PubSubMessageListener { msg ->
+            val typingEventType = TypingEventType.entries.first { it.eventName == msg.name }
+            if (msg.data == null || msg.data !is String) {
+                logger.error("unable to handle typing event; no clientId", context = mapOf("member" to msg.toString()))
+                return@PubSubMessageListener
+            }
+            typingScope.launch {
+                processEvent(typingEventType, msg.data as String)
             }
         }
-
-        val presenceListener = PresenceListener {
-            if (it.clientId == null) {
-                logger.error("unable to handle typing event; no clientId", context = mapOf("member" to it.toString()))
-            } else {
-                eventBus.tryEmit(Unit)
-            }
-        }
-
-        presenceSubscription = channelWrapper.presence.subscribe(presenceListener).asChatSubscription()
+        val typingEvents = listOf(TypingEventType.Started.eventName, TypingEventType.Stopped.eventName)
+        typingEventPubSubSubscription = channelWrapper.subscribe(typingEvents, typingListener).asChatSubscription()
     }
 
     override fun subscribe(listener: Typing.Listener): Subscription {
@@ -163,82 +187,132 @@ internal class DefaultTyping(
     override suspend fun get(): Set<String> {
         logger.trace("DefaultTyping.get()")
         room.ensureAttached(logger) // CHA-T2d, CHA-T2c, CHA-T2g
-        return channelWrapper.presence.getCoroutine().map { it.clientId }.toSet()
+        return currentlyTypingMembers
     }
 
     override suspend fun start() {
         logger.trace("DefaultTyping.start()")
-
-        typingScope.launch {
-            // If the user is already typing, reset the timer
-            if (typingJob != null) {
-                logger.debug("DefaultTyping.start(); already typing, resetting timer")
-                typingJob?.cancel()
-                startTypingTimer()
-            } else {
-                startTypingTimer()
-                room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
-                channelWrapper.presence.enterClientCoroutine(room.clientId)
+        typingScope.async {
+            room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
+            // If the user is already typing, return
+            if (typingInProgressJob?.isActive == true) {
+                logger.warn("DefaultTyping.start(); already typing, so it's a no-op")
+                return@async
             }
-        }.join()
+            startHeartbeatTimer()
+            try {
+                sendTyping(TypingEventType.Started, room.clientId)
+            } catch (e: Exception) {
+                typingInProgressJob?.cancel()
+                throw e
+            }
+        }.await()
     }
 
     override suspend fun stop() {
         logger.trace("DefaultTyping.stop()")
-        typingScope.launch {
-            typingJob?.cancel()
-            typingJob = null
+        typingScope.async {
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
-            channelWrapper.presence.leaveClientCoroutine(room.clientId)
-        }.join()
+            typingInProgressJob?.cancel() // Intentionally cancelled to allow start to be called after stop
+            sendTyping(TypingEventType.Stopped, room.clientId)
+        }.await()
+    }
+
+    private suspend fun sendTyping(eventType: TypingEventType, clientId: String) {
+        logger.trace("DefaultTyping.sendTyping()")
+        val msgExtras = JsonObject().apply {
+            addProperty("ephemeral", true)
+        }
+        try {
+            channelWrapper.publishCoroutine(Message(eventType.eventName, clientId, MessageExtras(msgExtras)))
+        } catch (e: Exception) {
+            logger.error("DefaultTyping.sendTyping(); failed to publish typing event", e)
+            throw e
+        }
     }
 
     override fun release() {
-        presenceSubscription.unsubscribe()
+        typingEventPubSubSubscription.unsubscribe()
         typingScope.cancel()
         room.realtimeClient.channels.release(channelWrapper.name)
     }
 
-    private fun startTypingTimer() {
-        val timeout = room.options.typing?.timeoutMs ?: throw AblyException.fromErrorInfo(
-            ErrorInfo(
-                "Typing options hasn't been initialized",
-                ErrorCode.BadRequest.code,
-            ),
-        )
+    private fun startHeartbeatTimer() {
         logger.trace("DefaultTyping.startTypingTimer()")
-        typingJob = typingScope.launch {
-            delay(timeout)
-            logger.debug("DefaultTyping.startTypingTimer(); timeout expired")
-            stop()
+        typingInProgressJob = typingScope.launch {
+            delay(heartbeatThrottleMs)
+            logger.debug("DefaultTyping.startTypingTimer(); heartbeatThrottleMs expired")
         }
     }
 
-    private suspend fun processEvent() {
-        var numRetries = 0
-        while (numRetries <= PRESENCE_GET_MAX_RETRIES) {
-            try {
-                val currentlyTyping = get()
-                emit(currentlyTyping)
-                return // Exit if successful
-            } catch (e: Exception) {
-                numRetries++
-                val delayDuration = min(
-                    PRESENCE_GET_RETRY_MAX_INTERVAL_MS,
-                    PRESENCE_GET_RETRY_INTERVAL_MS * 2.0.pow(numRetries).toLong(),
-                )
-                logger.debug("Retrying in $delayDuration ms... (Attempt $numRetries of $PRESENCE_GET_MAX_RETRIES)", e)
-                delay(delayDuration)
+    /**
+     * Adds a typing event to [typingEvents].
+     *
+     * It will cancel the timed death of an typing event with the same key (userId)
+     * if such exists.
+     *
+     * @param eventType The typing event will be added to [typingEvents].
+     * @param clientId The ID of the user tied to the typing event.
+     */
+    private fun processEvent(eventType: TypingEventType, clientId: String) {
+        when (eventType) {
+            TypingEventType.Started -> {
+                currentlyTypingMembers.add(clientId)
+                // Cancel the current self stopping event and replace with new one
+                typingEvents[clientId]?.cancelJob()
+                val typingEventWaitingTimeout = heartbeatThrottleMs + timeoutMs
+                val timedTypingStartEvent = TimedTypingStartEventPruner(typingScope, clientId, typingEventWaitingTimeout) {
+                    // typingEventWaitingTimeout elapsed, so remove given clientId and emit stop event
+                    currentlyTypingMembers.remove(it)
+                    typingEvents.remove(it)
+                    emit(TypingEventType.Stopped, it)
+                }
+                typingEvents[clientId] = timedTypingStartEvent
+            }
+            TypingEventType.Stopped -> {
+                currentlyTypingMembers.remove(clientId)
+                typingEvents[clientId]?.cancelJob()
+                typingEvents.remove(clientId)
             }
         }
-        logger.error("Failed to get members after $PRESENCE_GET_MAX_RETRIES retries")
+        emit(eventType, clientId)
     }
 
-    private fun emit(currentlyTyping: Set<String>) {
-        if (lastTyping == currentlyTyping) return
-        lastTyping = currentlyTyping
+    private fun emit(eventType: TypingEventType, clientId: String) {
+        val change = TypingEvent.TypingChange(clientId, eventType)
         listeners.forEach {
-            it.onEvent(TypingEvent(currentlyTyping))
+            it.onEvent(TypingEvent(currentlyTypingMembers, change))
+        }
+    }
+
+    /**
+     * A [TimedTypingStartEventPruner] wrapper that automatically calls [removeTypingEvent]
+     * when a timer set to [delayTimeMs] elapses.
+     *
+     * @param typingScope The coroutine scope used for executing removeTypingEvent block.
+     * @param clientId The ID of the user tied to the typing event.
+     * @param delayTimeMs The period of time it takes before the event is removed.
+     * @param removeTypingEvent The lambda called when the stale typing event should be removed.
+     */
+    internal class TimedTypingStartEventPruner(
+        private val typingScope: CoroutineScope,
+        private val clientId: String,
+        private val delayTimeMs: Long,
+        private val removeTypingEvent: (userId: String) -> Unit,
+    ) {
+        /**
+         * Starts the "cleaning" job that will call removeTypingEvent method after delayTimeMs.
+         */
+        private val job: Job = typingScope.launch {
+            delay(delayTimeMs)
+            removeTypingEvent(clientId)
+        }
+
+        /**
+         * Cancels the currently running job.
+         */
+        fun cancelJob() {
+            job.cancel()
         }
     }
 }

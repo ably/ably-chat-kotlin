@@ -7,6 +7,7 @@ import com.ably.chat.Room
 import com.ably.chat.Subscription
 import com.ably.chat.Typing
 import com.ably.chat.TypingEvent
+import com.ably.chat.TypingEventType
 import com.ably.chat.annotations.ExperimentalChatApi
 import io.mockk.every
 import io.mockk.mockk
@@ -28,9 +29,10 @@ class TypingTest {
             room.collectAsCurrentlyTyping()
         }.test {
             assertEquals(emptySet<String>(), awaitItem())
-            typing.emit(TypingEvent(currentlyTyping = setOf("client_1", "client_2")))
+            val change = TypingEvent.TypingChange("client_1", TypingEventType.Started)
+            typing.emit(TypingEvent(currentlyTyping = setOf("client_1", "client_2"), change))
             assertEquals(setOf("client_1", "client_2"), awaitItem())
-            typing.emit(TypingEvent(currentlyTyping = setOf("client_3")))
+            typing.emit(TypingEvent(currentlyTyping = setOf("client_3"), change))
             assertEquals(setOf("client_3"), awaitItem())
             cancel()
         }

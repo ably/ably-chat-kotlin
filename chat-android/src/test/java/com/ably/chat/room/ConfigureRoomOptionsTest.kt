@@ -29,15 +29,30 @@ class ConfigureRoomOptionsTest {
         val chatApi = mockk<ChatApi>(relaxed = true)
 
         // Room success when positive typing timeout
-        val room = DefaultRoom("1234", RoomOptions(typing = TypingOptions(timeoutMs = 100)), mockRealtimeClient, chatApi, clientId, logger)
+        val room =
+            DefaultRoom(
+                "1234",
+                RoomOptions(typing = TypingOptions(heartbeatThrottleMs = 100)),
+                mockRealtimeClient,
+                chatApi,
+                clientId,
+                logger,
+            )
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Room failure when negative timeout
         val exception = assertThrows(AblyException::class.java) {
-            DefaultRoom("1234", RoomOptions(typing = TypingOptions(timeoutMs = -1)), mockRealtimeClient, chatApi, clientId, logger)
+            DefaultRoom(
+                "1234",
+                RoomOptions(typing = TypingOptions(heartbeatThrottleMs = -1)),
+                mockRealtimeClient,
+                chatApi,
+                clientId,
+                logger,
+            )
         }
-        Assert.assertEquals("Typing timeout must be greater than 0", exception.errorInfo.message)
+        Assert.assertEquals("Typing heartbeatThrottleMs must be greater than 0", exception.errorInfo.message)
         Assert.assertEquals(40_001, exception.errorInfo.code)
         Assert.assertEquals(400, exception.errorInfo.statusCode)
     }
