@@ -121,7 +121,7 @@ internal class DefaultTyping(
 
     private val typingScope = CoroutineScope(dispatcher.limitedParallelism(1) + SupervisorJob())
 
-    private var isTypingInProgress = false
+    private var typingInProgressJob: Job? = null
 
     override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
 
@@ -195,16 +195,15 @@ internal class DefaultTyping(
         typingScope.async {
             room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
             // If the user is already typing, return
-            if (isTypingInProgress) {
+            if (typingInProgressJob?.isActive == true) {
                 logger.warn("DefaultTyping.start(); already typing, so it's a no-op")
                 return@async
             }
-            isTypingInProgress = true
             startHeartbeatTimer()
             try {
                 sendTyping(TypingEventType.Started, room.clientId)
             } catch (e: Exception) {
-                isTypingInProgress = false
+                typingInProgressJob?.cancel()
                 throw e
             }
         }.await()
@@ -214,7 +213,7 @@ internal class DefaultTyping(
         logger.trace("DefaultTyping.stop()")
         typingScope.async {
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
-            isTypingInProgress = false
+            typingInProgressJob?.cancel() // Intentionally cancelled to allow start to be called after stop
             sendTyping(TypingEventType.Stopped, room.clientId)
         }.await()
     }
@@ -240,10 +239,9 @@ internal class DefaultTyping(
 
     private fun startHeartbeatTimer() {
         logger.trace("DefaultTyping.startTypingTimer()")
-        typingScope.launch {
+        typingInProgressJob = typingScope.launch {
             delay(heartbeatThrottleMs)
             logger.debug("DefaultTyping.startTypingTimer(); heartbeatThrottleMs expired")
-            isTypingInProgress = false
         }
     }
 
