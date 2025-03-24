@@ -27,7 +27,7 @@ class TypingIntegrationTest {
         chatClient2Room.typing.subscribe {
             deferredValue.complete(it)
         }
-        chatClient1Room.typing.start()
+        chatClient1Room.typing.keyStroke()
         val typingEvent = deferredValue.await()
         assertEquals(setOf("client1"), typingEvent.currentlyTyping)
         assertEquals(setOf("client1"), chatClient2Room.typing.get())

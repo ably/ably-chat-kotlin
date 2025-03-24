@@ -61,7 +61,7 @@ class TypingTest {
             publishedMessage = firstArg()
             secondArg<CompletionListener>().onSuccess()
         }
-        typing.start()
+        typing.keyStroke()
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
@@ -84,12 +84,12 @@ class TypingTest {
 
         scope.launch {
             repeat(5) {
-                typing.start()
+                typing.keyStroke()
             }
         }
         testScheduler.runCurrent()
 
-        coVerify(exactly = 5) { typing.start() }
+        coVerify(exactly = 5) { typing.keyStroke() }
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
@@ -102,12 +102,12 @@ class TypingTest {
         // Only one message should be published, since 10 second heartbeatThrottleMs is passed
         scope.launch {
             repeat(5) {
-                typing.start()
+                typing.keyStroke()
             }
         }
         testScheduler.runCurrent()
 
-        coVerify(exactly = 10) { typing.start() }
+        coVerify(exactly = 10) { typing.keyStroke() }
 
         verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
@@ -164,12 +164,12 @@ class TypingTest {
         }
 
         scope.launch {
-            typing.start()
+            typing.keyStroke()
         }
 
         testScheduler.runCurrent()
 
-        coVerify(exactly = 1) { typing.start() }
+        coVerify(exactly = 1) { typing.keyStroke() }
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)

@@ -51,7 +51,7 @@ public interface Typing : EmitsDiscontinuities {
      * once the timer expires, a typingStopped event will be emitted. The timeout is configurable through the typingTimeoutMs parameter.
      * If the current user is already typing, it will reset the timer and being counting down again without emitting a new event.
      */
-    public suspend fun start()
+    public suspend fun keyStroke()
 
     /**
      * Stop indicates that the current user has stopped typing. This will emit a typingStopped event to inform listening clients,
@@ -81,29 +81,34 @@ public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
 /**
  * Represents a typing event.
  */
-public data class TypingEvent(
+public interface TypingEvent {
     /**
      * The set of user clientIds that are currently typing.
      */
-    val currentlyTyping: Set<String>,
+    public val currentlyTyping: Set<String>
 
     /**
      * The change that caused this event.
      */
-    val change: TypingChange,
-) {
-    public data class TypingChange(
+    public val change: Change
+
+    public interface Change {
         /**
          * The client ID of the user who started or stopped typing.
          */
-        val clientId: String,
+        public val clientId: String
 
         /**
          * The type of typing event.
          */
-        val type: TypingEventType,
-    )
+        public val type: TypingEventType
+    }
 }
+
+internal data class DefaultTypingEvent(
+    override val currentlyTyping: Set<String>,
+    override val change: TypingEvent.Change,
+) : TypingEvent
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
@@ -190,13 +195,13 @@ internal class DefaultTyping(
         return currentlyTypingMembers
     }
 
-    override suspend fun start() {
+    override suspend fun keyStroke() {
         logger.trace("DefaultTyping.start()")
         typingScope.async {
             room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
             // If the user is already typing, return
             if (typingInProgressJob?.isActive == true) {
-                logger.warn("DefaultTyping.start(); already typing, so it's a no-op")
+                logger.info("DefaultTyping.start(); already typing, so it's a no-op")
                 return@async
             }
             startHeartbeatTimer()
@@ -279,9 +284,15 @@ internal class DefaultTyping(
     }
 
     private fun emit(eventType: TypingEventType, clientId: String) {
-        val change = TypingEvent.TypingChange(clientId, eventType)
+        val typingEvent = DefaultTypingEvent(
+            currentlyTypingMembers,
+            object : TypingEvent.Change {
+                override val clientId: String = clientId
+                override val type: TypingEventType = eventType
+            },
+        )
         listeners.forEach {
-            it.onEvent(TypingEvent(currentlyTypingMembers, change))
+            it.onEvent(typingEvent)
         }
     }
 

@@ -29,10 +29,22 @@ class TypingTest {
             room.collectAsCurrentlyTyping()
         }.test {
             assertEquals(emptySet<String>(), awaitItem())
-            val change = TypingEvent.TypingChange("client_1", TypingEventType.Started)
-            typing.emit(TypingEvent(currentlyTyping = setOf("client_1", "client_2"), change))
+            val change = object : TypingEvent.Change {
+                override val type: TypingEventType = TypingEventType.Started
+                override val clientId: String = "client_1"
+            }
+            val typingEvent1 = object : TypingEvent {
+                override val currentlyTyping: Set<String> = setOf("client_1", "client_2")
+                override val change: TypingEvent.Change = change
+            }
+            typing.emit(typingEvent1)
             assertEquals(setOf("client_1", "client_2"), awaitItem())
-            typing.emit(TypingEvent(currentlyTyping = setOf("client_3"), change))
+
+            val typingEvent2 = object : TypingEvent {
+                override val currentlyTyping: Set<String> = setOf("client_3")
+                override val change: TypingEvent.Change = change
+            }
+            typing.emit(typingEvent2)
             assertEquals(setOf("client_3"), awaitItem())
             cancel()
         }
