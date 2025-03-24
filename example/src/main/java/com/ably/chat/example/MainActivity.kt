@@ -221,7 +221,7 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             onMessageChange = {
                 messageText = it
                 coroutineScope.launch {
-                    room.typing.keyStroke()
+                    room.typing.keystroke()
                 }
             },
             onSendClick = {

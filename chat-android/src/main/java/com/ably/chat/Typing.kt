@@ -9,6 +9,7 @@ import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
 import io.ably.lib.types.MessageExtras
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
 /**
@@ -51,7 +53,7 @@ public interface Typing : EmitsDiscontinuities {
      * once the timer expires, a typingStopped event will be emitted. The timeout is configurable through the typingTimeoutMs parameter.
      * If the current user is already typing, it will reset the timer and being counting down again without emitting a new event.
      */
-    public suspend fun keyStroke()
+    public suspend fun keystroke()
 
     /**
      * Stop indicates that the current user has stopped typing. This will emit a typingStopped event to inform listening clients,
@@ -126,7 +128,11 @@ internal class DefaultTyping(
 
     private val typingScope = CoroutineScope(dispatcher.limitedParallelism(1) + SupervisorJob())
 
-    private var typingInProgressJob: Job? = null
+    private var typingHeartBeatTimerJob: Job? = null
+
+    private var typingStartDeferred: CompletableDeferred<Unit>? = null
+
+    private var typingStopDeferred: CompletableDeferred<Unit>? = null
 
     override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
 
@@ -195,31 +201,75 @@ internal class DefaultTyping(
         return currentlyTypingMembers
     }
 
-    override suspend fun keyStroke() {
-        logger.trace("DefaultTyping.start()")
+    override suspend fun keystroke() {
+        logger.trace("DefaultTyping.keystroke()")
+        // TODO - need to discuss timeout for the typing job
         typingScope.async {
-            room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
-            // If the user is already typing, return
-            if (typingInProgressJob?.isActive == true) {
-                logger.info("DefaultTyping.start(); already typing, so it's a no-op")
+            val currentJob = coroutineContext[Job]
+            // wait for previous stop operation to complete, join doesn't throw exception for failed job
+            typingStopDeferred?.let {
+                logger.debug("DefaultTyping.keystroke(); waiting for stop job to complete")
+                it.join()
+            }
+            // When multiple keystrokes are fired before typingHeartBeatTimerJob starts, await on previous active start typing job
+            typingStartDeferred?.let {
+                if (it.isActive) { // if previous job is active
+                    logger.debug("DefaultTyping.keystroke(); existing active typing start job found, waiting result on the same")
+                    return@async it.await() // wait for the job
+                }
+            }
+            // If heartbeat timer in active return
+            if (typingHeartBeatTimerJob?.isActive == true) {
+                logger.trace("DefaultTyping.keystroke(); typingHeartBeatTimer is active, so it's a no-op")
                 return@async
             }
-            startHeartbeatTimer()
-            try {
-                sendTyping(TypingEventType.Started, room.clientId)
-            } catch (e: Exception) {
-                typingInProgressJob?.cancel()
-                throw e
+            typingStartDeferred = CompletableDeferred()
+            currentJob?.invokeOnCompletion {
+                it?.let {
+                    typingStartDeferred?.completeExceptionally(it)
+                }
             }
+            // start a new job for sending typing.start event
+            room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
+            sendTyping(TypingEventType.Started, room.clientId)
+            startHeartbeatTimer()
+            typingStartDeferred?.complete(Unit)
         }.await()
     }
 
     override suspend fun stop() {
         logger.trace("DefaultTyping.stop()")
         typingScope.async {
+            val currentJob = coroutineContext[Job]
+            // wait for previous start operation to complete, join doesn't throw exception for failed job
+            typingStartDeferred?.let {
+                logger.debug("DefaultTyping.stop(); waiting for typing start job to complete")
+                it.join()
+            }
+            // When multiple stops are fired, await on previous active stop typing job
+            // Case where sendTyping typing.stop is in progress and typingHeartBeatTimerJob not cancelled
+            typingStopDeferred?.let {
+                if (it.isActive) { // if previous job is active
+                    logger.debug("DefaultTyping.stop(); existing active stop job found, waiting result on the same")
+                    return@async it.await() // wait for the job
+                }
+            }
+            // If heartbeat timer in off return
+            if (typingHeartBeatTimerJob?.isActive == false) {
+                logger.trace("DefaultTyping.stop(); typingHeartBeatTimer is inactive, so it's a no-op")
+                return@async
+            }
+            typingStopDeferred = CompletableDeferred()
+            currentJob?.invokeOnCompletion {
+                it?.let {
+                    typingStopDeferred?.completeExceptionally(it)
+                }
+            }
+            // start a new job for sending typing.stop event
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
-            typingInProgressJob?.cancel() // Intentionally cancelled to allow start to be called after stop
             sendTyping(TypingEventType.Stopped, room.clientId)
+            typingHeartBeatTimerJob?.cancel()
+            typingStopDeferred?.complete(Unit)
         }.await()
     }
 
@@ -229,6 +279,7 @@ internal class DefaultTyping(
             addProperty("ephemeral", true)
         }
         try {
+            logger.debug("DefaultTyping.sendTyping(); sending typing event $eventType")
             channelWrapper.publishCoroutine(Message(eventType.eventName, clientId, MessageExtras(msgExtras)))
         } catch (e: Exception) {
             logger.error("DefaultTyping.sendTyping(); failed to publish typing event", e)
@@ -244,7 +295,7 @@ internal class DefaultTyping(
 
     private fun startHeartbeatTimer() {
         logger.trace("DefaultTyping.startTypingTimer()")
-        typingInProgressJob = typingScope.launch {
+        typingHeartBeatTimerJob = typingScope.launch {
             delay(heartbeatThrottleMs)
             logger.debug("DefaultTyping.startTypingTimer(); heartbeatThrottleMs expired")
         }

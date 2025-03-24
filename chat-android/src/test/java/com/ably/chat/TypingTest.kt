@@ -61,7 +61,7 @@ class TypingTest {
             publishedMessage = firstArg()
             secondArg<CompletionListener>().onSuccess()
         }
-        typing.keyStroke()
+        typing.keystroke()
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
@@ -84,12 +84,12 @@ class TypingTest {
 
         scope.launch {
             repeat(5) {
-                typing.keyStroke()
+                typing.keystroke()
             }
         }
         testScheduler.runCurrent()
 
-        coVerify(exactly = 5) { typing.keyStroke() }
+        coVerify(exactly = 5) { typing.keystroke() }
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
@@ -102,12 +102,12 @@ class TypingTest {
         // Only one message should be published, since 10 second heartbeatThrottleMs is passed
         scope.launch {
             repeat(5) {
-                typing.keyStroke()
+                typing.keystroke()
             }
         }
         testScheduler.runCurrent()
 
-        coVerify(exactly = 10) { typing.keyStroke() }
+        coVerify(exactly = 10) { typing.keystroke() }
 
         verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
@@ -150,10 +150,7 @@ class TypingTest {
      */
     @Test
     fun `If typing stop is called, the heartbeatThrottleMs timeout is cancelled, the client sends stop event`() = runTest {
-        val testScheduler = TestCoroutineScheduler()
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
-        val typing = spyk(DefaultTyping(room, dispatcher))
+        val typing = spyk(DefaultTyping(room))
 
         var publishedMessage: Message? = null
         every {
@@ -163,23 +160,15 @@ class TypingTest {
             secondArg<CompletionListener>().onSuccess()
         }
 
-        scope.launch {
-            typing.keyStroke()
-        }
+        typing.keystroke()
 
-        testScheduler.runCurrent()
-
-        coVerify(exactly = 1) { typing.keyStroke() }
+        coVerify(exactly = 1) { typing.keystroke() }
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
-        scope.launch {
-            typing.stop()
-        }
-
-        testScheduler.runCurrent()
+        typing.stop()
 
         coVerify(exactly = 1) { typing.stop() }
 
