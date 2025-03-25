@@ -19,7 +19,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
 /**
@@ -155,6 +154,7 @@ internal class DefaultTyping(
      * Defines how often a typing.started heartbeat can be sent (in milliseconds).
      * This does not prevent a client from sending an typing.stopped heartbeat—doing so resets the interval timer
      * and allows another typing.started to be sent.
+     * Spec: CHA-T10
      */
     private val heartbeatThrottleMs: Long = room.options.typing?.heartbeatThrottleMs ?: throw AblyException.fromErrorInfo(
         ErrorInfo(
@@ -168,12 +168,17 @@ internal class DefaultTyping(
      * For example, if the last typing.started heartbeat was received 10s ago, the system will wait an additional 2s before declaring
      * the client as no longer typing.
      * @defaultValue 2000ms
+     * Spec: CHA-T10a
      */
     private val timeoutMs: Long = 2000
 
+    /**
+     * Spec: CHA-T13
+     */
     init {
         val typingListener = PubSubMessageListener { msg ->
             val typingEventType = TypingEventType.entries.first { it.eventName == msg.name }
+            // CHA-T13a
             if (msg.data == null || msg.data !is String) {
                 logger.error("unable to handle typing event; no clientId", context = mapOf("member" to msg.toString()))
                 return@PubSubMessageListener
@@ -186,24 +191,33 @@ internal class DefaultTyping(
         typingEventPubSubSubscription = channelWrapper.subscribe(typingEvents, typingListener).asChatSubscription()
     }
 
+    /**
+     * Spec: CHA-T6a
+     */
     override fun subscribe(listener: Typing.Listener): Subscription {
         logger.trace("DefaultTyping.subscribe()")
         listeners.add(listener)
+        // CHA-T6b
         return Subscription {
             logger.trace("DefaultTyping.unsubscribe()")
             listeners.remove(listener)
         }
     }
 
+    /**
+     * Spec: CHA-T9
+     */
     override suspend fun get(): Set<String> {
         logger.trace("DefaultTyping.get()")
         room.ensureAttached(logger) // CHA-T2d, CHA-T2c, CHA-T2g
         return currentlyTypingMembers
     }
 
+    /**
+     * Spec: CHA-T4, CHA-T14
+     */
     override suspend fun keystroke() {
         logger.trace("DefaultTyping.keystroke()")
-        // TODO - need to discuss timeout for the typing job
         typingScope.async {
             val currentJob = coroutineContext[Job]
             // wait for previous stop operation to complete, join doesn't throw exception for failed job
@@ -218,7 +232,7 @@ internal class DefaultTyping(
                     return@async it.await() // wait for the job
                 }
             }
-            // If heartbeat timer in active return
+            // CHA-T4c - If heartbeat timer in active return
             if (typingHeartBeatTimerJob?.isActive == true) {
                 logger.trace("DefaultTyping.keystroke(); typingHeartBeatTimer is active, so it's a no-op")
                 return@async
@@ -230,13 +244,16 @@ internal class DefaultTyping(
                 }
             }
             // start a new job for sending typing.start event
-            room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4
-            sendTyping(TypingEventType.Started, room.clientId)
-            startHeartbeatTimer()
+            room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4, CHA-T4d
+            sendTyping(TypingEventType.Started, room.clientId) // CHA-T4a3
+            startHeartbeatTimer() // CHA-T4a4
             typingStartDeferred?.complete(Unit)
         }.await()
     }
 
+    /**
+     * Spec: CHA-T5, CHA-T14
+     */
     override suspend fun stop() {
         logger.trace("DefaultTyping.stop()")
         typingScope.async {
@@ -254,7 +271,7 @@ internal class DefaultTyping(
                     return@async it.await() // wait for the job
                 }
             }
-            // If heartbeat timer in off return
+            // CHA-T5a - If heartbeat timer in off return
             if (typingHeartBeatTimerJob?.isActive == false) {
                 logger.trace("DefaultTyping.stop(); typingHeartBeatTimer is inactive, so it's a no-op")
                 return@async
@@ -267,8 +284,8 @@ internal class DefaultTyping(
             }
             // start a new job for sending typing.stop event
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
-            sendTyping(TypingEventType.Stopped, room.clientId)
-            typingHeartBeatTimerJob?.cancel()
+            sendTyping(TypingEventType.Stopped, room.clientId) // CHA-T5d
+            typingHeartBeatTimerJob?.cancel() // CHA-T5e
             typingStopDeferred?.complete(Unit)
         }.await()
     }
@@ -309,14 +326,17 @@ internal class DefaultTyping(
      *
      * @param eventType The typing event will be added to [typingEvents].
      * @param clientId The ID of the user tied to the typing event.
+     * Spec: CHA-T13b
      */
     private fun processEvent(eventType: TypingEventType, clientId: String) {
         when (eventType) {
-            TypingEventType.Started -> {
+            TypingEventType.Started -> { // CHA-T13b1
                 currentlyTypingMembers.add(clientId)
-                // Cancel the current self stopping event and replace with new one
+                // CHA-T13b2 - Cancel the current self stopping event and replace with new one
                 typingEvents[clientId]?.cancelJob()
+                // CHA-T10a1 - If a typing.start not received within this period, the client shall assume that the user has stopped typing
                 val typingEventWaitingTimeout = heartbeatThrottleMs + timeoutMs
+                // CHA-T13b3
                 val timedTypingStartEvent = TimedTypingStartEventPruner(typingScope, clientId, typingEventWaitingTimeout) {
                     // typingEventWaitingTimeout elapsed, so remove given clientId and emit stop event
                     currentlyTypingMembers.remove(it)
@@ -325,10 +345,13 @@ internal class DefaultTyping(
                 }
                 typingEvents[clientId] = timedTypingStartEvent
             }
-            TypingEventType.Stopped -> {
-                currentlyTypingMembers.remove(clientId)
+            TypingEventType.Stopped -> { // CHA-T13b4
+                val clientIdPresent = currentlyTypingMembers.remove(clientId)
                 typingEvents[clientId]?.cancelJob()
                 typingEvents.remove(clientId)
+                if (!clientIdPresent) { // CHA-T13b5
+                    return
+                }
             }
         }
         emit(eventType, clientId)
@@ -355,6 +378,7 @@ internal class DefaultTyping(
      * @param clientId The ID of the user tied to the typing event.
      * @param delayTimeMs The period of time it takes before the event is removed.
      * @param removeTypingEvent The lambda called when the stale typing event should be removed.
+     * Spec: CHA-T10a1
      */
     internal class TimedTypingStartEventPruner(
         private val typingScope: CoroutineScope,

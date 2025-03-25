@@ -49,7 +49,7 @@ class TypingTest {
     }
 
     /**
-     * @spec CHA-T4a1
+     * @spec CHA-T4
      */
     @Test
     fun `when a typing start is called, the client publishes typing start ephemeral message`() = runTest {
@@ -67,6 +67,9 @@ class TypingTest {
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
     }
 
+    /**
+     * @spec CHA-T4, CHA-T4a4, CHA-T4c
+     */
     @Test
     fun `Multiple calls to typing start within heartbeatThrottleMs, only one message is published`() = runTest {
         val testScheduler = TestCoroutineScheduler()
@@ -115,7 +118,7 @@ class TypingTest {
     }
 
     /**
-     * @spec CHA-T4a2
+     * @spec CHA-T13, CHA-T10a1, CHA-T13b3
      */
     @Test
     fun `On typingStart event received, heartbeatThrottleMs timeout is set, emits self stop event if no more event received`() = runTest {
@@ -146,7 +149,7 @@ class TypingTest {
     }
 
     /**
-     * @spec CHA-T5b
+     * @spec CHA-T5, CHA-T14, CHA-T5e, CHA-T5d
      */
     @Test
     fun `If typing stop is called, the heartbeatThrottleMs timeout is cancelled, the client sends stop event`() = runTest {
