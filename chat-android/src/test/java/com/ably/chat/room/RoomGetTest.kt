@@ -1,14 +1,16 @@
 package com.ably.chat.room
 
 import com.ably.chat.ChatApi
-import com.ably.chat.ChatClientOptions
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
-import com.ably.chat.PresenceOptions
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
-import com.ably.chat.TypingOptions
 import com.ably.chat.assertWaiter
+import com.ably.chat.buildChatClientOptions
+import com.ably.chat.buildRoomOptions
+import com.ably.chat.get
+import com.ably.chat.presence
+import com.ably.chat.typing
 import io.ably.lib.types.AblyException
 import io.mockk.coEvery
 import io.mockk.every
@@ -36,11 +38,11 @@ class RoomGetTest {
     fun `(CHA-RC1f) Requesting a room from the Chat Client return instance of a room with the provided id and options`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger)
-        val room = rooms.get("1234", RoomOptions())
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
+        val room = rooms.get("1234", buildRoomOptions())
         Assert.assertNotNull(room)
         Assert.assertEquals("1234", room.roomId)
-        Assert.assertEquals(RoomOptions(), room.options)
+        Assert.assertEquals(buildRoomOptions(), room.options)
     }
 
     @Suppress("MaximumLineLength")
@@ -48,17 +50,17 @@ class RoomGetTest {
     fun `(CHA-RC1f1) If the room id already exists, and newly requested with different options, then ErrorInfo with code 40000 is thrown`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         // Create room with id "1234"
-        val room = rooms.get("1234", RoomOptions())
+        val room = rooms.get("1234", buildRoomOptions())
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room, rooms.RoomIdToRoom["1234"])
 
         // Throws exception for requesting room for different roomOptions
         val exception = assertThrows(AblyException::class.java) {
             runBlocking {
-                rooms.get("1234", RoomOptions(typing = TypingOptions()))
+                rooms.get("1234") { typing() }
             }
         }
         Assert.assertNotNull(exception)
@@ -70,47 +72,42 @@ class RoomGetTest {
     fun `(CHA-RC1f2) If the room id already exists, and newly requested with same options, then returns same room`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
-        val room1 = rooms.get("1234", RoomOptions())
+        val room1 = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room1, rooms.RoomIdToRoom["1234"])
 
-        val room2 = rooms.get("1234", RoomOptions())
+        val room2 = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room1, room2)
 
-        val room3 = rooms.get("5678", RoomOptions(typing = TypingOptions()))
+        val room3 = rooms.get("5678") { typing() }
         Assert.assertEquals(2, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room3, rooms.RoomIdToRoom["5678"])
 
-        val room4 = rooms.get("5678", RoomOptions(typing = TypingOptions()))
+        val room4 = rooms.get("5678") { typing() }
         Assert.assertEquals(2, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room3, room4)
 
-        val room5 = rooms.get(
-            "7890",
-            RoomOptions(
-                typing = TypingOptions(heartbeatThrottleMs = 1500),
-                presence = PresenceOptions(
-                    enter = true,
-                    subscribe = false,
-                ),
-            ),
-        )
+        val room5 = rooms.get("7890") {
+            typing { heartbeatThrottleMs = 1500 }
+            presence {
+                enter = true
+                subscribe = false
+            }
+        }
+
         Assert.assertEquals(3, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room5, rooms.RoomIdToRoom["7890"])
 
-        val room6 = rooms.get(
-            "7890",
-            RoomOptions(
-                typing = TypingOptions(heartbeatThrottleMs = 1500),
-                presence = PresenceOptions(
-                    enter = true,
-                    subscribe = false,
-                ),
-            ),
-        )
+        val room6 = rooms.get("7890") {
+            typing { heartbeatThrottleMs = 1500 }
+            presence {
+                enter = true
+                subscribe = false
+            }
+        }
         Assert.assertEquals(3, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room5, room6)
     }
@@ -120,7 +117,7 @@ class RoomGetTest {
     fun `(CHA-RC1f3) If no CHA-RC1g release operation is in progress, a new room instance shall be created, and added to the room map`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
         val roomId = "1234"
 
         // No release op. in progress
@@ -128,7 +125,7 @@ class RoomGetTest {
         Assert.assertNull(rooms.RoomReleaseDeferredMap[roomId])
 
         // Creates a new room and adds to the room map
-        val room = rooms.get("1234", RoomOptions())
+        val room = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
     }
@@ -140,10 +137,10 @@ class RoomGetTest {
         val roomId = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -162,13 +159,13 @@ class RoomGetTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
             }
             room
         }
 
         // Creates original room and adds to the room map
-        val originalRoom = rooms.get(roomId, RoomOptions())
+        val originalRoom = rooms.get(roomId)
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(originalRoom, rooms.RoomIdToRoom[roomId])
 

@@ -1,7 +1,7 @@
 package com.ably.chat
 
 import com.google.gson.JsonObject
-import io.ably.lib.types.Message
+import io.ably.lib.types.Message.Operation
 import io.ably.lib.types.MessageAction
 
 /**
@@ -17,32 +17,32 @@ public typealias MessageMetadata = Metadata
 /**
  * Represents a single message in a chat room.
  */
-public data class Message(
+public interface Message {
     /**
      * The unique identifier of the message.
      * Spec: CHA-M2d
      */
-    val serial: String,
+    public val serial: String
 
     /**
      * The clientId of the user who created the message.
      */
-    val clientId: String,
+    public val clientId: String
 
     /**
      * The roomId of the chat room to which the message belongs.
      */
-    val roomId: String,
+    public val roomId: String
 
     /**
      * The text of the message.
      */
-    val text: String,
+    public val text: String
 
     /**
      * The timestamp at which the message was created.
      */
-    val createdAt: Long,
+    public val createdAt: Long
 
     /**
      * The metadata of a chat message. Allows for attaching extra info to a message,
@@ -56,7 +56,7 @@ public data class Message(
      * Do not use metadata for authoritative information. There is no server-side
      * validation. When reading the metadata treat it like user input.
      */
-    val metadata: MessageMetadata,
+    public val metadata: MessageMetadata
 
     /**
      * The headers of a chat message. Headers enable attaching extra info to a message,
@@ -71,37 +71,62 @@ public data class Message(
      * Do not use the headers for authoritative information. There is no server-side
      * validation. When reading the headers treat them like user input.
      */
-    val headers: MessageHeaders,
+    public val headers: MessageHeaders
 
     /**
      * The latest action of the message. This can be used to determine if the message was created, updated, or deleted.
      * Spec: CHA-M10
      */
-    val action: MessageAction,
+    public val action: MessageAction
 
     /**
      * A unique identifier for the latest version of this message.
      * Spec: CHA-M10a
      */
-    val version: String,
+    public val version: String
 
     /**
      * The timestamp at which this version was updated, deleted, or created.
      */
-    val timestamp: Long,
+    public val timestamp: Long
 
     /**
      * The details of the operation that modified the message. This is only set for update and delete actions. It contains
      * information about the operation: the clientId of the user who performed the operation, a description, and metadata.
      */
-    val operation: Message.Operation? = null,
-)
+    public val operation: Operation?
+}
 
-internal fun buildMessageOperation(jsonObject: JsonObject?): Message.Operation? {
+public fun Message.copy(
+    text: String = this.text,
+    headers: MessageHeaders = this.headers,
+    metadata: MessageMetadata = this.metadata,
+): Message =
+    (this as? DefaultMessage)?.copy(
+        text = text,
+        headers = headers,
+        metadata = metadata,
+    ) ?: throw clientError("Message interface is not suitable for inheritance")
+
+internal data class DefaultMessage(
+    override val serial: String,
+    override val clientId: String,
+    override val roomId: String,
+    override val text: String,
+    override val createdAt: Long,
+    override val metadata: MessageMetadata,
+    override val headers: MessageHeaders,
+    override val action: MessageAction,
+    override val version: String,
+    override val timestamp: Long,
+    override val operation: Operation? = null,
+) : Message
+
+internal fun buildMessageOperation(jsonObject: JsonObject?): Operation? {
     if (jsonObject == null) {
         return null
     }
-    val operation = Message.Operation()
+    val operation = Operation()
     if (jsonObject.has(MessageOperationProperty.ClientId)) {
         operation.clientId = jsonObject.get(MessageOperationProperty.ClientId).asString
     }
@@ -118,8 +143,8 @@ internal fun buildMessageOperation(jsonObject: JsonObject?): Message.Operation? 
     return operation
 }
 
-internal fun buildMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Message.Operation {
-    val operation = Message.Operation()
+internal fun buildMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Operation {
+    val operation = Operation()
     operation.clientId = clientId
     operation.description = description
     operation.metadata = metadata

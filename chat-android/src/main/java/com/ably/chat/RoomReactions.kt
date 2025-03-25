@@ -160,11 +160,11 @@ internal class DefaultRoomReactions(
             val data = pubSubMessage.data as? JsonObject ?: throw AblyException.fromErrorInfo(
                 ErrorInfo("Unrecognized Pub/Sub channel's message for `roomReaction` event", HttpStatusCode.InternalServerError),
             )
-            val reaction = Reaction(
+            val reaction = DefaultReaction(
                 type = data.requireString("type"),
                 createdAt = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
-                metadata = data.getAsJsonObject("metadata"),
+                metadata = data.getAsJsonObject("metadata") ?: ReactionMetadata(),
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )

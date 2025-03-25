@@ -1,7 +1,7 @@
 package com.ably.chat.integration
 
-import com.ably.chat.ChatClientOptions
 import com.ably.chat.DefaultChatClient
+import com.ably.chat.buildChatClientOptions
 import com.ably.chat.serverError
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
@@ -42,7 +42,7 @@ private val client = HttpClient(CIO) {
 class Sandbox private constructor(val appId: String, val apiKey: String) {
     companion object {
         suspend fun createInstance(): Sandbox {
-            val response: HttpResponse = client.post("https://sandbox-rest.ably.io/apps") {
+            val response: HttpResponse = client.post("https://sandbox.realtime.ably-nonprod.net/apps") {
                 contentType(ContentType.Application.Json)
                 setBody(loadAppCreationRequestBody().toString())
             }
@@ -59,7 +59,7 @@ class Sandbox private constructor(val appId: String, val apiKey: String) {
 
 internal fun Sandbox.createSandboxChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
     val realtime = createSandboxRealtime(chatClientId)
-    return DefaultChatClient(realtime, ChatClientOptions())
+    return DefaultChatClient(realtime, buildChatClientOptions())
 }
 
 internal fun Sandbox.createSandboxRealtime(chatClientId: String): AblyRealtime =
@@ -74,7 +74,7 @@ internal fun Sandbox.createSandboxRealtime(chatClientId: String): AblyRealtime =
 internal suspend fun Sandbox.getConnectedChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
     val realtime = createSandboxRealtime(chatClientId)
     realtime.ensureConnected()
-    return DefaultChatClient(realtime, ChatClientOptions())
+    return DefaultChatClient(realtime, buildChatClientOptions())
 }
 
 private suspend fun AblyRealtime.ensureConnected() {

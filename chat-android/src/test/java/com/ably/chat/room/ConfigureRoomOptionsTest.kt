@@ -4,7 +4,8 @@ import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
-import com.ably.chat.TypingOptions
+import com.ably.chat.buildRoomOptions
+import com.ably.chat.typing
 import io.ably.lib.types.AblyException
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -29,28 +30,20 @@ class ConfigureRoomOptionsTest {
         val chatApi = mockk<ChatApi>(relaxed = true)
 
         // Room success when positive typing timeout
-        val room =
-            DefaultRoom(
-                "1234",
-                RoomOptions(typing = TypingOptions(heartbeatThrottleMs = 100)),
-                mockRealtimeClient,
-                chatApi,
-                clientId,
-                logger,
-            )
+        val room = DefaultRoom(
+            "1234",
+            buildRoomOptions { typing { heartbeatThrottleMs = 100 } },
+            mockRealtimeClient,
+            chatApi,
+            clientId,
+            logger,
+        )
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Room failure when negative timeout
         val exception = assertThrows(AblyException::class.java) {
-            DefaultRoom(
-                "1234",
-                RoomOptions(typing = TypingOptions(heartbeatThrottleMs = -1)),
-                mockRealtimeClient,
-                chatApi,
-                clientId,
-                logger,
-            )
+            DefaultRoom("1234", buildRoomOptions { typing { heartbeatThrottleMs = -1 } }, mockRealtimeClient, chatApi, clientId, logger)
         }
         Assert.assertEquals("Typing heartbeatThrottleMs must be greater than 0", exception.errorInfo.message)
         Assert.assertEquals(40_001, exception.errorInfo.code)
@@ -63,7 +56,7 @@ class ConfigureRoomOptionsTest {
         val chatApi = mockk<ChatApi>(relaxed = true)
 
         // Room only supports messages feature, since by default other features are turned off
-        val room = DefaultRoom("1234", RoomOptions(), mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom("1234", buildRoomOptions {}, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
@@ -100,7 +93,7 @@ class ConfigureRoomOptionsTest {
         Assert.assertEquals(400, exception.errorInfo.statusCode)
 
         // room with all features
-        val roomWithAllFeatures = DefaultRoom("1234", RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+        val roomWithAllFeatures = DefaultRoom("1234", RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertNotNull(roomWithAllFeatures.presence)
         Assert.assertNotNull(roomWithAllFeatures.reactions)
         Assert.assertNotNull(roomWithAllFeatures.typing)

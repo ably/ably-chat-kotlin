@@ -83,7 +83,7 @@ internal fun createMockRoom(
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
 ): DefaultRoom =
-    DefaultRoom(roomId, RoomOptions.default, realtimeClient, chatApi, clientId, logger)
+    DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, realtimeClient, chatApi, clientId, logger)
 
 // Rooms mocks
 val Rooms.RoomIdToRoom get() = getPrivateField<MutableMap<String, Room>>("roomIdToRoom")

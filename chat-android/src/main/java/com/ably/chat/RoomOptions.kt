@@ -1,61 +1,62 @@
 package com.ably.chat
 
+import com.ably.chat.annotations.ChatDsl
 import io.ably.lib.types.ChannelMode
 import io.ably.lib.types.ChannelOptions
 
 /**
  * Represents the options for a given chat room.
  */
-public data class RoomOptions(
+public interface RoomOptions {
     /**
      * The presence options for the room. To enable presence in the room, set this property. You may
-     * use [RoomOptionsDefaults.presence] to enable presence with default options.
+     * use `rooms.get("ROOM_NAME") { presence() }` to enable presence with default options.
      * @defaultValue undefined
      */
-    val presence: PresenceOptions? = null,
+    public val presence: PresenceOptions?
 
     /**
      * The typing options for the room. To enable typing in the room, set this property. You may use
-     * [RoomOptionsDefaults.typing] to enable typing with default options.
+     * `rooms.get("ROOM_NAME") { typing() }`to enable typing with default options.
      */
-    val typing: TypingOptions? = null,
+    public val typing: TypingOptions?
 
     /**
      * The reactions options for the room. To enable reactions in the room, set this property. You may use
-     * [RoomOptionsDefaults.reactions] to enable reactions with default options.
+     * `rooms.get("ROOM_NAME") { reactions() }` to enable reactions with default options.
      */
-    val reactions: RoomReactionsOptions? = null,
+    public val reactions: RoomReactionsOptions?
 
     /**
      * The occupancy options for the room. To enable occupancy in the room, set this property. You may use
-     * [RoomOptionsDefaults.occupancy] to enable occupancy with default options.
+     * `rooms.get("ROOM_NAME") { occupancy() }` to enable occupancy with default options.
      */
-    val occupancy: OccupancyOptions? = null,
-) {
+    public val occupancy: OccupancyOptions?
+
     public companion object {
         /**
          * Supports all room options with default values
          */
-        public val default: RoomOptions = RoomOptions(
-            typing = TypingOptions(),
-            presence = PresenceOptions(),
-            reactions = RoomReactionsOptions(),
-            occupancy = OccupancyOptions(),
-        )
+        public val AllFeaturesEnabled: RoomOptions = buildRoomOptions {
+            typing()
+            presence()
+            reactions()
+            occupancy()
+        }
     }
 }
 
 /**
  * Represents the presence options for a chat room.
  */
-public data class PresenceOptions(
+public interface PresenceOptions {
     /**
      * Whether the underlying Realtime channel should use the presence enter mode, allowing entry into presence.
      * This property does not affect the presence lifecycle, and users must still call [Presence.enter]
      * in order to enter presence.
      * @defaultValue true
      */
-    val enter: Boolean = true,
+    public val enter: Boolean
 
     /**
      * Whether the underlying Realtime channel should use the presence subscribe mode, allowing subscription to presence.
@@ -63,19 +64,18 @@ public data class PresenceOptions(
      * in order to subscribe to presence.
      * @defaultValue true
      */
-    val subscribe: Boolean = true,
-)
+    public val subscribe: Boolean
+}
 
 /**
  * Represents the typing options for a chat room.
  */
-public data class TypingOptions(
-
+public interface TypingOptions {
     /**
      * The throttle for typing events in milliseconds. This is the minimum time between typing events being sent.
      */
-    val heartbeatThrottleMs: Long = 10_000,
-)
+    public val heartbeatThrottleMs: Long
+}
 
 /**
  * Represents the reactions options for a chat room.
@@ -83,10 +83,7 @@ public data class TypingOptions(
  * Note: This class is currently empty but allows for future extensions
  * while maintaining backward compatibility.
  */
-public class RoomReactionsOptions {
-    override fun equals(other: Any?): Boolean = other is RoomReactionsOptions
-    override fun hashCode(): Int = javaClass.hashCode()
-}
+public interface RoomReactionsOptions
 
 /**
  * Represents the occupancy options for a chat room.
@@ -94,10 +91,86 @@ public class RoomReactionsOptions {
  * Note: This class is currently empty but allows for future extensions
  * while maintaining backward compatibility.
  */
-public class OccupancyOptions {
-    override fun equals(other: Any?): Boolean = other is OccupancyOptions
-    override fun hashCode(): Int = javaClass.hashCode()
+public interface OccupancyOptions
+
+@ChatDsl
+public class MutableRoomOptions : RoomOptions {
+    override var presence: MutablePresenceOptions? = null
+    override var typing: MutableTypingOptions? = null
+    override var reactions: MutableRoomReactionsOptions? = null
+    override var occupancy: MutableOccupancyOptions? = null
 }
+
+@ChatDsl
+public class MutablePresenceOptions : PresenceOptions {
+    override var enter: Boolean = true
+    override var subscribe: Boolean = true
+}
+
+@ChatDsl
+public class MutableTypingOptions : TypingOptions {
+    override var heartbeatThrottleMs: Long = 10_000
+}
+
+@ChatDsl
+public class MutableRoomReactionsOptions : RoomReactionsOptions
+
+@ChatDsl
+public class MutableOccupancyOptions : OccupancyOptions
+
+public fun buildRoomOptions(init: MutableRoomOptions.() -> Unit = {}): RoomOptions =
+    MutableRoomOptions().apply(init).asEquatable()
+
+public fun MutableRoomOptions.presence(init: MutablePresenceOptions.() -> Unit = {}) {
+    this.presence = MutablePresenceOptions().apply(init)
+}
+
+public fun MutableRoomOptions.typing(init: MutableTypingOptions.() -> Unit = {}) {
+    this.typing = MutableTypingOptions().apply(init)
+}
+
+public fun MutableRoomOptions.reactions(init: MutableRoomReactionsOptions.() -> Unit = {}) {
+    this.reactions = MutableRoomReactionsOptions().apply(init)
+}
+
+public fun MutableRoomOptions.occupancy(init: MutableOccupancyOptions.() -> Unit = {}) {
+    this.occupancy = MutableOccupancyOptions().apply(init)
+}
+
+internal data class EquatableRoomOptions(
+    override val presence: PresenceOptions? = null,
+    override val typing: TypingOptions? = null,
+    override val reactions: RoomReactionsOptions? = null,
+    override val occupancy: OccupancyOptions? = null,
+) : RoomOptions
+
+internal data class EquatablePresenceOptions(
+    override val enter: Boolean,
+    override val subscribe: Boolean,
+) : PresenceOptions
+
+internal data class EquatableTypingOptions(
+    override val heartbeatThrottleMs: Long,
+) : TypingOptions
+
+internal data object EquatableRoomReactionsOptions : RoomReactionsOptions
+internal data object EquatableOccupancyOptions : OccupancyOptions
+
+internal fun MutableRoomOptions.asEquatable() = EquatableRoomOptions(
+    presence = presence?.asEquatable(),
+    typing = typing?.asEquatable(),
+    reactions = reactions?.let { EquatableRoomReactionsOptions },
+    occupancy = occupancy?.let { EquatableOccupancyOptions },
+)
+
+internal fun MutablePresenceOptions.asEquatable() = EquatablePresenceOptions(
+    enter = enter,
+    subscribe = subscribe,
+)
+
+internal fun MutableTypingOptions.asEquatable() = EquatableTypingOptions(
+    heartbeatThrottleMs = heartbeatThrottleMs,
+)
 
 /**
  * Throws AblyException for invalid room configuration.
@@ -105,8 +178,8 @@ public class OccupancyOptions {
  */
 internal fun RoomOptions.validateRoomOptions(logger: Logger) {
     typing?.let {
-        if (typing.heartbeatThrottleMs <= 0) {
-            logger.error("Typing heartbeatThrottleMs must be greater than 0, found ${typing.heartbeatThrottleMs}")
+        if (it.heartbeatThrottleMs <= 0) {
+            logger.error("Typing heartbeatThrottleMs must be greater than 0, found ${it.heartbeatThrottleMs}")
             throw ablyException("Typing heartbeatThrottleMs must be greater than 0", ErrorCode.InvalidRequestBody)
         }
     }
@@ -120,7 +193,7 @@ internal fun RoomOptions.validateRoomOptions(logger: Logger) {
  */
 internal fun RoomOptions.messagesChannelOptions(): ChannelOptions {
     return ChatChannelOptions {
-        presence?.let {
+        presence?.let { presence ->
             val channelModes = buildList {
                 // We should have this modes for regular messages
                 add(ChannelMode.publish)

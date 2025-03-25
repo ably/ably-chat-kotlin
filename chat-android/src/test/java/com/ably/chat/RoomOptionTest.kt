@@ -7,24 +7,29 @@ class RoomOptionTest {
 
     @Test
     fun `default occupancy options should be equal`() {
-        assertEquals(OccupancyOptions(), OccupancyOptions())
-    }
-
-    @Test
-    fun `default room reaction options should be equal`() {
-        assertEquals(RoomReactionsOptions(), RoomReactionsOptions())
+        assertEquals(buildRoomOptions { occupancy() }.occupancy, buildRoomOptions { occupancy() }.occupancy)
     }
 
     @Test
     fun `default room options should be equal`() {
+        assertEquals(buildRoomOptions(), buildRoomOptions())
+    }
+
+    @Test
+    fun `custom typing options should be equal`() {
+        assertEquals(buildRoomOptions { typing { heartbeatThrottleMs = 10 } }, buildRoomOptions { typing { heartbeatThrottleMs = 10 } })
+    }
+
+    @Test
+    fun `all features room options should be equal`() {
         assertEquals(
-            RoomOptions.default,
-            RoomOptions(
-                typing = TypingOptions(),
-                presence = PresenceOptions(),
-                reactions = RoomReactionsOptions(),
-                occupancy = OccupancyOptions(),
-            ),
+            RoomOptions.AllFeaturesEnabled,
+            buildRoomOptions {
+                typing()
+                presence()
+                reactions()
+                occupancy()
+            },
         )
     }
 }

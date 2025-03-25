@@ -16,7 +16,7 @@ class ChatApiTest {
 
     private val realtime = mockk<RealtimeClient>(relaxed = true)
     private val chatApi =
-        ChatApi(realtime, "clientId", parentLogger = EmptyLogger(LogContext(tag = "TEST")))
+        ChatApi(realtime, "clientId", parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
 
     /**
      * @nospec
@@ -45,7 +45,7 @@ class ChatApiTest {
 
         assertEquals(
             listOf(
-                Message(
+                DefaultMessage(
                     serial = "timeserial",
                     roomId = "roomId",
                     clientId = "clientId",
@@ -101,7 +101,7 @@ class ChatApiTest {
         val message = chatApi.sendMessage("roomId", SendMessageParams(text = "hello"))
 
         assertEquals(
-            Message(
+            DefaultMessage(
                 serial = "timeserial",
                 roomId = "roomId",
                 clientId = "clientId",

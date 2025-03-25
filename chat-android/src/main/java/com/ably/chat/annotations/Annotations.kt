@@ -1,5 +1,3 @@
-@file:Suppress("Filename")
-
 package com.ably.chat.annotations
 
 /**
@@ -24,3 +22,10 @@ package com.ably.chat.annotations
     AnnotationTarget.PROPERTY_SETTER,
 )
 public annotation class ExperimentalChatApi
+
+/**
+ * A marker annotations for DSLs.
+ */
+@DslMarker
+@Target(AnnotationTarget.CLASS, AnnotationTarget.TYPEALIAS, AnnotationTarget.TYPE, AnnotationTarget.FUNCTION)
+public annotation class ChatDsl

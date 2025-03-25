@@ -8,6 +8,7 @@ import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
 import com.ably.chat.Subscription
 import com.ably.chat.annotations.ExperimentalChatApi
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -50,4 +51,9 @@ class EmittingRoom(mock: Room) : Room by mock {
             it.roomStatusChanged(event)
         }
     }
+}
+
+fun RoomStatusChange(current: RoomStatus, previous: RoomStatus): RoomStatusChange = mockk {
+    every { this@mockk.current } returns current
+    every { this@mockk.previous } returns previous
 }

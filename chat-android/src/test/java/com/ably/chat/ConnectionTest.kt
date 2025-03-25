@@ -41,7 +41,7 @@ class ConnectionTest {
         pubSubConnection.reason = ErrorInfo("some error", 400)
         pubSubConnection.state = ConnectionState.disconnected
 
-        val connection = DefaultConnection(pubSubConnection, EmptyLogger(LogContext(tag = "TEST")))
+        val connection = DefaultConnection(pubSubConnection, EmptyLogger(DefaultLogContext(tag = "TEST")))
         assertEquals(ConnectionStatus.Disconnected, connection.status)
         assertEquals(pubSubConnection.reason, connection.error)
     }
@@ -51,7 +51,7 @@ class ConnectionTest {
      */
     @Test
     fun `status update events must contain the newly entered connection status`() = runTest {
-        val connection = DefaultConnection(pubSubConnection, EmptyLogger(LogContext(tag = "TEST")))
+        val connection = DefaultConnection(pubSubConnection, EmptyLogger(DefaultLogContext(tag = "TEST")))
         val deferredEvent = CompletableDeferred<ConnectionStatusChange>()
 
         connection.onStatusChange {
@@ -68,7 +68,7 @@ class ConnectionTest {
         )
 
         assertEquals(
-            ConnectionStatusChange(
+            DefaultConnectionStatusChange(
                 current = ConnectionStatus.Connecting,
                 previous = ConnectionStatus.Initialized,
                 retryIn = 0,
@@ -85,7 +85,7 @@ class ConnectionTest {
     fun `should wait 5 sec if the connection status transitions from CONNECTED to DISCONNECTED`() = runTest {
         val testScheduler = TestCoroutineScheduler()
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val connection = DefaultConnection(pubSubConnection, EmptyLogger(LogContext(tag = "TEST")), dispatcher)
+        val connection = DefaultConnection(pubSubConnection, EmptyLogger(DefaultLogContext(tag = "TEST")), dispatcher)
 
         var status = ConnectionStatus.Initialized
 
@@ -118,7 +118,7 @@ class ConnectionTest {
     fun `should cancel the transient disconnect timer IF realtime connections status changes to CONNECTED`() = runTest {
         val testScheduler = TestCoroutineScheduler()
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val connection = DefaultConnection(pubSubConnection, EmptyLogger(LogContext(tag = "TEST")), dispatcher)
+        val connection = DefaultConnection(pubSubConnection, EmptyLogger(DefaultLogContext(tag = "TEST")), dispatcher)
 
         var status = ConnectionStatus.Initialized
 

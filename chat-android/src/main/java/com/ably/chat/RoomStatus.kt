@@ -67,23 +67,29 @@ public enum class RoomStatus(public val stateName: String) {
  * Represents a change in the status of the room.
  * (CHA-RS4)
  */
-public data class RoomStatusChange(
+public interface RoomStatusChange {
     /**
      * The new status of the room.
      */
-    val current: RoomStatus,
+    public val current: RoomStatus
 
     /**
      * The previous status of the room.
      */
-    val previous: RoomStatus,
+    public val previous: RoomStatus
 
     /**
      * An error that provides a reason why the room has
      * entered the new status, if applicable.
      */
-    val error: ErrorInfo? = null,
-)
+    public val error: ErrorInfo?
+}
+
+internal data class DefaultRoomStatusChange(
+    override val current: RoomStatus,
+    override val previous: RoomStatus,
+    override val error: ErrorInfo? = null,
+) : RoomStatusChange
 
 /**
  * Represents the status of a Room.
@@ -196,7 +202,7 @@ internal class DefaultRoomLifecycle(logger: Logger) : InternalRoomLifecycle {
     }
 
     internal fun setStatus(status: RoomStatus, error: ErrorInfo? = null) {
-        val change = RoomStatusChange(status, _status, error)
+        val change = DefaultRoomStatusChange(status, _status, error)
         _status = change.current
         _error = change.error
         internalEmitter.emit(change.current, change)
