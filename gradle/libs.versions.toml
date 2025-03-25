@@ -27,6 +27,7 @@ turbine = "1.2.0"
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+detekt-rules-libraries = { module = "io.gitlab.arturbosch.detekt:detekt-rules-libraries", version.ref = "detekt" }
 ably-android = { module = "io.ably:ably-android", version.ref = "ably" }
 ably-pubsub-adapter = { module = "io.ably:pubsub-adapter", version.ref = "ably" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test" }

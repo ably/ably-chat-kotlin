@@ -1,8 +1,8 @@
 package com.ably.chat.integration
 
-import com.ably.chat.RoomOptions
 import com.ably.chat.TypingEvent
-import com.ably.chat.TypingOptions
+import com.ably.chat.buildRoomOptions
+import com.ably.chat.typing
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -17,7 +17,7 @@ class TypingIntegrationTest {
         val chatClient1 = sandbox.createSandboxChatClient("client1")
         val chatClient2 = sandbox.createSandboxChatClient("client2")
         val roomId = UUID.randomUUID().toString()
-        val roomOptions = RoomOptions(typing = TypingOptions(timeoutMs = 10_000))
+        val roomOptions = buildRoomOptions { typing { timeoutMs = 10_000 } }
         val chatClient1Room = chatClient1.rooms.get(roomId, roomOptions)
         chatClient1Room.attach()
         val chatClient2Room = chatClient2.rooms.get(roomId, roomOptions)

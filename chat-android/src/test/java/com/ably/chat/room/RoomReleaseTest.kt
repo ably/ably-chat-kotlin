@@ -1,7 +1,6 @@
 package com.ably.chat.room
 
 import com.ably.chat.ChatApi
-import com.ably.chat.ChatClientOptions
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.ErrorCode
@@ -10,6 +9,8 @@ import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
 import com.ably.chat.assertWaiter
+import com.ably.chat.buildChatClientOptions
+import com.ably.chat.buildRoomOptions
 import io.ably.lib.types.AblyException
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -43,10 +44,10 @@ class RoomReleaseTest {
         val roomId = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
         coJustRun { defaultRoom.release() }
@@ -54,7 +55,7 @@ class RoomReleaseTest {
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
 
         // Creates original room and adds to the room map
-        val room = rooms.get(roomId, RoomOptions())
+        val room = rooms.get(roomId, buildRoomOptions())
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
 
@@ -69,10 +70,10 @@ class RoomReleaseTest {
         val roomId = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -91,7 +92,7 @@ class RoomReleaseTest {
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
 
         // Creates original room and adds to the room map
-        val room = rooms.get(roomId, RoomOptions())
+        val room = rooms.get(roomId, buildRoomOptions())
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
 
@@ -111,7 +112,7 @@ class RoomReleaseTest {
         val roomId = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         // No room exists
         Assert.assertEquals(0, rooms.RoomIdToRoom.size)
@@ -131,10 +132,10 @@ class RoomReleaseTest {
         val roomId = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
@@ -149,7 +150,7 @@ class RoomReleaseTest {
         }
 
         // Creates a room and adds to the room map
-        val room = rooms.get(roomId, RoomOptions())
+        val room = rooms.get(roomId, buildRoomOptions())
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
 
@@ -188,10 +189,10 @@ class RoomReleaseTest {
         val roomId = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, ChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -210,13 +211,13 @@ class RoomReleaseTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
             }
             room
         }
 
         // Creates original room and adds to the room map
-        val originalRoom = rooms.get(roomId, RoomOptions())
+        val originalRoom = rooms.get(roomId, buildRoomOptions())
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(originalRoom, rooms.RoomIdToRoom[roomId])
 

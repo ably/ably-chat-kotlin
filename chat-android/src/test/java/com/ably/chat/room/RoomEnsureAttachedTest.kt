@@ -3,12 +3,12 @@ package com.ably.chat.room
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomLifecycle
+import com.ably.chat.DefaultRoomStatusChange
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.Room
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
-import com.ably.chat.RoomStatusChange
 import com.ably.chat.assertWaiter
 import com.ably.chat.setPrivateField
 import io.ably.lib.types.AblyException
@@ -37,7 +37,7 @@ class RoomEnsureAttachedTest {
 
     @Test
     fun `(CHA-PR3d, CHA-PR10d, CHA-PR6c, CHA-PR6c) When room is already ATTACHED, ensureAttached is a success`() = runTest {
-        val room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Set room status to ATTACHED
@@ -51,7 +51,7 @@ class RoomEnsureAttachedTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-PR3h, CHA-PR10h, CHA-PR6h, CHA-T2g) When room is not ATTACHED or ATTACHING, ensureAttached throws error with code RoomInInvalidState`() = runTest {
-        val room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // List of room status other than ATTACHED/ATTACHING
@@ -82,7 +82,7 @@ class RoomEnsureAttachedTest {
 
     @Test
     fun `(CHA-RL9a) When room is ATTACHING, subscribe once for next room status`() = runTest {
-        val room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         val roomLifecycleMock = spyk(DefaultRoomLifecycle(logger))
@@ -90,7 +90,7 @@ class RoomEnsureAttachedTest {
             roomLifecycleMock.onChangeOnce(any<Room.Listener>())
         } answers {
             val listener = firstArg<Room.Listener>()
-            listener.roomStatusChanged(RoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
+            listener.roomStatusChanged(DefaultRoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
         }
         room.setPrivateField("statusLifecycle", roomLifecycleMock)
 
@@ -107,7 +107,7 @@ class RoomEnsureAttachedTest {
 
     @Test
     fun `(CHA-RL9b) When room is ATTACHING, subscription is registered, ensureAttached is a success`() = runTest {
-        val room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Set room status to ATTACHING
@@ -131,7 +131,7 @@ class RoomEnsureAttachedTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL9c) When room is ATTACHING and subscription is registered and fails, ensureAttached throws error with code RoomInInvalidState`() = runTest {
-        val room = DefaultRoom(roomId, RoomOptions.default, mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // List of room status other than ATTACHED/ATTACHING

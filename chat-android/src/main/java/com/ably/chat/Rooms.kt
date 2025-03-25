@@ -37,7 +37,7 @@ public interface Rooms {
      * @returns Room A new or existing Room object.
      * Spec: CHA-RC1f
      */
-    public suspend fun get(roomId: String, options: RoomOptions = RoomOptions()): Room
+    public suspend fun get(roomId: String, options: RoomOptions = buildRoomOptions()): Room
 
     /**
      * Release the Room object if it exists. This method only releases the reference
@@ -54,6 +54,8 @@ public interface Rooms {
      */
     public suspend fun release(roomId: String)
 }
+
+public suspend fun Rooms.get(roomId: String, initOptions: MutableRoomOptions.() -> Unit): Room = get(roomId, buildRoomOptions(initOptions))
 
 /**
  * Manages the chat rooms.
@@ -179,5 +181,5 @@ internal class DefaultRooms(
      * Spec: CHA-RC1f3
      */
     private fun makeRoom(roomId: String, options: RoomOptions): DefaultRoom =
-        DefaultRoom(roomId, options.copy(), realtimeClient, chatApi, clientId, logger)
+        DefaultRoom(roomId, options, realtimeClient, chatApi, clientId, logger)
 }

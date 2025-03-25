@@ -7,6 +7,7 @@ import com.ably.chat.MessageMetadata
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
+import com.ably.chat.copy
 import io.ably.lib.realtime.channelOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
@@ -50,7 +51,7 @@ class MessagesIntegrationTest {
         val chatClient = sandbox.createSandboxChatClient()
         val roomId = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId, RoomOptions.default)
+        val room = chatClient.rooms.get(roomId, RoomOptions.AllFeaturesEnabled)
 
         room.attach()
 

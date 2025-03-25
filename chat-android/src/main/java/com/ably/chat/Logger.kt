@@ -9,11 +9,17 @@ public fun interface LogHandler {
     public fun log(message: String, level: LogLevel, throwable: Throwable?, context: LogContext)
 }
 
-public data class LogContext(
-    val tag: String,
-    val staticContext: Map<String, String> = mapOf(),
-    val dynamicContext: Map<String, () -> String> = mapOf(),
-)
+public interface LogContext {
+    public val tag: String
+    public val staticContext: Map<String, String>
+    public val dynamicContext: Map<String, () -> String>
+}
+
+internal class DefaultLogContext(
+    override val tag: String,
+    override val staticContext: Map<String, String> = mapOf(),
+    override val dynamicContext: Map<String, () -> String> = mapOf(),
+) : LogContext
 
 internal interface Logger {
     val context: LogContext
@@ -72,7 +78,7 @@ internal fun LogContext.mergeWith(
     staticContext: Map<String, String> = mapOf(),
     dynamicContext: Map<String, () -> String> = mapOf(),
 ): LogContext {
-    return LogContext(
+    return DefaultLogContext(
         tag = tag ?: this.tag,
         staticContext = this.staticContext + staticContext,
         dynamicContext = this.dynamicContext + dynamicContext,

@@ -132,7 +132,7 @@ public fun Messages.asFlow(): Flow<MessageEvent> = transformCallbackAsFlow {
 /**
  * Options for querying messages in a chat room.
  */
-public data class QueryOptions(
+internal data class QueryOptions(
     /**
      * The start of the time window to query from. If provided, the response will include
      * messages with timestamps equal to or greater than this value.
@@ -163,17 +163,22 @@ public data class QueryOptions(
 /**
  * Payload for a message event.
  */
-public data class MessageEvent(
+public interface MessageEvent {
     /**
      * The type of the message event.
      */
-    val type: MessageEventType,
+    public val type: MessageEventType
 
     /**
      * The message that was received.
      */
-    val message: Message,
-)
+    public val message: Message
+}
+
+internal data class DefaultMessageEvent(
+    override val type: MessageEventType,
+    override val message: Message,
+) : MessageEvent
 
 /**
  * Params for sending a text message. Only `text` is mandatory.
@@ -382,7 +387,7 @@ internal class DefaultMessages(
                 ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
 
             val data = parsePubSubMessageData(pubSubMessage.data)
-            val chatMessage = Message(
+            val chatMessage = DefaultMessage(
                 roomId = roomId,
                 createdAt = pubSubMessage.createdAt,
                 clientId = pubSubMessage.clientId,
@@ -395,7 +400,7 @@ internal class DefaultMessages(
                 timestamp = pubSubMessage.timestamp,
                 operation = pubSubMessage.operation,
             )
-            listener.onEvent(MessageEvent(type = eventType, message = chatMessage))
+            listener.onEvent(DefaultMessageEvent(type = eventType, message = chatMessage))
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)

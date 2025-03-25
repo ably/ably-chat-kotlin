@@ -1,8 +1,9 @@
 package com.ably.chat.integration
 
+import com.ably.chat.DefaultOccupancyEvent
 import com.ably.chat.OccupancyEvent
-import com.ably.chat.OccupancyOptions
-import com.ably.chat.RoomOptions
+import com.ably.chat.buildRoomOptions
+import com.ably.chat.occupancy
 import com.ably.chat.subscribeOnce
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -17,7 +18,7 @@ class OccupancyIntegrationTest {
     fun `should return occupancy for the client`() = runTest {
         val chatClient = sandbox.createSandboxChatClient("client1")
         val roomId = UUID.randomUUID().toString()
-        val roomOptions = RoomOptions(occupancy = OccupancyOptions())
+        val roomOptions = buildRoomOptions { occupancy() }
 
         val chatClientRoom = chatClient.rooms.get(roomId, roomOptions)
 
@@ -27,7 +28,7 @@ class OccupancyIntegrationTest {
         }
 
         chatClientRoom.attach()
-        assertEquals(OccupancyEvent(1, 0), firstOccupancyEvent.await())
+        assertEquals(DefaultOccupancyEvent(1, 0), firstOccupancyEvent.await())
     }
 
     companion object {

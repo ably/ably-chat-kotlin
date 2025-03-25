@@ -80,7 +80,7 @@ class RoomReactionsTest {
         val reaction = deferredValue.await()
 
         assertEquals(
-            Reaction(
+            DefaultReaction(
                 type = "like",
                 createdAt = 1000L,
                 clientId = "clientId",
