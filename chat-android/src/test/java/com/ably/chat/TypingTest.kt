@@ -71,7 +71,7 @@ class TypingTest {
      * @spec CHA-T4, CHA-T4a4, CHA-T4c
      */
     @Test
-    fun `Multiple calls to typing start within heartbeatThrottleMs, only one message is published`() = runTest {
+    fun `Multiple calls to typing start within heartbeatThrottle, only one message is published`() = runTest {
         val testScheduler = TestCoroutineScheduler()
         val dispatcher = StandardTestDispatcher(testScheduler)
         val scope = CoroutineScope(dispatcher)
@@ -98,11 +98,11 @@ class TypingTest {
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
-        // Advance time by 10 seconds ( heartbeatThrottleMs )
+        // Advance time by 10 seconds ( heartbeatThrottle )
         testScheduler.advanceTimeBy(11.seconds)
         testScheduler.runCurrent()
 
-        // Only one message should be published, since 10 second heartbeatThrottleMs is passed
+        // Only one message should be published, since 10 second heartbeatThrottle is passed
         scope.launch {
             repeat(5) {
                 typing.keystroke()
@@ -121,7 +121,7 @@ class TypingTest {
      * @spec CHA-T13, CHA-T10a1, CHA-T13b3
      */
     @Test
-    fun `On typingStart event received, heartbeatThrottleMs timeout is set, emits self stop event if no more event received`() = runTest {
+    fun `On typingStart event received, heartbeatThrottle timeout is set, emits self stop event if no more event received`() = runTest {
         val testScheduler = TestCoroutineScheduler()
         val dispatcher = StandardTestDispatcher(testScheduler)
         val typing = DefaultTyping(room, dispatcher)
@@ -138,7 +138,7 @@ class TypingTest {
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
-        // Emits stop event after 12 seconds, heartbeatThrottleMs (10 sec) + timeoutMs (2 sec) = 12 seconds
+        // Emits stop event after 12 seconds, heartbeatThrottle (10 sec) + timeoutMs (2 sec) = 12 seconds
         testScheduler.advanceTimeBy(12.seconds)
         testScheduler.runCurrent()
 
@@ -152,7 +152,7 @@ class TypingTest {
      * @spec CHA-T5, CHA-T14, CHA-T5e, CHA-T5d
      */
     @Test
-    fun `If typing stop is called, the heartbeatThrottleMs timeout is cancelled, the client sends stop event`() = runTest {
+    fun `If typing stop is called, the heartbeatThrottle timeout is cancelled, the client sends stop event`() = runTest {
         val typing = spyk(DefaultTyping(room))
 
         var publishedMessage: Message? = null

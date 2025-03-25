@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import kotlin.time.Duration.Companion.milliseconds
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -17,7 +18,10 @@ class RoomOptionTest {
 
     @Test
     fun `custom typing options should be equal`() {
-        assertEquals(buildRoomOptions { typing { heartbeatThrottleMs = 10 } }, buildRoomOptions { typing { heartbeatThrottleMs = 10 } })
+        assertEquals(
+            buildRoomOptions { typing { heartbeatThrottle = 10.milliseconds } },
+            buildRoomOptions { typing { heartbeatThrottle = 10.milliseconds } },
+        )
     }
 
     @Test

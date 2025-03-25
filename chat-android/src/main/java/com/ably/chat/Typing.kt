@@ -9,6 +9,8 @@ import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
 import io.ably.lib.types.MessageExtras
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -156,7 +158,7 @@ internal class DefaultTyping(
      * and allows another typing.started to be sent.
      * Spec: CHA-T10
      */
-    private val heartbeatThrottleMs: Long = room.options.typing?.heartbeatThrottleMs ?: throw AblyException.fromErrorInfo(
+    private val heartbeatThrottle: Duration = room.options.typing?.heartbeatThrottle ?: throw AblyException.fromErrorInfo(
         ErrorInfo(
             "Typing options hasn't been initialized",
             ErrorCode.BadRequest.code,
@@ -170,7 +172,7 @@ internal class DefaultTyping(
      * @defaultValue 2000ms
      * Spec: CHA-T10a
      */
-    private val timeoutMs: Long = 2000
+    private val timeoutMs: Duration = 2.seconds
 
     /**
      * Spec: CHA-T13
@@ -313,8 +315,8 @@ internal class DefaultTyping(
     private fun startHeartbeatTimer() {
         logger.trace("DefaultTyping.startTypingTimer()")
         typingHeartBeatTimerJob = typingScope.launch {
-            delay(heartbeatThrottleMs)
-            logger.debug("DefaultTyping.startTypingTimer(); heartbeatThrottleMs expired")
+            delay(heartbeatThrottle)
+            logger.debug("DefaultTyping.startTypingTimer(); heartbeatThrottle expired")
         }
     }
 
@@ -335,7 +337,7 @@ internal class DefaultTyping(
                 // CHA-T13b2 - Cancel the current self stopping event and replace with new one
                 typingEvents[clientId]?.cancelJob()
                 // CHA-T10a1 - If a typing.start not received within this period, the client shall assume that the user has stopped typing
-                val typingEventWaitingTimeout = heartbeatThrottleMs + timeoutMs
+                val typingEventWaitingTimeout = heartbeatThrottle + timeoutMs
                 // CHA-T13b3
                 val timedTypingStartEvent = TimedTypingStartEventPruner(typingScope, clientId, typingEventWaitingTimeout) {
                     // typingEventWaitingTimeout elapsed, so remove given clientId and emit stop event
@@ -376,21 +378,21 @@ internal class DefaultTyping(
      *
      * @param typingScope The coroutine scope used for executing removeTypingEvent block.
      * @param clientId The ID of the user tied to the typing event.
-     * @param delayTimeMs The period of time it takes before the event is removed.
+     * @param waitingPeriod The period of time it takes before the event is removed.
      * @param removeTypingEvent The lambda called when the stale typing event should be removed.
      * Spec: CHA-T10a1
      */
     internal class TimedTypingStartEventPruner(
         private val typingScope: CoroutineScope,
         private val clientId: String,
-        private val delayTimeMs: Long,
+        private val waitingPeriod: Duration,
         private val removeTypingEvent: (userId: String) -> Unit,
     ) {
         /**
          * Starts the "cleaning" job that will call removeTypingEvent method after delayTimeMs.
          */
         private val job: Job = typingScope.launch {
-            delay(delayTimeMs)
+            delay(waitingPeriod)
             removeTypingEvent(clientId)
         }
 

@@ -3,6 +3,8 @@ package com.ably.chat
 import com.ably.chat.annotations.ChatDsl
 import io.ably.lib.types.ChannelMode
 import io.ably.lib.types.ChannelOptions
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Represents the options for a given chat room.
@@ -73,8 +75,9 @@ public interface PresenceOptions {
 public interface TypingOptions {
     /**
      * The throttle for typing events in milliseconds. This is the minimum time between typing events being sent.
+     * @defaultValue 10 seconds
      */
-    public val heartbeatThrottleMs: Long
+    public val heartbeatThrottle: Duration
 }
 
 /**
@@ -109,7 +112,7 @@ public class MutablePresenceOptions : PresenceOptions {
 
 @ChatDsl
 public class MutableTypingOptions : TypingOptions {
-    override var heartbeatThrottleMs: Long = 10_000
+    override var heartbeatThrottle: Duration = 10.seconds
 }
 
 @ChatDsl
@@ -150,7 +153,7 @@ internal data class EquatablePresenceOptions(
 ) : PresenceOptions
 
 internal data class EquatableTypingOptions(
-    override val heartbeatThrottleMs: Long,
+    override val heartbeatThrottle: Duration,
 ) : TypingOptions
 
 internal data object EquatableRoomReactionsOptions : RoomReactionsOptions
@@ -169,7 +172,7 @@ internal fun MutablePresenceOptions.asEquatable() = EquatablePresenceOptions(
 )
 
 internal fun MutableTypingOptions.asEquatable() = EquatableTypingOptions(
-    heartbeatThrottleMs = heartbeatThrottleMs,
+    heartbeatThrottle = heartbeatThrottle,
 )
 
 /**
@@ -178,9 +181,9 @@ internal fun MutableTypingOptions.asEquatable() = EquatableTypingOptions(
  */
 internal fun RoomOptions.validateRoomOptions(logger: Logger) {
     typing?.let {
-        if (it.heartbeatThrottleMs <= 0) {
-            logger.error("Typing heartbeatThrottleMs must be greater than 0, found ${it.heartbeatThrottleMs}")
-            throw ablyException("Typing heartbeatThrottleMs must be greater than 0", ErrorCode.InvalidRequestBody)
+        if (it.heartbeatThrottle.inWholeMilliseconds <= 0) {
+            logger.error("Typing heartbeatThrottle must be greater than 0, found ${it.heartbeatThrottle}")
+            throw ablyException("Typing heartbeatThrottle must be greater than 0", ErrorCode.InvalidRequestBody)
         }
     }
 }
