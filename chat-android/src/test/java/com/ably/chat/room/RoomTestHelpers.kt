@@ -108,7 +108,7 @@ internal suspend fun RoomLifecycleManager.retry(exceptContributor: ContributesTo
     invokePrivateSuspendMethod<Unit>("doRetry", exceptContributor)
 
 internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
-    invokePrivateMethod<Unit>("processEvent", eventType, clientId)
+    invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
 
 internal suspend fun RoomLifecycleManager.atomicRetry(exceptContributor: ContributesToRoomLifecycle) {
     atomicCoroutineScope().async(LifecycleOperationPrecedence.Internal.priority) {

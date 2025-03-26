@@ -17,8 +17,6 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
@@ -72,10 +70,7 @@ class TypingTest {
      */
     @Test
     fun `Multiple calls to typing start within heartbeatThrottle, only one message is published`() = runTest {
-        val testScheduler = TestCoroutineScheduler()
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
-        val typing = spyk(DefaultTyping(room, dispatcher))
+        val typing = DefaultTyping(room)
         var publishedMessage: Message? = null
 
         every {
@@ -85,12 +80,10 @@ class TypingTest {
             secondArg<CompletionListener>().onSuccess()
         }
 
-        scope.launch {
-            repeat(5) {
-                typing.keystroke()
-            }
+        val currentTime = System.currentTimeMillis()
+        repeat(5) {
+            typing.keystroke()
         }
-        testScheduler.runCurrent()
 
         coVerify(exactly = 5) { typing.keystroke() }
 
@@ -99,16 +92,12 @@ class TypingTest {
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
         // Advance time by 10 seconds ( heartbeatThrottle )
-        testScheduler.advanceTimeBy(11.seconds)
-        testScheduler.runCurrent()
+        typing.setPrivateField("typingHeartBeatStarted", currentTime - 10_000)
 
         // Only one message should be published, since 10 second heartbeatThrottle is passed
-        scope.launch {
-            repeat(5) {
-                typing.keystroke()
-            }
+        repeat(5) {
+            typing.keystroke()
         }
-        testScheduler.runCurrent()
 
         coVerify(exactly = 10) { typing.keystroke() }
 
@@ -165,15 +154,11 @@ class TypingTest {
 
         typing.keystroke()
 
-        coVerify(exactly = 1) { typing.keystroke() }
-
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
         typing.stop()
-
-        coVerify(exactly = 1) { typing.stop() }
 
         verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Stopped.eventName, publishedMessage?.name)
