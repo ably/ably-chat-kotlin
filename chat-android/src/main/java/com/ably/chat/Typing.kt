@@ -11,6 +11,8 @@ import io.ably.lib.types.MessageExtras
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
+import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -44,21 +46,21 @@ public interface Typing : EmitsDiscontinuities {
     public fun subscribe(listener: Listener): Subscription
 
     /**
-     * Get the current typers, a set of clientIds.
+     * Current typing members.
      * @return set of clientIds that are currently typing.
      */
-    public suspend fun get(): Set<String>
+    public fun get(): Set<String>
 
     /**
-     * Start indicates that the current user is typing. This will emit a typingStarted event to inform listening clients and begin a timer,
-     * once the timer expires, a typingStopped event will be emitted. The timeout is configurable through the typingTimeoutMs parameter.
-     * If the current user is already typing, it will reset the timer and being counting down again without emitting a new event.
+     * Keystroke emits a typingStarted event to inform listening clients.
+     * HeartbeatThrottle period will be set once first typingStarted event is sent.
+     * Any subsequent keystroke will not send typing event until heartbeatThrottle period has elapsed.
      */
     public suspend fun keystroke()
 
     /**
      * Stop indicates that the current user has stopped typing. This will emit a typingStopped event to inform listening clients,
-     * and immediately clear the typing timeout timer.
+     * and immediately clear heartbeatThrottle period.
      */
     public suspend fun stop()
 
@@ -118,6 +120,11 @@ internal data class DefaultTypingEventChange(
     override val clientId: String,
 ) : TypingEvent.Change
 
+internal class SelfTypingEvent(
+    val event: TypingEventType,
+    val completableDeferred: CompletableDeferred<Unit>,
+)
+
 internal class DefaultTyping(
     private val room: DefaultRoom,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -134,7 +141,7 @@ internal class DefaultTyping(
 
     private val typingScope = CoroutineScope(dispatcher.limitedParallelism(1) + SupervisorJob())
 
-    private var typingHeartBeatStarted: Long? = null
+    private var typingHeartbeatStarted: ValueTimeMark? = null
 
     override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
 
@@ -175,7 +182,9 @@ internal class DefaultTyping(
      */
     private val timeout: Duration = 2.seconds
 
-    private val eventBus = MutableSharedFlow<SelfTypingEvent>(extraBufferCapacity = kotlinx.coroutines.channels.Channel.UNLIMITED)
+    private val eventBus = MutableSharedFlow<SelfTypingEvent>()
+
+    private val timeSource = TimeSource.Monotonic
 
     /**
      * Spec: CHA-T13
@@ -190,7 +199,7 @@ internal class DefaultTyping(
         val typingListener = PubSubMessageListener { msg ->
             val typingEventType = TypingEventType.entries.first { it.eventName == msg.name }
             // CHA-T13a
-            if (msg.data == null || msg.data !is String) {
+            if (msg.name == null || msg.data !is String) {
                 logger.error("unable to handle typing event; no clientId", context = mapOf("member" to msg.toString()))
                 return@PubSubMessageListener
             }
@@ -218,10 +227,9 @@ internal class DefaultTyping(
     /**
      * Spec: CHA-T9
      */
-    override suspend fun get(): Set<String> {
+    override fun get(): Set<String> {
         logger.trace("DefaultTyping.get()")
-        room.ensureAttached(logger) // CHA-T2d, CHA-T2c, CHA-T2g
-        return currentlyTypingMembers
+        return currentlyTypingMembers.toSet()
     }
 
     /**
@@ -244,54 +252,48 @@ internal class DefaultTyping(
         completion.await()
     }
 
-    private data class SelfTypingEvent(
-        val event: TypingEventType,
-        val completableDeferred: CompletableDeferred<Unit>,
-    )
-
     @Suppress("ReturnCount")
     private suspend fun sendSelfTypingEvent(typingEvent: SelfTypingEvent) {
         when (typingEvent.event) {
             TypingEventType.Started -> {
-                // CHA-T4c - If heartbeat timer in active return
-                typingHeartBeatStarted?.let {
-                    val elapsedTime = System.currentTimeMillis() - it
-                    if (elapsedTime < heartbeatThrottle.inWholeMilliseconds) {
-                        logger.trace("DefaultTyping.sendSelfTypingEvent(); typingHeartBeat is not elapsed, so it's a no-op")
+                // CHA-T4c - If heartbeat is active, it's a no-op
+                typingHeartbeatStarted?.let {
+                    if (it.elapsedNow() < heartbeatThrottle) {
+                        logger.trace("DefaultTyping.sendSelfTypingEvent(); typingHeartbeat is not elapsed, so it's a no-op")
                         typingEvent.completableDeferred.complete(Unit)
                         return
                     }
                 }
                 try {
-                    // start a new job for sending typing.start event
+                    // send typing.start event
                     room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4, CHA-T4d
                     sendTyping(TypingEventType.Started, room.clientId) // CHA-T4a3
-                    typingHeartBeatStarted = System.currentTimeMillis() // CHA-T4a4
+                    typingHeartbeatStarted = timeSource.markNow() // CHA-T4a4
                     typingEvent.completableDeferred.complete(Unit)
                 } catch (e: Exception) {
                     typingEvent.completableDeferred.completeExceptionally(e)
                 }
             }
             TypingEventType.Stopped -> {
-                // CHA-T5a - If heartbeat timer in off return
-                if (typingHeartBeatStarted == null) {
+                // CHA-T5a - If heartbeat is off, it's a no-op
+                if (typingHeartbeatStarted == null) {
                     logger.trace("DefaultTyping.sendSelfTypingEvent(); typing is not started or already stopped, so it's a no-op")
                     typingEvent.completableDeferred.complete(Unit)
                     return
                 }
-                typingHeartBeatStarted?.let {
-                    val elapsedTime = System.currentTimeMillis() - it
-                    if (elapsedTime > heartbeatThrottle.inWholeMilliseconds) {
-                        logger.trace("DefaultTyping.sendSelfTypingEvent(); typingHeartBeat is elapsed, so it's a no-op")
+                // CHA-T5a - If heartbeat is expired, it's a no-op
+                typingHeartbeatStarted?.let {
+                    if (it.elapsedNow() > heartbeatThrottle) {
+                        logger.trace("DefaultTyping.sendSelfTypingEvent(); typingHeartbeat is elapsed, so it's a no-op")
                         typingEvent.completableDeferred.complete(Unit)
                         return
                     }
                 }
                 try {
-                    // start a new job for sending typing.stop event
+                    // send typing.stop event
                     room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
                     sendTyping(TypingEventType.Stopped, room.clientId) // CHA-T5d
-                    typingHeartBeatStarted = null // CHA-T5e
+                    typingHeartbeatStarted = null // CHA-T5e
                     typingEvent.completableDeferred.complete(Unit)
                 } catch (e: Exception) {
                     typingEvent.completableDeferred.completeExceptionally(e)

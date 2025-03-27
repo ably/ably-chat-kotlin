@@ -11,12 +11,12 @@ import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.CompletionListener
 import io.ably.lib.types.Message
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
@@ -80,26 +80,23 @@ class TypingTest {
             secondArg<CompletionListener>().onSuccess()
         }
 
-        val currentTime = System.currentTimeMillis()
+        val currentTime = TimeSource.Monotonic.markNow()
+
         repeat(5) {
             typing.keystroke()
         }
-
-        coVerify(exactly = 5) { typing.keystroke() }
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
-        // Advance time by 10 seconds ( heartbeatThrottle )
-        typing.setPrivateField("typingHeartBeatStarted", currentTime - 10_000)
+        // Advance heartbeatThrottle by 10 seconds
+        typing.setPrivateField("typingHeartbeatStarted", currentTime - 10.seconds)
 
         // Only one message should be published, since 10 second heartbeatThrottle is passed
         repeat(5) {
             typing.keystroke()
         }
-
-        coVerify(exactly = 10) { typing.keystroke() }
 
         verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
