@@ -20,9 +20,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 /**
@@ -190,9 +193,24 @@ internal class DefaultTyping(
      * Spec: CHA-T13
      */
     init {
-        // Send self typing events
+        // CHA-T14- send self typing events
         typingScope.launch {
-            eventBus.collect { sendSelfTypingEvent(it) }
+            val allEvents = mutableListOf<SelfTypingEvent>()
+            // CHA-TM14b - Only latest event needs to be in the queue, other events should be dropped
+            eventBus.filter {
+                allEvents.add(it)
+                true
+            }.buffer(1, BufferOverflow.DROP_OLDEST)
+                .collect {
+                    // Handle dropped events
+                    if (allEvents.size > 1) {
+                        allEvents.remove(allEvents.last()) // Ignore latest event
+                        allEvents.forEach { event -> event.completableDeferred.complete(Unit) }
+                    }
+                    allEvents.clear()
+                    // Handle latest event
+                    sendSelfTypingEvent(it)
+                }
         }
 
         // Process received typing events
