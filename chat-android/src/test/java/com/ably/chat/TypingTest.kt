@@ -32,10 +32,6 @@ class TypingTest {
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
-        every { typingChannel.publish(any(), DEFAULT_CLIENT_ID, any()) } answers {
-            val completionListener = arg<CompletionListener>(2)
-            completionListener.onSuccess()
-        }
 
         val channels = realtimeClient.channels
         every { channels.get(any(), any()) } returns typingChannel
@@ -62,7 +58,6 @@ class TypingTest {
         typing.keystroke()
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
-        assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
     }
 
     /**
@@ -88,7 +83,6 @@ class TypingTest {
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
-        assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
         // Advance heartbeatThrottle by 10 seconds
         typing.setPrivateField("typingHeartbeatStarted", currentTime - 10.seconds)
@@ -100,7 +94,6 @@ class TypingTest {
 
         verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
-        assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
     }
 
     /**
@@ -153,13 +146,11 @@ class TypingTest {
 
         verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
-        assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
 
         typing.stop()
 
         verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Stopped.eventName, publishedMessage?.name)
-        assertEquals(DEFAULT_CLIENT_ID, publishedMessage?.data)
     }
 
     @Test
