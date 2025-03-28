@@ -30,9 +30,10 @@ import kotlinx.coroutines.launch
  * Get an instance via [Room.typing].
  */
 public interface Typing : EmitsDiscontinuities {
+
     /**
-     * Get the name of the realtime channel underpinning typing events.
-     * @returns The name of the realtime channel.
+     * Get the Ably realtime channel underpinning typing events.
+     * @returns The Ably realtime channel.
      */
     public val channel: Channel
 
@@ -40,6 +41,7 @@ public interface Typing : EmitsDiscontinuities {
      * Subscribe a given listener to all typing events from users in the chat room.
      *
      * @param listener A listener to be called when the typing state of a user in the room changes.
+     * @returns A response object that allows you to control the subscription to typing events.
      */
     public fun subscribe(listener: Listener): Subscription
 
@@ -50,15 +52,42 @@ public interface Typing : EmitsDiscontinuities {
     public fun get(): Set<String>
 
     /**
-     * Keystroke emits a typingStarted event to inform listening clients.
-     * HeartbeatThrottle period will be set once first typingStarted event is sent.
-     * Any subsequent keystroke will not send typing event until heartbeatThrottle period has elapsed.
+     * This will send a `typing.started` event to the server.
+     * Events are throttled according to the `heartbeatThrottleMs` room option.
+     * If an event has been sent within the interval, this operation is no-op.
+     *
+     *
+     * Calls to `keystroke()` and `stop()` are serialized and will always be performed in the correct order.
+     * - For example, if multiple `keystroke()` calls are made in quick succession before the first `keystroke()` call has
+     *   sent a `typing.started` event to the server, followed by one `stop()` call, the `stop()` call will execute
+     *   as soon as the first `keystroke()` call completes.
+     *   All intermediate `keystroke()` calls will be treated as no-ops.
+     * - The most recent operation (`keystroke()` or `stop()`) will always determine the final state, ensuring operations
+     *   resolve to a consistent and correct state.
+     *
+     * @returns when there is a success or throws AblyException upon its failure.
+     * @throws AblyException if the `RoomStatus` is not either `Attached` or `Attaching`.
+     * @throws AblyException if the operation fails to send the event to the server.
+     * @throws AblyException if there is a problem acquiring the mutex that controls serialization.
      */
     public suspend fun keystroke()
 
     /**
-     * Stop indicates that the current user has stopped typing. This will emit a typingStopped event to inform listening clients,
-     * and immediately clear heartbeatThrottle period.
+     * This will send a `typing.stopped` event to the server.
+     * If the user was not currently typing, this operation is no-op.
+     *
+     * Calls to `keystroke()` and `stop()` are serialized and will always be performed in the correct order.
+     * - For example, if multiple `keystroke()` calls are made in quick succession before the first `keystroke()` call has
+     *   sent a `typing.started` event to the server, followed by one `stop()` call, the `stop()` call will execute
+     *   as soon as the first `keystroke()` call completes.
+     *   All intermediate `keystroke()` calls will be treated as no-ops.
+     * - The most recent operation (`keystroke()` or `stop()`) will always determine the final state, ensuring operations
+     *   resolve to a consistent and correct state.
+     *
+     * @returns when there is a success or throws AblyException upon its failure.
+     * @throws AblyException if the `RoomStatus` is not either `Attached` or `Attaching`.
+     * @throws AblyException if the operation fails to send the event to the server.
+     * @throws AblyException if there is a problem acquiring the mutex that controls serialization.
      */
     public suspend fun stop()
 
@@ -330,7 +359,7 @@ internal class DefaultTyping(
     private fun emit(eventType: TypingEventType, clientId: String) {
         val typingEventChange = DefaultTypingEventChange(eventType, clientId)
         listeners.forEach {
-            it.onEvent(DefaultTypingEvent(currentlyTypingMembers, typingEventChange))
+            it.onEvent(DefaultTypingEvent(get(), typingEventChange))
         }
     }
 }

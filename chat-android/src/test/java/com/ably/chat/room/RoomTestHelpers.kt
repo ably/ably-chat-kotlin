@@ -19,6 +19,7 @@ import com.ably.chat.TypingEventType
 import com.ably.chat.getPrivateField
 import com.ably.chat.invokePrivateMethod
 import com.ably.chat.invokePrivateSuspendMethod
+import com.ably.chat.setPrivateField
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
@@ -29,7 +30,9 @@ import io.ably.lib.util.EventEmitter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
+import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 const val DEFAULT_ROOM_ID = "1234"
@@ -106,6 +109,12 @@ internal fun RoomLifecycleManager.atomicCoroutineScope(): AtomicCoroutineScope =
 
 internal suspend fun RoomLifecycleManager.retry(exceptContributor: ContributesToRoomLifecycle) =
     invokePrivateSuspendMethod<Unit>("doRetry", exceptContributor)
+
+internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
+    get() = getPrivateField("typingHeartbeatStarted")
+    set(value) = setPrivateField("typingHeartbeatStarted", value)
+
+internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<String, Job>>("typingStartEventPrunerJobs")
 
 internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
     invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
