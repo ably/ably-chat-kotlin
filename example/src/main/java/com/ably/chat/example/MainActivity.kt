@@ -219,11 +219,14 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             onMessageChange = {
                 messageText = it
                 coroutineScope.launch {
-                    room.typing.start()
+                    room.typing.keystroke()
                 }
             },
             onSendClick = {
                 sending = true
+                coroutineScope.launch {
+                    room.typing.stop()
+                }
                 when {
                     updating -> handleEdit()
                     else -> handleSend()

@@ -10,10 +10,13 @@ import io.ably.lib.types.ChannelOptions
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.PresenceMessage
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal suspend fun RealtimeChannel.attachCoroutine() = suspendCancellableCoroutine { continuation ->
@@ -190,4 +193,27 @@ internal fun serverError(errorMessage: String) = ablyException(errorMessage, Err
 
 internal fun com.ably.Subscription.asChatSubscription(): Subscription = Subscription {
     this.unsubscribe()
+}
+
+/**
+ * CHA-TM14 - Processes latest job only
+ */
+internal class LatestJobExecutor {
+    /**
+     * Mutex to ensure that only one block is processed at a time.
+     */
+    private val mtx = Mutex()
+
+    /**
+     * A reference to the latest waiter. Used to check if the current job is the latest job.
+     */
+    private val waiter: AtomicReference<Any?> = AtomicReference(null)
+
+    suspend fun run(block: suspend () -> Unit) {
+        val self = Any()
+        waiter.set(self)
+        mtx.withLock {
+            if (waiter.get() == self) block()
+        }
+    }
 }
