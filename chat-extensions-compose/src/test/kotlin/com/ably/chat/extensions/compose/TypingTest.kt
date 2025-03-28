@@ -7,6 +7,7 @@ import com.ably.chat.Room
 import com.ably.chat.Subscription
 import com.ably.chat.Typing
 import com.ably.chat.TypingEvent
+import com.ably.chat.TypingEventType
 import com.ably.chat.annotations.ExperimentalChatApi
 import io.mockk.every
 import io.mockk.mockk
@@ -28,9 +29,22 @@ class TypingTest {
             room.collectAsCurrentlyTyping()
         }.test {
             assertEquals(emptySet<String>(), awaitItem())
-            typing.emit(TypingEvent(currentlyTyping = setOf("client_1", "client_2")))
+            val change = object : TypingEvent.Change {
+                override val type: TypingEventType = TypingEventType.Started
+                override val clientId: String = "client_1"
+            }
+            val typingEvent1 = object : TypingEvent {
+                override val currentlyTyping: Set<String> = setOf("client_1", "client_2")
+                override val change: TypingEvent.Change = change
+            }
+            typing.emit(typingEvent1)
             assertEquals(setOf("client_1", "client_2"), awaitItem())
-            typing.emit(TypingEvent(currentlyTyping = setOf("client_3")))
+
+            val typingEvent2 = object : TypingEvent {
+                override val currentlyTyping: Set<String> = setOf("client_3")
+                override val change: TypingEvent.Change = change
+            }
+            typing.emit(typingEvent2)
             assertEquals(setOf("client_3"), awaitItem())
             cancel()
         }
@@ -52,8 +66,4 @@ class EmittingTyping(mock: Typing) : Typing by mock {
             it.onEvent(event)
         }
     }
-}
-
-fun TypingEvent(currentlyTyping: Set<String>): TypingEvent = mockk {
-    every { this@mockk.currentlyTyping } returns currentlyTyping
 }

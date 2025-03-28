@@ -14,8 +14,12 @@ import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
+import com.ably.chat.Typing
+import com.ably.chat.TypingEventType
 import com.ably.chat.getPrivateField
+import com.ably.chat.invokePrivateMethod
 import com.ably.chat.invokePrivateSuspendMethod
+import com.ably.chat.setPrivateField
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
@@ -26,7 +30,9 @@ import io.ably.lib.util.EventEmitter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
+import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 const val DEFAULT_ROOM_ID = "1234"
@@ -57,6 +63,7 @@ fun createMockRealtimeChannel(channelName: String = "channel"): RealtimeChannel 
         every { subscribe(any()) } returns mockk(relaxUnitFun = true)
     }
     every { subscribe(any<String>(), any()) } returns mockk(relaxUnitFun = true)
+    every { subscribe(any<List<String>>(), any()) } returns mockk(relaxUnitFun = true)
     every { subscribe(any()) } returns mockk(relaxUnitFun = true)
 }
 
@@ -102,6 +109,15 @@ internal fun RoomLifecycleManager.atomicCoroutineScope(): AtomicCoroutineScope =
 
 internal suspend fun RoomLifecycleManager.retry(exceptContributor: ContributesToRoomLifecycle) =
     invokePrivateSuspendMethod<Unit>("doRetry", exceptContributor)
+
+internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
+    get() = getPrivateField("typingHeartbeatStarted")
+    set(value) = setPrivateField("typingHeartbeatStarted", value)
+
+internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<String, Job>>("typingStartEventPrunerJobs")
+
+internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
+    invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
 
 internal suspend fun RoomLifecycleManager.atomicRetry(exceptContributor: ContributesToRoomLifecycle) {
     atomicCoroutineScope().async(LifecycleOperationPrecedence.Internal.priority) {
