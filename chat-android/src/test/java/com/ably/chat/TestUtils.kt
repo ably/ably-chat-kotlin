@@ -116,3 +116,10 @@ suspend fun <T>Any.invokePrivateSuspendMethod(methodName: String, vararg args: A
         it.invoke(this, *args, cont)
     }
 }
+
+fun <T> Any.invokePrivateMethod(methodName: String, vararg args: Any?): T {
+    val method = javaClass.declaredMethods.find { it.name == methodName }
+    method?.isAccessible = true
+    @Suppress("UNCHECKED_CAST")
+    return method?.invoke(this, *args) as T
+}

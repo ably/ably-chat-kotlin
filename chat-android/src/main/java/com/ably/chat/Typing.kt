@@ -226,7 +226,7 @@ internal class DefaultTyping(
                 logger.error("unable to handle typing event; no clientId", context = mapOf("message" to msg.toString()))
                 return@PubSubMessageListener
             }
-            typingScope.launch {
+            typingScope.launch { // sequentially launches all events since limitedParallelism is set to 1
                 processReceivedTypingEvents(typingEventType, msg.clientId)
             }
         }

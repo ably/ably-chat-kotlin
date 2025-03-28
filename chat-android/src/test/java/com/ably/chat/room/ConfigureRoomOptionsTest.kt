@@ -8,6 +8,8 @@ import com.ably.chat.buildRoomOptions
 import com.ably.chat.typing
 import io.ably.lib.types.AblyException
 import io.mockk.mockk
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Assert.assertThrows
@@ -30,15 +32,29 @@ class ConfigureRoomOptionsTest {
         val chatApi = mockk<ChatApi>(relaxed = true)
 
         // Room success when positive typing timeout
-        val room = DefaultRoom("1234", buildRoomOptions { typing { timeoutMs = 100 } }, mockRealtimeClient, chatApi, clientId, logger)
+        val room = DefaultRoom(
+            "1234",
+            buildRoomOptions { typing { heartbeatThrottle = 100.milliseconds } },
+            mockRealtimeClient,
+            chatApi,
+            clientId,
+            logger,
+        )
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Room failure when negative timeout
         val exception = assertThrows(AblyException::class.java) {
-            DefaultRoom("1234", buildRoomOptions { typing { timeoutMs = -1 } }, mockRealtimeClient, chatApi, clientId, logger)
+            DefaultRoom(
+                "1234",
+                buildRoomOptions { typing { heartbeatThrottle = 1.seconds.unaryMinus() } },
+                mockRealtimeClient,
+                chatApi,
+                clientId,
+                logger,
+            )
         }
-        Assert.assertEquals("Typing timeout must be greater than 0", exception.errorInfo.message)
+        Assert.assertEquals("Typing heartbeatThrottle must be greater than 0", exception.errorInfo.message)
         Assert.assertEquals(40_001, exception.errorInfo.code)
         Assert.assertEquals(400, exception.errorInfo.statusCode)
     }
