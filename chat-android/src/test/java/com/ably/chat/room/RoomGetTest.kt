@@ -17,6 +17,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -91,7 +92,7 @@ class RoomGetTest {
         Assert.assertEquals(room3, room4)
 
         val room5 = rooms.get("7890") {
-            typing { timeoutMs = 1500 }
+            typing { heartbeatThrottle = 1500.milliseconds }
             presence {
                 enter = true
                 subscribe = false
@@ -102,7 +103,7 @@ class RoomGetTest {
         Assert.assertEquals(room5, rooms.RoomIdToRoom["7890"])
 
         val room6 = rooms.get("7890") {
-            typing { timeoutMs = 1500 }
+            typing { heartbeatThrottle = 1500.milliseconds }
             presence {
                 enter = true
                 subscribe = false
