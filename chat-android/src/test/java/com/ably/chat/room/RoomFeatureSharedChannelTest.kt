@@ -55,7 +55,7 @@ class RoomFeatureSharedChannelTest {
         }
         // channels.get called separately for typing since it uses it's own channel
         verify(exactly = 1) {
-            channels.get("1234::\$chat::\$typingIndicators", any<ChannelOptions>())
+            channels.get("1234::\$chat", any<ChannelOptions>())
         }
         // channels.get called separately for reactions since it uses it's own channel
         verify(exactly = 1) {

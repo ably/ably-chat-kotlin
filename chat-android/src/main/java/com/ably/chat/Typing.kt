@@ -151,7 +151,7 @@ internal class DefaultTyping(
     private val room: DefaultRoom,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : Typing, ContributesToRoomLifecycleImpl(room.logger) {
-    private val typingIndicatorsChannelName = "${room.roomId}::\$chat::\$typingIndicators"
+    private val typingIndicatorsChannelName = "${room.roomId}::\$chat"
 
     override val featureName = "typing"
 

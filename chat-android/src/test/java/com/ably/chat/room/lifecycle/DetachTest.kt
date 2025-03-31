@@ -167,7 +167,7 @@ class DetachTest {
         }
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedChannels[2].name)
+        Assert.assertEquals("1234::\$chat", capturedChannels[2].name)
         Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
 
@@ -260,7 +260,7 @@ class DetachTest {
 
         // ErrorInfo for the first failed contributor
         Assert.assertEquals(
-            "failed to detach typing feature, error detaching channel 1234::\$chat::\$typingIndicators",
+            "failed to detach typing feature, error detaching channel 1234::\$chat",
             exception.errorInfo.message,
         )
         Assert.assertEquals(ErrorCode.TypingDetachmentFailed.code, exception.errorInfo.code)
@@ -324,7 +324,7 @@ class DetachTest {
         // Emit error for the first failed contributor
         val error = failedRoomEvents[0].error as ErrorInfo
         Assert.assertEquals(
-            "failed to detach typing feature, error detaching channel 1234::\$chat::\$typingIndicators",
+            "failed to detach typing feature, error detaching channel 1234::\$chat",
             error.message,
         )
         Assert.assertEquals(ErrorCode.TypingDetachmentFailed.code, error.code)

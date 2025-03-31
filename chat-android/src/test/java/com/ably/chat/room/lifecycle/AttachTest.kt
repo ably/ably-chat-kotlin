@@ -191,7 +191,7 @@ class AttachTest {
         }
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedChannels[2].name)
+        Assert.assertEquals("1234::\$chat", capturedChannels[2].name)
         Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
     }
@@ -303,7 +303,7 @@ class AttachTest {
         val exception = result.exceptionOrNull() as AblyException
 
         Assert.assertEquals(
-            "failed to attach typing feature, error attaching channel 1234::\$chat::\$typingIndicators",
+            "failed to attach typing feature, error attaching channel 1234::\$chat",
             exception.errorInfo.message,
         )
         Assert.assertEquals(ErrorCode.TypingAttachmentFailed.code, exception.errorInfo.code)
