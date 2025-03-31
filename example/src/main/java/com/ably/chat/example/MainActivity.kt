@@ -218,8 +218,14 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             messageInput = messageText,
             onMessageChange = {
                 messageText = it
-                coroutineScope.launch {
-                    room.typing.keystroke()
+                if (messageText.text.isEmpty()) {
+                    coroutineScope.launch {
+                        room.typing.stop()
+                    }
+                } else {
+                    coroutineScope.launch {
+                        room.typing.keystroke()
+                    }
                 }
             },
             onSendClick = {
