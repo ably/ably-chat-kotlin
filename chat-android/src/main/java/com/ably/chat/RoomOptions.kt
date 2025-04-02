@@ -194,7 +194,7 @@ internal fun RoomOptions.validateRoomOptions(logger: Logger) {
  * @return channelOptions for shared channel with options/modes from presence and occupancy.
  * Spec: CHA-RC3
  */
-internal fun RoomOptions.messagesChannelOptions(): ChannelOptions {
+internal fun RoomOptions.channelOptions(): ChannelOptions {
     return ChatChannelOptions {
         presence?.let { presence ->
             val channelModes = buildList {

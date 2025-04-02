@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
  *
  * Get an instance via [Room.occupancy].
  */
-public interface Occupancy : EmitsDiscontinuities {
+public interface Occupancy {
     /**
      * Get underlying Ably channel for occupancy events.
      *
@@ -87,19 +87,15 @@ private const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
 
 internal class DefaultOccupancy(
     private val room: DefaultRoom,
-) : Occupancy, ContributesToRoomLifecycleImpl(room.logger) {
+) : Occupancy, ContributesToRoomLifecycle {
 
     override val featureName: String = "occupancy"
-
-    override val attachmentErrorCode: ErrorCode = ErrorCode.OccupancyAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.OccupancyDetachmentFailed
 
     private val logger = room.logger.withContext(tag = "Occupancy")
 
     override val channel: Channel = room.messages.channel
 
-    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
+    val channelWrapper: RealtimeChannel = room.channel
 
     private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
 

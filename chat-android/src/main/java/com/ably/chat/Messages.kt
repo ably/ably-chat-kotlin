@@ -21,7 +21,7 @@ internal typealias PubSubMessage = io.ably.lib.types.Message
  *
  * Get an instance via [Room.messages].
  */
-public interface Messages : EmitsDiscontinuities {
+public interface Messages {
     /**
      * Get the underlying Ably realtime channel used for the messages in this chat room.
      *
@@ -318,7 +318,7 @@ internal class DefaultMessagesSubscription(
 
 internal class DefaultMessages(
     val room: DefaultRoom,
-) : Messages, ContributesToRoomLifecycleImpl(room.logger) {
+) : Messages, ContributesToRoomLifecycle {
 
     override val featureName: String = "messages"
 
@@ -338,14 +338,10 @@ internal class DefaultMessages(
      */
     private val messagesChannelName = "${room.roomId}::\$chat::\$chatMessages"
 
-    override val channelWrapper: RealtimeChannel = realtimeChannels.get(messagesChannelName, room.options.messagesChannelOptions())
+    val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
-
-    override val attachmentErrorCode: ErrorCode = ErrorCode.MessagesAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.MessagesDetachmentFailed
 
     private val channelSerialMap = ConcurrentHashMap<PubSubMessageListener, CompletableDeferred<String>>()
 
