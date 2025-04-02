@@ -158,17 +158,7 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 5. Create a PR on the [website docs](https://github.com/ably/docs) that updates that SDK version in the setup/installation guide.
 6. Make a PR against `main`
 7. Once the PR is approved, merge it into `main`
-8. From the updated `main` branch on your local workstation, assemble and upload:
-    ```sh
-      ./gradlew publishAndReleaseToMavenCentral
-    ```
-    - Verify the upload was successful by checking the Maven Central repository
-    - If the upload fails, check the Sonatype staging repository for any validation errors
-    - Common issues include:
-        - Missing POM file information
-        - Invalid signatures
-        - Incomplete Javadoc
-9. Add a tag and push to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`
-10. Create the release on Github including populating the release notes
-11. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes, including the one you created in Step 5.
-12. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
+8. Create the release and the release tag on Github including populating the release notes
+9. Use the [GitHub action](https://github.com/ably/ably-chat-kotlin/actions/workflows/release.yaml) to publish the release. Run the workflow on the latest release tag.
+10. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes, including the one you created in Step 5.
+11. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
