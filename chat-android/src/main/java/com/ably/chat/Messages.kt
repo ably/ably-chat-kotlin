@@ -330,8 +330,6 @@ internal class DefaultMessages(
 
     private val chatApi = room.chatApi
 
-    private val realtimeChannels = room.realtimeClient.channels
-
     /**
      * (CHA-M1)
      * the channel name for the chat messages channel.
@@ -493,7 +491,6 @@ internal class DefaultMessages(
         @OptIn(InternalAPI::class)
         channelWrapper.javaChannel.off(channelStateListener)
         channelSerialMap.clear()
-        realtimeChannels.release(channelWrapper.name)
     }
 }
 

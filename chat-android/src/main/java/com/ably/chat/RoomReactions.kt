@@ -168,6 +168,6 @@ internal class DefaultRoomReactions(
     }
 
     override fun release() {
-        room.realtimeClient.channels.release(channelWrapper.name)
+        // No need to do anything
     }
 }
