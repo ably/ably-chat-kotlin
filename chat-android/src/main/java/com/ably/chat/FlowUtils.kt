@@ -13,3 +13,8 @@ internal inline fun <T> transformCallbackAsFlow(crossinline subscribe: ((T) -> U
     val subscription = subscribe { trySend(it) }
     awaitClose { subscription.unsubscribe() }
 }.buffer(Channel.UNLIMITED)
+
+internal inline fun <T> transformStatusCallbackAsFlow(crossinline subscribe: ((T) -> Unit) -> StatusSubscription): Flow<T> = callbackFlow {
+    val subscription = subscribe { trySend(it) }
+    awaitClose { subscription.off() }
+}.buffer(Channel.UNLIMITED)

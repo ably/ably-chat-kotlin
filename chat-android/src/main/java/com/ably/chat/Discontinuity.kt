@@ -18,7 +18,7 @@ public interface Discontinuity {
      * Register a listener to be called when a discontinuity is detected.
      * @param listener The listener to be called when a discontinuity is detected.
      */
-    public fun onDiscontinuity(listener: Listener): Subscription
+    public fun onDiscontinuity(listener: Listener): StatusSubscription
 
     /**
      * An interface for listening when discontinuity happens
@@ -36,9 +36,9 @@ internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity {
 
     private val discontinuityEmitter = DiscontinuityEmitter(logger)
 
-    override fun onDiscontinuity(listener: Discontinuity.Listener): Subscription {
+    override fun onDiscontinuity(listener: Discontinuity.Listener): StatusSubscription {
         discontinuityEmitter.on(listener)
-        return Subscription {
+        return StatusSubscription {
             discontinuityEmitter.off(listener)
         }
     }
@@ -51,7 +51,7 @@ internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity {
 /**
  * @return [ConnectionStatusChange] events as a [Flow]
  */
-public fun Discontinuity.discontinuityAsFlow(): Flow<ErrorInfo?> = transformCallbackAsFlow {
+public fun Discontinuity.discontinuityAsFlow(): Flow<ErrorInfo?> = transformStatusCallbackAsFlow {
     onDiscontinuity(it)
 }
 
