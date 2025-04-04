@@ -181,6 +181,7 @@ internal class DefaultTyping(
         logger.trace("DefaultTyping.stop()")
         typingScope.launch {
             typingJob?.cancel()
+            typingJob = null
             room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
             channelWrapper.presence.leaveClientCoroutine(room.clientId)
         }.join()
