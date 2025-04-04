@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.2.1](https://github.com/ably/ably-chat-kotlin/tree/v0.2.1)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.2.0...v0.2.1)
+
+Fixed Room Typing Bug - https://github.com/ably/ably-chat-kotlin/pull/126
+
 ## [0.2.0](https://github.com/ably/ably-chat-kotlin/tree/v0.2.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.1.1...v0.2.0)
