@@ -148,7 +148,7 @@ class ReleaseTest {
             }
             Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
             Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-            Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedChannels[2].name)
+            Assert.assertEquals("1234::\$chat", capturedChannels[2].name)
             Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
             Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
 
@@ -263,7 +263,7 @@ class ReleaseTest {
         }
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedChannels[2].name)
+        Assert.assertEquals("1234::\$chat", capturedChannels[2].name)
         Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
 
@@ -310,7 +310,7 @@ class ReleaseTest {
             }
             Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[0].name)
             Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[1].name)
-            Assert.assertEquals("1234::\$chat::\$typingIndicators", releasedChannels[2].name)
+            Assert.assertEquals("1234::\$chat", releasedChannels[2].name)
             Assert.assertEquals("1234::\$chat::\$reactions", releasedChannels[3].name)
             Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[4].name)
 

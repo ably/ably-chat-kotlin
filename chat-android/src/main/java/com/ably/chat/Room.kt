@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CompletableDeferred
@@ -13,7 +14,13 @@ import kotlinx.coroutines.launch
 /**
  * Represents a chat room.
  */
-public interface Room {
+public interface Room: Discontinuity {
+    /**
+     * Get the underlying Ably realtime channel used for the room.
+     * @returns The realtime channel.
+     */
+    public val channel: RealtimeChannel
+
     /**
      * The unique identifier of the room.
      * @returns The room identifier.
@@ -87,6 +94,17 @@ public interface Room {
     public fun onStatusChange(listener: Listener): Subscription
 
     /**
+     * An interface for listening to changes for the room status
+     */
+    public fun interface Listener {
+        /**
+         * A function that can be called when the room status changes.
+         * @param change The change in status.
+         */
+        public fun roomStatusChanged(change: RoomStatusChange)
+    }
+
+    /**
      * Attaches to the room to receive events in realtime.
      *
      * If a room fails to attach, it will enter either the [RoomStatus.Suspended] or [RoomStatus.Failed] state.
@@ -102,17 +120,6 @@ public interface Room {
      * Detaches from the room to stop receiving events in realtime.
      */
     public suspend fun detach()
-
-    /**
-     * An interface for listening to changes for the room status
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the room status changes.
-         * @param change The change in status.
-         */
-        public fun roomStatusChanged(change: RoomStatusChange)
-    }
 }
 
 /**
@@ -129,8 +136,10 @@ internal class DefaultRoom(
     internal val chatApi: ChatApi,
     internal val clientId: String,
     logger: Logger,
-) : Room {
+) : Room, DiscontinuityImpl(logger) {
     internal val logger = logger.withContext("Room", mapOf("roomId" to roomId))
+
+    override val channel: RealtimeChannel = realtimeClient.channels.get("$roomId::\$chat", options.channelOptions())
 
     /**
      * RoomScope is a crucial part of the Room lifecycle. It manages sequential and atomic operations.
@@ -224,7 +233,7 @@ internal class DefaultRoom(
             _occupancy = occupancyContributor
         }
 
-        lifecycleManager = RoomLifecycleManager(roomScope, statusLifecycle, roomFeatures, this.logger)
+        lifecycleManager = RoomLifecycleManager(this, roomScope, statusLifecycle, roomFeatures, this.logger)
 
         this.logger.debug("Initialized with features: ${roomFeatures.map { it.featureName }.joinWithBrackets}")
     }

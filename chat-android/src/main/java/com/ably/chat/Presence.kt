@@ -17,7 +17,7 @@ public typealias PresenceData = JsonElement
  *
  * Get an instance via [Room.presence].
  */
-public interface Presence : EmitsDiscontinuities {
+public interface Presence {
     /**
      * Get the underlying Ably realtime channel used for presence in this chat room.
      * @returns The realtime channel.
@@ -159,17 +159,13 @@ internal data class DefaultPresenceEvent(
 
 internal class DefaultPresence(
     private val room: DefaultRoom,
-) : Presence, ContributesToRoomLifecycleImpl(room.logger) {
+) : Presence, ContributesToRoomLifecycle {
 
     override val featureName = "presence"
 
-    override val attachmentErrorCode: ErrorCode = ErrorCode.PresenceAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.PresenceDetachmentFailed
-
     override val channel: Channel = room.messages.channel
 
-    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
+    val channelWrapper: RealtimeChannel = room.channel
 
     private val logger = room.logger.withContext(tag = "Presence")
 

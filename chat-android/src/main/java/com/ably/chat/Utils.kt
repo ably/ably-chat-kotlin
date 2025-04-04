@@ -140,7 +140,7 @@ internal fun generateUUID() = UUID.randomUUID().toString()
 internal fun lifeCycleErrorInfo(
     errorMessage: String,
     errorCode: ErrorCode,
-) = createErrorInfo(errorMessage, errorCode, HttpStatusCode.InternalServerError)
+) = createErrorInfo(errorMessage, errorCode, HttpStatusCode.BadRequest)
 
 internal fun lifeCycleException(
     errorMessage: String,
