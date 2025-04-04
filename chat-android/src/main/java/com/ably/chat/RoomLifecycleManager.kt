@@ -3,11 +3,10 @@ package com.ably.chat
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.types.AblyException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 
 /**
- * An interface for features that contribute to the room status.
+ * An interface for features that contribute to the room.
  */
 internal interface ContributesToRoomLifecycle {
     /**
@@ -16,7 +15,7 @@ internal interface ContributesToRoomLifecycle {
     val featureName: String
 
     /**
-     * Underlying Realtime feature channel is removed from the core SDK to prevent leakage.
+     * Implements code to free up underlying resources.
      * Spec: CHA-RL3h
      */
     fun release()
@@ -32,7 +31,7 @@ internal enum class LifecycleOperationPrecedence(val priority: Int) {
 }
 
 /**
- * An implementation of the `Status` interface.
+ * An implementation of RoomLifecycleManager.
  * @internal
  */
 internal class RoomLifecycleManager(
@@ -55,7 +54,7 @@ internal class RoomLifecycleManager(
     private val atomicCoroutineScope = AtomicCoroutineScope(roomScope)
 
     /**
-     * Retry duration in milliseconds, used by internal doRetry and runDownChannelsOnFailedAttach methods
+     * Retry duration in milliseconds, used by internal retryUntilChannelDetachedOrFailed method
      */
     private val retryDurationInMs: Long = 250
 
@@ -85,15 +84,11 @@ internal class RoomLifecycleManager(
     }
 
     /**
-     * Try to attach all the channels in a room.
-     *
-     * If the operation succeeds, the room enters the attached state.
-     * If a channel enters the suspended state, then we throw exception, but we will retry after a short delay as is the case
-     * in the core SDK.
-     * If a channel enters the failed state, we throw an exception and then begin to wind down the other channels.
+     * Attaches to the channel and updates room status accordingly.
+     * If the room is already released, this operation fails.
+     * If already attached, this is a no-op.
      * Spec: CHA-RL1
      */
-    @Suppress("ThrowsCount")
     internal suspend fun attach() {
         logger.trace("attach();")
         val deferredAttach = atomicCoroutineScope.async(LifecycleOperationPrecedence.AttachOrDetach.priority) { // CHA-RL1d
@@ -105,7 +100,7 @@ internal class RoomLifecycleManager(
 
             if (statusLifecycle.status == RoomStatus.Released) { // CHA-RL1c
                 logger.error("attach(); attach failed, room is in released state")
-                throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomIsReleased)
+                throw lifeCycleException("attach(); unable to attach room; room is released", ErrorCode.RoomIsReleased)
             }
 
             logger.debug("attach(); attaching room", context = mapOf("state" to room.status.stateName));
@@ -129,35 +124,33 @@ internal class RoomLifecycleManager(
                 throw attachException;
             }
         }
-
         deferredAttach.await()
     }
 
     /**
-     * Detaches the room. If the room is already detached, this is a no-op.
-     * If one of the channels fails to detach, the room status will be set to failed.
-     * If the room is in the process of detaching, this will wait for the detachment to complete.
+     * Detaches from the channel and updates room status accordingly.
+     * If the room is already released, this operation fails.
+     * If already detached, this is a no-op.
      * Spec: CHA-RL2
      */
-    @Suppress("ThrowsCount")
     internal suspend fun detach() {
         logger.trace("detach();")
         val deferredDetach = atomicCoroutineScope.async(LifecycleOperationPrecedence.AttachOrDetach.priority) { // CHA-RL2i
 
             // CHA-RL2d
             if (statusLifecycle.status == RoomStatus.Failed) {
-                throw lifeCycleException("cannot detach room, room is in failed state", ErrorCode.RoomInFailedState);
+                throw lifeCycleException("detach(); cannot detach room, room is in failed state", ErrorCode.RoomInFailedState)
             }
 
             // CHA-RL2c
             if (statusLifecycle.status == RoomStatus.Released) {
-                logger.error("attach(); attach failed, room is in released state")
-                throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomIsReleased)
+                logger.error("detach(); detach failed, room is in released state")
+                throw lifeCycleException("detach(); unable to detach room; room is released", ErrorCode.RoomIsReleased)
             }
 
             // CHA-RL2a
             if (statusLifecycle.status == RoomStatus.Detached) {
-                logger.debug("attach(); room is already detached")
+                logger.debug("detach(); room is already detached")
                 return@async
             }
 
@@ -182,16 +175,13 @@ internal class RoomLifecycleManager(
                 throw detachException;
             }
         }
-        return deferredDetach.await()
+        deferredDetach.await()
     }
 
     /**
-     * Releases the room. If the room is already released, this is a no-op.
-     * Any channel that detaches into the failed state is ok. But any channel that fails to detach
-     * will cause the room status to be set to failed.
-     *
-     * @returns Returns when the room is released. If a channel detaches into a non-terminated
-     * state (e.g. attached), release will throw exception.
+     * Releases the room by detaching the channel and releasing it from the channel manager.
+     * If the channel is in a failed state, skips the detach operation.
+     * Will retry detach until successful unless in failed state.
      * Spec: CHA-RL3
      */
     internal suspend fun release() {
@@ -210,10 +200,10 @@ internal class RoomLifecycleManager(
                 return@async
             }
             // CHA-RL3m
-            statusLifecycle.setStatus(RoomStatus.Releasing);
+            statusLifecycle.setStatus(RoomStatus.Releasing)
             // CHA-RL3n
             logger.debug("release(); attempting channel detach before release", context = mapOf("state" to room.status.stateName))
-            retryUntilChannelDetached()
+            retryUntilChannelDetachedOrFailed()
             logger.debug("release(); success, channel successfully detached")
             // CHA-RL3o, CHA-RL3h
             doRelease()
@@ -226,12 +216,12 @@ internal class RoomLifecycleManager(
      *  a short period and then try again.
      *  Spec: CHA-RL3f, CHA-RL3d
      */
-    private suspend fun retryUntilChannelDetached() {
-        logger.trace("retryUntilChannelDetached();")
+    private suspend fun retryUntilChannelDetachedOrFailed() {
+        logger.trace("retryUntilChannelDetachedOrFailed();")
         var channelDetached = kotlin.runCatching { room.channel.detachCoroutine() }
         while (channelDetached.isFailure) {
             if (room.channel.state == ChannelState.failed) {
-                logger.debug("retryUntilChannelDetached(); channel state is failed, skipping detach")
+                logger.debug("retryUntilChannelDetachedOrFailed(); channel state is failed, skipping detach")
                 return
             }
             // Wait a short period and then try again
@@ -241,20 +231,20 @@ internal class RoomLifecycleManager(
     }
 
     /**
-     * Performs the release operation. This will detach all channels in the room that aren't
-     * already detached or in the failed state.
+     * Performs the release operation on the room channel.
+     * Underlying resources are released each room feature.
      * Spec: CHA-RL3d, CHA-RL3g
      */
-    @Suppress("RethrowCaughtException")
-    private suspend fun doRelease() = coroutineScope {
+    private fun doRelease() {
         logger.trace("doRelease();")
         room.realtimeClient.channels.release(room.channel.name)
-        // CHA-RL3h - underlying Realtime Channels are released from the core SDK prevent leakage
-        logger.debug("doRelease(); releasing underlying channels from core SDK to prevent leakage")
+        // CHA-RL3h
+        logger.debug("doRelease(); releasing underlying resources from each room feature")
         contributors.forEach {
             it.release()
+            logger.debug("doRelease(); resource cleanup for feature: ${it.featureName}")
         }
-        logger.debug("doRelease(); underlying channels released from core SDK")
+        logger.debug("doRelease(); underlying resources released each room feature")
         statusLifecycle.setStatus(RoomStatus.Released) // CHA-RL3g
         logger.debug("doRelease(); transitioned room to RELEASED state")
     }
