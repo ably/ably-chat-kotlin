@@ -1,9 +1,12 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
+import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.types.AblyException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * An interface for features that contribute to the room.
@@ -58,9 +61,17 @@ internal class RoomLifecycleManager(
      */
     private val retryDurationInMs: Long = 250
 
+    private val roomChannel = room.channel
+
+    @OptIn(InternalAPI::class)
+    val channel: Channel = roomChannel.javaChannel // CHA-RC2f
+
     private var attachedOnce: Boolean = false
 
     private var explicitlyDetached: Boolean = false
+
+    private val operationInProcess: Boolean
+        get() = !atomicCoroutineScope.finishedProcessing
 
     private val channelStateToRoomStatusMap = mapOf(
         ChannelState.initialized to RoomStatus.Initialized,
@@ -72,15 +83,44 @@ internal class RoomLifecycleManager(
         ChannelState.suspended to RoomStatus.Suspended
     )
 
-    init {
-        // TODO - [CHA-RL4] set up room monitoring here
-    }
-
     /**
      * Maps a channel state to a room status.
      */
     private fun mapChannelStateToRoomStatus(channelState: ChannelState): RoomStatus {
         return channelStateToRoomStatusMap[channelState] ?: error("Unknown ChannelState: $channelState")
+    }
+
+
+    init {
+        // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
+        startMonitoringChannelState()
+    }
+
+    /**
+     * Sets up monitoring of channel state changes to keep room status in sync.
+     * If an operation is in progress (attach/detach/release), state changes are ignored.
+     * @private
+     */
+    private fun startMonitoringChannelState() {
+        logger.trace("startMonitoringChannelState();")
+        // CHA-RL11a
+        channel.on {
+            roomScope.launch { // sequentially launches events since limitedParallelism is set to 1
+                logger.debug("startMonitoringChannelState(); RoomLifecycleManager.channel state changed", context = mapOf("change" to it.toString()))
+                // CHA-RL11b
+                if (operationInProcess) {
+                    logger.debug(
+                        "startMonitoringChannelState(); ignoring channel state change - operation in progress",
+                        context = mapOf("status" to room.status.stateName)
+                    );
+                    return@launch
+                }
+
+                // CHA-RL11c
+                val newStatus = mapChannelStateToRoomStatus(it.current)
+                statusLifecycle.setStatus(newStatus, it.reason)
+            }
+        }
     }
 
     /**
@@ -107,10 +147,10 @@ internal class RoomLifecycleManager(
 
             try {
                 // CHA-RL1e
-                statusLifecycle.setStatus(RoomStatus.Attaching);
+                statusLifecycle.setStatus(RoomStatus.Attaching)
                 // CHA-RL1k
-                room.channel.attachCoroutine()
-                statusLifecycle.setStatus(RoomStatus.Attached);
+                roomChannel.attachCoroutine()
+                statusLifecycle.setStatus(RoomStatus.Attached)
                 attachedOnce = true;
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
@@ -119,9 +159,9 @@ internal class RoomLifecycleManager(
                 attachException.errorInfo?.let {
                     it.message = errorMessage
                 }
-                val newStatus = mapChannelStateToRoomStatus(room.channel.state);
-                statusLifecycle.setStatus(newStatus, attachException.errorInfo);
-                throw attachException;
+                val newStatus = mapChannelStateToRoomStatus(roomChannel.state)
+                statusLifecycle.setStatus(newStatus, attachException.errorInfo)
+                throw attachException
             }
         }
         deferredAttach.await()
@@ -160,7 +200,7 @@ internal class RoomLifecycleManager(
                 // CHA-RL2j
                 statusLifecycle.setStatus(RoomStatus.Detaching)
                 // CHA-RL2k
-                room.channel.detachCoroutine()
+                roomChannel.detachCoroutine()
                 explicitlyDetached = true;
                 statusLifecycle.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
@@ -170,9 +210,9 @@ internal class RoomLifecycleManager(
                 detachException.errorInfo?.let {
                     it.message = errorMessage
                 }
-                val newStatus = mapChannelStateToRoomStatus(room.channel.state);
-                statusLifecycle.setStatus(newStatus, detachException.errorInfo);
-                throw detachException;
+                val newStatus = mapChannelStateToRoomStatus(roomChannel.state)
+                statusLifecycle.setStatus(newStatus, detachException.errorInfo)
+                throw detachException
             }
         }
         deferredDetach.await()
@@ -218,15 +258,15 @@ internal class RoomLifecycleManager(
      */
     private suspend fun retryUntilChannelDetachedOrFailed() {
         logger.trace("retryUntilChannelDetachedOrFailed();")
-        var channelDetached = kotlin.runCatching { room.channel.detachCoroutine() }
+        var channelDetached = kotlin.runCatching { roomChannel.detachCoroutine() }
         while (channelDetached.isFailure) {
-            if (room.channel.state == ChannelState.failed) {
+            if (roomChannel.state == ChannelState.failed) {
                 logger.debug("retryUntilChannelDetachedOrFailed(); channel state is failed, skipping detach")
                 return
             }
             // Wait a short period and then try again
             delay(retryDurationInMs)
-            channelDetached = kotlin.runCatching { room.channel.detachCoroutine() }
+            channelDetached = kotlin.runCatching { roomChannel.detachCoroutine() }
         }
     }
 
@@ -237,7 +277,7 @@ internal class RoomLifecycleManager(
      */
     private fun doRelease() {
         logger.trace("doRelease();")
-        room.realtimeClient.channels.release(room.channel.name)
+        room.realtimeClient.channels.release(roomChannel.name)
         // CHA-RL3h
         logger.debug("doRelease(); releasing underlying resources from each room feature")
         contributors.forEach {
