@@ -3,9 +3,12 @@ package com.ably.chat
 import com.ably.annotations.InternalAPI
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
+import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
 import io.ably.lib.types.AblyException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -73,6 +76,10 @@ internal class RoomLifecycleManager(
     private val operationInProcess: Boolean
         get() = !atomicCoroutineScope.finishedProcessing
 
+    private val eventBus = MutableSharedFlow<ChannelStateChange>(extraBufferCapacity = Int.MAX_VALUE)
+
+    private var stateChangeEventHandler: Job
+
     private val channelStateToRoomStatusMap = mapOf(
         ChannelState.initialized to RoomStatus.Initialized,
         ChannelState.attaching to RoomStatus.Attaching,
@@ -93,7 +100,10 @@ internal class RoomLifecycleManager(
 
     init {
         // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
-        startMonitoringChannelState()
+        channel.on {
+            eventBus.tryEmit(it)
+        }
+        stateChangeEventHandler = handleChannelStateChanges()
     }
 
     /**
@@ -101,24 +111,30 @@ internal class RoomLifecycleManager(
      * If an operation is in progress (attach/detach/release), state changes are ignored.
      * @private
      */
-    private fun startMonitoringChannelState() {
-        logger.trace("startMonitoringChannelState();")
-        // CHA-RL11a
-        channel.on {
-            roomScope.launch { // sequentially launches events since limitedParallelism is set to 1
-                logger.debug("startMonitoringChannelState(); RoomLifecycleManager.channel state changed", context = mapOf("change" to it.toString()))
-                // CHA-RL11b
-                if (operationInProcess) {
-                    logger.debug(
-                        "startMonitoringChannelState(); ignoring channel state change - operation in progress",
-                        context = mapOf("status" to room.status.stateName)
-                    );
-                    return@launch
+    private fun handleChannelStateChanges(): Job {
+        logger.trace("handleChannelStateChanges();")
+        return roomScope.launch {
+            eventBus.collect { channelStateChangeEvent ->
+                // CHA-RL11a
+                logger.debug("handleChannelStateChanges(); RoomLifecycleManager.channel state changed",
+                    context = mapOf("change" to channelStateChangeEvent.toString()))
+                // CHA-RL11b, CHA-RL11c
+                if (!operationInProcess) {
+                    val newStatus = mapChannelStateToRoomStatus(channelStateChangeEvent.current)
+                    statusLifecycle.setStatus(newStatus, channelStateChangeEvent.reason)
                 }
-
-                // CHA-RL11c
-                val newStatus = mapChannelStateToRoomStatus(it.current)
-                statusLifecycle.setStatus(newStatus, it.reason)
+                // CHA-RL12a, CHA-RL12b
+                if (channelStateChangeEvent.current == ChannelState.attached) {
+                    if (!channelStateChangeEvent.resumed && attachedOnce && !explicitlyDetached) {
+                        val errorInfo = channelStateChangeEvent.reason
+                        errorInfo?.let {
+                            it.message = "discontinuity detected, ${it.message}"
+                            it.code = ErrorCode.RoomDiscontinuity.code
+                        }
+                        logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorInfo.toString()))
+                        room.discontinuityDetected(errorInfo);
+                    }
+                }
             }
         }
     }
@@ -284,6 +300,7 @@ internal class RoomLifecycleManager(
             it.release()
             logger.debug("doRelease(); resource cleanup for feature: ${it.featureName}")
         }
+        stateChangeEventHandler.cancel()
         logger.debug("doRelease(); underlying resources released each room feature")
         statusLifecycle.setStatus(RoomStatus.Released) // CHA-RL3g
         logger.debug("doRelease(); transitioned room to RELEASED state")
