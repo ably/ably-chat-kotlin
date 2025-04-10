@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
@@ -93,9 +94,10 @@ internal class DefaultOccupancy(
 
     private val logger = room.logger.withContext(tag = "Occupancy")
 
-    override val channel: Channel = room.messages.channel
-
     val channelWrapper: RealtimeChannel = room.channel
+
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel
 
     private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
 

@@ -34,22 +34,11 @@ public interface RoomOptions {
      * `rooms.get("ROOM_NAME") { occupancy() }` to enable occupancy with default options.
      */
     public val occupancy: OccupancyOptions?
-
-    public companion object {
-        /**
-         * Supports all room options with default values
-         */
-        public val AllFeaturesEnabled: RoomOptions = buildRoomOptions {
-            typing()
-            presence()
-            reactions()
-            occupancy()
-        }
-    }
 }
 
 /**
  * Represents the presence options for a chat room.
+ * TODO - Need to update presence options
  */
 public interface PresenceOptions {
     /**
@@ -94,14 +83,19 @@ public interface RoomReactionsOptions
  * Note: This class is currently empty but allows for future extensions
  * while maintaining backward compatibility.
  */
-public interface OccupancyOptions
+public interface OccupancyOptions {
+    /**
+     * Whether to enable inbound occupancy events.
+     */
+    public val enableEvents: Boolean
+}
 
 @ChatDsl
 public class MutableRoomOptions : RoomOptions {
-    override var presence: MutablePresenceOptions? = null
-    override var typing: MutableTypingOptions? = null
-    override var reactions: MutableRoomReactionsOptions? = null
-    override var occupancy: MutableOccupancyOptions? = null
+    override var presence: MutablePresenceOptions = MutablePresenceOptions()
+    override var typing: MutableTypingOptions = MutableTypingOptions()
+    override var reactions: MutableRoomReactionsOptions = MutableRoomReactionsOptions()
+    override var occupancy: MutableOccupancyOptions = MutableOccupancyOptions()
 }
 
 @ChatDsl
@@ -119,10 +113,13 @@ public class MutableTypingOptions : TypingOptions {
 public class MutableRoomReactionsOptions : RoomReactionsOptions
 
 @ChatDsl
-public class MutableOccupancyOptions : OccupancyOptions
+public class MutableOccupancyOptions : OccupancyOptions {
+    override var enableEvents: Boolean = false
+}
 
-public fun buildRoomOptions(init: MutableRoomOptions.() -> Unit = {}): RoomOptions =
-    MutableRoomOptions().apply(init).asEquatable()
+internal fun buildRoomOptions(init: (MutableRoomOptions.() -> Unit)? = null): RoomOptions {
+    return MutableRoomOptions().apply(init ?: {}).asEquatable()
+}
 
 public fun MutableRoomOptions.presence(init: MutablePresenceOptions.() -> Unit = {}) {
     this.presence = MutablePresenceOptions().apply(init)
@@ -156,14 +153,17 @@ internal data class EquatableTypingOptions(
     override val heartbeatThrottle: Duration,
 ) : TypingOptions
 
+internal data class EquatableOccupancyOptions(
+    override val enableEvents: Boolean
+) : OccupancyOptions
+
 internal data object EquatableRoomReactionsOptions : RoomReactionsOptions
-internal data object EquatableOccupancyOptions : OccupancyOptions
 
 internal fun MutableRoomOptions.asEquatable() = EquatableRoomOptions(
-    presence = presence?.asEquatable(),
-    typing = typing?.asEquatable(),
-    reactions = reactions?.let { EquatableRoomReactionsOptions },
-    occupancy = occupancy?.let { EquatableOccupancyOptions },
+    presence = presence.asEquatable(),
+    typing = typing.asEquatable(),
+    reactions = EquatableRoomReactionsOptions,
+    occupancy = occupancy.asEquatable(),
 )
 
 internal fun MutablePresenceOptions.asEquatable() = EquatablePresenceOptions(
@@ -173,6 +173,10 @@ internal fun MutablePresenceOptions.asEquatable() = EquatablePresenceOptions(
 
 internal fun MutableTypingOptions.asEquatable() = EquatableTypingOptions(
     heartbeatThrottle = heartbeatThrottle,
+)
+
+internal fun MutableOccupancyOptions.asEquatable() = EquatableOccupancyOptions(
+    enableEvents = enableEvents,
 )
 
 /**
@@ -213,9 +217,11 @@ internal fun RoomOptions.channelOptions(): ChannelOptions {
             modes = channelModes.toTypedArray()
         }
         occupancy?.let {
-            params = mapOf(
-                "occupancy" to "metrics",
-            )
+            if (it.enableEvents) {
+                params = mapOf(
+                    "occupancy" to "metrics",
+                )
+            }
         }
     }
 }

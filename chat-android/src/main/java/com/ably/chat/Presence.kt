@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonElement
@@ -163,9 +164,10 @@ internal class DefaultPresence(
 
     override val featureName = "presence"
 
-    override val channel: Channel = room.messages.channel
-
     val channelWrapper: RealtimeChannel = room.channel
+
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel
 
     private val logger = room.logger.withContext(tag = "Presence")
 
