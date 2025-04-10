@@ -128,11 +128,11 @@ internal val List<String>.joinWithBrackets: String get() = joinToString(prefix =
 
 @Suppress("FunctionName")
 internal fun ChatChannelOptions(init: (ChannelOptions.() -> Unit)? = null): ChannelOptions {
-    val options = ChannelOptions()
-    init?.let { options.it() }
-    // (CHA-M4a)
-    options.attachOnSubscribe = false
-    return options
+    return ChannelOptions().apply {
+        init?.invoke(this)
+        // (CHA-M4a)
+        attachOnSubscribe = false
+    }
 }
 
 internal fun generateUUID() = UUID.randomUUID().toString()

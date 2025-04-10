@@ -38,24 +38,16 @@ public interface RoomOptions {
 
 /**
  * Represents the presence options for a chat room.
- * TODO - Need to update presence options
  */
 public interface PresenceOptions {
     /**
-     * Whether the underlying Realtime channel should use the presence enter mode, allowing entry into presence.
-     * This property does not affect the presence lifecycle, and users must still call [Presence.enter]
-     * in order to enter presence.
+     * Whether or not the client should receive presence events from the server. This setting
+     * can be disabled if you are using presence in your Chat Room, but this particular client does not
+     * need to receive the messages.
+     *
      * @defaultValue true
      */
-    public val enter: Boolean
-
-    /**
-     * Whether the underlying Realtime channel should use the presence subscribe mode, allowing subscription to presence.
-     * This property does not affect the presence lifecycle, and users must still call [Presence.subscribe]
-     * in order to subscribe to presence.
-     * @defaultValue true
-     */
-    public val subscribe: Boolean
+    public val enableEvents: Boolean
 }
 
 /**
@@ -100,8 +92,7 @@ public class MutableRoomOptions : RoomOptions {
 
 @ChatDsl
 public class MutablePresenceOptions : PresenceOptions {
-    override var enter: Boolean = true
-    override var subscribe: Boolean = true
+    override val enableEvents: Boolean = true
 }
 
 @ChatDsl
@@ -145,8 +136,7 @@ internal data class EquatableRoomOptions(
 ) : RoomOptions
 
 internal data class EquatablePresenceOptions(
-    override val enter: Boolean,
-    override val subscribe: Boolean,
+    override val enableEvents: Boolean
 ) : PresenceOptions
 
 internal data class EquatableTypingOptions(
@@ -167,8 +157,7 @@ internal fun MutableRoomOptions.asEquatable() = EquatableRoomOptions(
 )
 
 internal fun MutablePresenceOptions.asEquatable() = EquatablePresenceOptions(
-    enter = enter,
-    subscribe = subscribe,
+    enableEvents = enableEvents,
 )
 
 internal fun MutableTypingOptions.asEquatable() = EquatableTypingOptions(
@@ -200,27 +189,14 @@ internal fun RoomOptions.validateRoomOptions(logger: Logger) {
  */
 internal fun RoomOptions.channelOptions(): ChannelOptions {
     return ChatChannelOptions {
-        presence?.let { presence ->
-            val channelModes = buildList {
-                // We should have this modes for regular messages
-                add(ChannelMode.publish)
-                add(ChannelMode.subscribe)
-
-                if (presence.enter) {
-                    add(ChannelMode.presence)
-                }
-                if (presence.subscribe) {
-                    add(ChannelMode.presence_subscribe)
-                }
+        presence?.let {
+            if (!it.enableEvents) {
+                modes = arrayOf(ChannelMode.publish, ChannelMode.subscribe, ChannelMode.presence)
             }
-
-            modes = channelModes.toTypedArray()
         }
         occupancy?.let {
             if (it.enableEvents) {
-                params = mapOf(
-                    "occupancy" to "metrics",
-                )
+                params = mapOf("occupancy" to "metrics")
             }
         }
     }

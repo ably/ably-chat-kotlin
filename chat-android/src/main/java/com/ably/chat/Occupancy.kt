@@ -128,8 +128,11 @@ internal class DefaultOccupancy(
     // (CHA-O4)
     override fun subscribe(listener: Occupancy.Listener): Subscription {
         logger.trace("Occupancy.subscribe()")
-        listeners.add(listener)
+        if (room.options.occupancy?.enableEvents == false) {
+            throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")
+        }
 
+        listeners.add(listener)
         return Subscription {
             logger.trace("Occupancy.unsubscribe()")
             // (CHA-04b)
