@@ -295,12 +295,10 @@ internal class DefaultTyping(
 
     private suspend fun sendTyping(eventType: TypingEventType) {
         logger.trace("DefaultTyping.sendTyping()")
-        val msgExtras = JsonObject().apply {
-            addProperty("ephemeral", true)
-        }
+        val message = Message(eventType.eventName, "").asEphemeralMessage()
         try {
             logger.debug("DefaultTyping.sendTyping(); sending typing event $eventType")
-            channelWrapper.publishCoroutine(Message(eventType.eventName, "", MessageExtras(msgExtras)))
+            channelWrapper.publishCoroutine(message)
         } catch (e: Exception) {
             logger.error("DefaultTyping.sendTyping(); failed to publish typing event", e)
             throw e

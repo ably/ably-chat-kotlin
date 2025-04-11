@@ -281,11 +281,36 @@ internal fun DeleteMessageParams.toJsonObject(): JsonObject {
     }
 }
 
+/**
+ * A response object that allows you to control a message subscription.
+ */
 public interface MessagesSubscription : Subscription {
     /**
-     * (CHA-M5j)
+     *
      * Get the previous messages that were sent to the room before the listener was subscribed.
-     * @return paginated result of messages, in newest-to-oldest order.
+     *
+     * If the client experiences a discontinuity event (i.e. the connection was lost and could not be resumed), the starting point of
+     * getPreviousMessages will be reset.
+     *
+     * Calls to getPreviousMessages will wait for continuity to be restored before resolving.
+     *
+     * Once continuity is restored, the subscription point will be set to the beginning of this new period of continuity. To
+     * ensure that no messages are missed, you should call getPreviousMessages after any period of discontinuity to
+     * fill any gaps in the message history.
+     *
+     * ```kotlin
+     * val subscription = room.messages.subscribe {
+     *     println("New message received: $it")
+     * }
+     * var historicalMessages = subscription.getPreviousMessages(limit = 50)
+     * println(historicalMessages.items.toString())
+     * ```
+     *
+     * @param start The start of the time window to query from. See [QueryOptions.start]
+     * @param end The end of the time window to query from. See [QueryOptions.end]
+     * @param limit The maximum number of messages to return in the response. See [QueryOptions.limit]
+     * @returns paginated result of messages, in newest-to-oldest order.
+     * Spec: CHA-M5j
      */
     public suspend fun getPreviousMessages(start: Long? = null, end: Long? = null, limit: Int = 100): PaginatedResult<Message>
 }

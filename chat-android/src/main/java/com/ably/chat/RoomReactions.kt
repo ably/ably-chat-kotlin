@@ -143,7 +143,7 @@ internal class DefaultRoomReactions(
             }
         }
         room.ensureAttached(logger) // TODO - This check might be removed in the future due to core spec change
-        channelWrapper.publishCoroutine(pubSubMessage)
+        channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage())
     }
 
     override fun subscribe(listener: RoomReactions.Listener): Subscription {
