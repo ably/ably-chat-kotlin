@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CompletableDeferred
@@ -14,6 +15,12 @@ import kotlinx.coroutines.launch
  * Represents a chat room.
  */
 public interface Room {
+    /**
+     * Get the underlying Ably realtime channel used for the room.
+     * @returns The realtime channel.
+     */
+    public val channel: RealtimeChannel
+
     /**
      * The unique identifier of the room.
      * @returns The room identifier.
@@ -87,6 +94,17 @@ public interface Room {
     public fun onStatusChange(listener: Listener): Subscription
 
     /**
+     * An interface for listening to changes for the room status
+     */
+    public fun interface Listener {
+        /**
+         * A function that can be called when the room status changes.
+         * @param change The change in status.
+         */
+        public fun roomStatusChanged(change: RoomStatusChange)
+    }
+
+    /**
      * Attaches to the room to receive events in realtime.
      *
      * If a room fails to attach, it will enter either the [RoomStatus.Suspended] or [RoomStatus.Failed] state.
@@ -104,15 +122,10 @@ public interface Room {
     public suspend fun detach()
 
     /**
-     * An interface for listening to changes for the room status
+     * Register a listener to be called when a discontinuity is detected.
+     * @param listener The listener to be called when a discontinuity is detected.
      */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the room status changes.
-         * @param change The change in status.
-         */
-        public fun roomStatusChanged(change: RoomStatusChange)
-    }
+    public fun onDiscontinuity(listener: Discontinuity.Listener): StatusSubscription
 }
 
 /**
@@ -129,8 +142,10 @@ internal class DefaultRoom(
     internal val chatApi: ChatApi,
     internal val clientId: String,
     logger: Logger,
-) : Room {
+) : Room, DiscontinuityImpl(logger) {
     internal val logger = logger.withContext("Room", mapOf("roomId" to roomId))
+
+    override val channel: RealtimeChannel = realtimeClient.channels.get("$roomId::\$chat", options.channelOptions())
 
     /**
      * RoomScope is a crucial part of the Room lifecycle. It manages sequential and atomic operations.
@@ -142,45 +157,13 @@ internal class DefaultRoom(
 
     override val messages = DefaultMessages(room = this)
 
-    private var _presence: Presence? = null
-    override val presence: Presence
-        get() {
-            if (_presence == null) { // CHA-RC2b
-                logger.error("Presence access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Presence is not enabled for this room")
-            }
-            return _presence as Presence
-        }
+    override val presence = DefaultPresence(room = this)
 
-    private var _reactions: RoomReactions? = null
-    override val reactions: RoomReactions
-        get() {
-            if (_reactions == null) { // CHA-RC2b
-                logger.error("Reactions access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Reactions are not enabled for this room")
-            }
-            return _reactions as RoomReactions
-        }
+    override val reactions = DefaultRoomReactions(room = this)
 
-    private var _typing: Typing? = null
-    override val typing: Typing
-        get() {
-            if (_typing == null) { // CHA-RC2b
-                logger.error("Typing access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Typing is not enabled for this room")
-            }
-            return _typing as Typing
-        }
+    override val typing = DefaultTyping(room = this)
 
-    private var _occupancy: Occupancy? = null
-    override val occupancy: Occupancy
-        get() {
-            if (_occupancy == null) { // CHA-RC2b
-                logger.error("Occupancy access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Occupancy is not enabled for this room")
-            }
-            return _occupancy as Occupancy
-        }
+    override val occupancy = DefaultOccupancy(room = this)
 
     private val statusLifecycle = DefaultRoomLifecycle(this.logger)
 
@@ -198,33 +181,9 @@ internal class DefaultRoom(
         options.validateRoomOptions(this.logger) // CHA-RC2a
 
         // CHA-RC2e - Add contributors/features as per the order of precedence
-        val roomFeatures = mutableListOf<ContributesToRoomLifecycle>(messages)
+        val roomFeatures = mutableListOf(messages, presence, typing, reactions, occupancy)
 
-        options.presence?.let {
-            val presenceContributor = DefaultPresence(room = this)
-            roomFeatures.add(presenceContributor)
-            _presence = presenceContributor
-        }
-
-        options.typing?.let {
-            val typingContributor = DefaultTyping(room = this)
-            roomFeatures.add(typingContributor)
-            _typing = typingContributor
-        }
-
-        options.reactions?.let {
-            val reactionsContributor = DefaultRoomReactions(room = this)
-            roomFeatures.add(reactionsContributor)
-            _reactions = reactionsContributor
-        }
-
-        options.occupancy?.let {
-            val occupancyContributor = DefaultOccupancy(room = this)
-            roomFeatures.add(occupancyContributor)
-            _occupancy = occupancyContributor
-        }
-
-        lifecycleManager = RoomLifecycleManager(roomScope, statusLifecycle, roomFeatures, this.logger)
+        lifecycleManager = RoomLifecycleManager(this, roomScope, statusLifecycle, roomFeatures, this.logger)
 
         this.logger.debug("Initialized with features: ${roomFeatures.map { it.featureName }.joinWithBrackets}")
     }

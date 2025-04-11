@@ -4,10 +4,13 @@ import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
+import com.google.gson.JsonObject
 import io.ably.lib.realtime.CompletionListener
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ChannelOptions
 import io.ably.lib.types.ErrorInfo
+import io.ably.lib.types.Message
+import io.ably.lib.types.MessageExtras
 import io.ably.lib.types.PresenceMessage
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
@@ -128,11 +131,22 @@ internal val List<String>.joinWithBrackets: String get() = joinToString(prefix =
 
 @Suppress("FunctionName")
 internal fun ChatChannelOptions(init: (ChannelOptions.() -> Unit)? = null): ChannelOptions {
-    val options = ChannelOptions()
-    init?.let { options.it() }
-    // (CHA-M4a)
-    options.attachOnSubscribe = false
-    return options
+    return ChannelOptions().apply {
+        init?.invoke(this)
+        // (CHA-M4a)
+        attachOnSubscribe = false
+    }
+}
+
+/**
+ * Takes an existing Ably message and converts it to an ephemeral message by adding
+ * the ephemeral flag in the extras field.
+ */
+internal fun Message.asEphemeralMessage(): Message {
+    return apply {
+        val extras = extras ?: MessageExtras(JsonObject())
+        extras.asJsonObject().addProperty("ephemeral", true)
+    }
 }
 
 internal fun generateUUID() = UUID.randomUUID().toString()
@@ -140,7 +154,7 @@ internal fun generateUUID() = UUID.randomUUID().toString()
 internal fun lifeCycleErrorInfo(
     errorMessage: String,
     errorCode: ErrorCode,
-) = createErrorInfo(errorMessage, errorCode, HttpStatusCode.InternalServerError)
+) = createErrorInfo(errorMessage, errorCode, HttpStatusCode.BadRequest)
 
 internal fun lifeCycleException(
     errorMessage: String,

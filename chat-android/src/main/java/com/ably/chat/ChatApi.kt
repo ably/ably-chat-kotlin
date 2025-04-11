@@ -36,7 +36,7 @@ internal class ChatApi(
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
-            url = "/chat/v2/rooms/$roomId/messages",
+            url = "/chat/v3/rooms/$roomId/messages",
             method = HttpMethod.Get,
             params = params,
         ) {
@@ -70,7 +70,7 @@ internal class ChatApi(
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
-            "/chat/v2/rooms/$roomId/messages",
+            "/chat/v3/rooms/$roomId/messages",
             HttpMethod.Post,
             body,
         )?.let {
@@ -102,7 +102,7 @@ internal class ChatApi(
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
-            "/chat/v2/rooms/${message.roomId}/messages/${message.serial}",
+            "/chat/v3/rooms/${message.roomId}/messages/${message.serial}",
             HttpMethod.Put,
             body,
         )?.let {
@@ -134,7 +134,7 @@ internal class ChatApi(
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
-            "/chat/v2/rooms/${message.roomId}/messages/${message.serial}/delete",
+            "/chat/v3/rooms/${message.roomId}/messages/${message.serial}/delete",
             HttpMethod.Post,
             body,
         )?.let {
@@ -163,7 +163,7 @@ internal class ChatApi(
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
         logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
-        return this.makeAuthorizedRequest("/chat/v2/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
+        return this.makeAuthorizedRequest("/chat/v3/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
             DefaultOccupancyEvent(
                 connections = it.requireInt("connections"),

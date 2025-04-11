@@ -77,7 +77,7 @@ class RetryTest {
 
         Assert.assertEquals(2, capturedDetachedChannels.size)
 
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedDetachedChannels[0].name)
+        Assert.assertEquals("1234::\$chat", capturedDetachedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$reactions", capturedDetachedChannels[1].name)
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
@@ -247,14 +247,14 @@ class RetryTest {
 
         Assert.assertEquals(2, capturedDetachedChannels.size)
 
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedDetachedChannels[0].name)
+        Assert.assertEquals("1234::\$chat", capturedDetachedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$reactions", capturedDetachedChannels[1].name)
 
         Assert.assertEquals(5, capturedAttachedChannels.size)
 
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedAttachedChannels[0].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedAttachedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$typingIndicators", capturedAttachedChannels[2].name)
+        Assert.assertEquals("1234::\$chat", capturedAttachedChannels[2].name)
         Assert.assertEquals("1234::\$chat::\$reactions", capturedAttachedChannels[3].name)
         Assert.assertEquals("1234::\$chat::\$chatMessages", capturedAttachedChannels[4].name)
 

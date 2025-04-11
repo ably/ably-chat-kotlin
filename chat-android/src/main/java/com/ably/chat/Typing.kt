@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
  *
  * Get an instance via [Room.typing].
  */
-public interface Typing : EmitsDiscontinuities {
+public interface Typing {
 
     /**
      * Get the Ably realtime channel underpinning typing events.
@@ -150,14 +150,9 @@ internal data class DefaultTypingEventChange(
 internal class DefaultTyping(
     private val room: DefaultRoom,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : Typing, ContributesToRoomLifecycleImpl(room.logger) {
-    private val typingIndicatorsChannelName = "${room.roomId}::\$chat::\$typingIndicators"
+) : Typing, ContributesToRoomLifecycle {
 
     override val featureName = "typing"
-
-    override val attachmentErrorCode: ErrorCode = ErrorCode.TypingAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.TypingDetachmentFailed
 
     private val logger = room.logger.withContext(tag = "Typing")
 
@@ -165,7 +160,7 @@ internal class DefaultTyping(
 
     private var typingHeartbeatStarted: ValueTimeMark? = null
 
-    override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
+    val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
@@ -300,12 +295,10 @@ internal class DefaultTyping(
 
     private suspend fun sendTyping(eventType: TypingEventType) {
         logger.trace("DefaultTyping.sendTyping()")
-        val msgExtras = JsonObject().apply {
-            addProperty("ephemeral", true)
-        }
+        val message = Message(eventType.eventName, "").asEphemeralMessage()
         try {
             logger.debug("DefaultTyping.sendTyping(); sending typing event $eventType")
-            channelWrapper.publishCoroutine(Message(eventType.eventName, "", MessageExtras(msgExtras)))
+            channelWrapper.publishCoroutine(message)
         } catch (e: Exception) {
             logger.error("DefaultTyping.sendTyping(); failed to publish typing event", e)
             throw e
@@ -315,7 +308,6 @@ internal class DefaultTyping(
     override fun release() {
         typingEventPubSubSubscription.unsubscribe()
         typingScope.cancel()
-        room.realtimeClient.channels.release(channelWrapper.name)
     }
 
     /**

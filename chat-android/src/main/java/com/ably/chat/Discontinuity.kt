@@ -1,35 +1,24 @@
 package com.ably.chat
 
-import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Represents an object that has a channel and therefore may care about discontinuities.
+ * An interface to be implemented by objects that can emit discontinuities to listeners.
  */
-internal interface HandlesDiscontinuity {
-    /**
-     * The channel that this object is associated with.
-     */
-    val channelWrapper: RealtimeChannel
-
+public interface Discontinuity {
     /**
      * Called when a discontinuity is detected on the channel.
      * @param reason The error that caused the discontinuity.
      */
-    fun discontinuityDetected(reason: ErrorInfo?)
-}
+    public fun discontinuityDetected(reason: ErrorInfo?)
 
-/**
- * An interface to be implemented by objects that can emit discontinuities to listeners.
- */
-public interface EmitsDiscontinuities {
     /**
      * Register a listener to be called when a discontinuity is detected.
      * @param listener The listener to be called when a discontinuity is detected.
      */
-    public fun onDiscontinuity(listener: Listener): Subscription
+    public fun onDiscontinuity(listener: Listener): StatusSubscription
 
     /**
      * An interface for listening when discontinuity happens
@@ -43,17 +32,33 @@ public interface EmitsDiscontinuities {
     }
 }
 
+internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity {
+
+    private val discontinuityEmitter = DiscontinuityEmitter(logger)
+
+    override fun onDiscontinuity(listener: Discontinuity.Listener): StatusSubscription {
+        discontinuityEmitter.on(listener)
+        return StatusSubscription {
+            discontinuityEmitter.off(listener)
+        }
+    }
+
+    override fun discontinuityDetected(reason: ErrorInfo?) {
+        discontinuityEmitter.emit(RoomEvents.Discontinuity.event, reason)
+    }
+}
+
 /**
  * @return [ConnectionStatusChange] events as a [Flow]
  */
-public fun EmitsDiscontinuities.discontinuityAsFlow(): Flow<ErrorInfo?> = transformCallbackAsFlow {
+public fun Discontinuity.discontinuityAsFlow(): Flow<ErrorInfo?> = transformStatusCallbackAsFlow {
     onDiscontinuity(it)
 }
 
-internal class DiscontinuityEmitter(logger: Logger) : EventEmitter<String, EmitsDiscontinuities.Listener>() {
+internal class DiscontinuityEmitter(logger: Logger) : EventEmitter<String, Discontinuity.Listener>() {
     private val logger = logger.withContext("DiscontinuityEmitter")
 
-    override fun apply(listener: EmitsDiscontinuities.Listener?, event: String?, vararg args: Any?) {
+    override fun apply(listener: Discontinuity.Listener?, event: String?, vararg args: Any?) {
         try {
             val reason = args.firstOrNull() as? ErrorInfo?
             listener?.discontinuityEmitted(reason)
