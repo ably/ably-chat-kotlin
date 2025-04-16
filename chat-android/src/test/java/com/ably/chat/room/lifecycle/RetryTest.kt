@@ -1,7 +1,7 @@
 package com.ably.chat.room.lifecycle
 
 import com.ably.annotations.InternalAPI
-import com.ably.chat.DefaultRoomLifecycle
+import com.ably.chat.DefaultStatusManager
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomStatus
@@ -52,7 +52,7 @@ class RetryTest {
     @OptIn(InternalAPI::class)
     @Test
     fun `(CHA-RL5a) Retry detaches all contributors except the one that's provided (based on underlying channel CHA-RL5a)`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coJustRun { any<RealtimeChannel>().attachCoroutine() }
@@ -87,7 +87,7 @@ class RetryTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5c) If one of the contributor channel goes into failed state during channel windown (CHA-RL5a), then the room enters failed state and retry operation stops`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coJustRun { any<RealtimeChannel>().attachCoroutine() }
@@ -120,7 +120,7 @@ class RetryTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5c) If one of the contributor channel goes into failed state during Retry, then the room enters failed state and retry operation stops`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coJustRun { any<RealtimeChannel>().detachCoroutine() }
@@ -151,7 +151,7 @@ class RetryTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5d) If all contributor channels goes into detached (except one provided in suspended state), provided contributor starts attach operation and waits for ATTACHED or FAILED state`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coJustRun { any<RealtimeChannel>().attachCoroutine() }
@@ -191,7 +191,7 @@ class RetryTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5e) If, during the CHA-RL5d wait, the contributor channel becomes failed, then the room enters failed state and retry operation stops`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coJustRun { any<RealtimeChannel>().attachCoroutine() }
@@ -220,7 +220,7 @@ class RetryTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL5f, CHA-RC2e) If, during the CHA-RL5d wait, the contributor channel becomes ATTACHED, then attach operation continues for other contributors as per CHA-RL1e`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         val capturedAttachedChannels = mutableListOf<RealtimeChannel>()

@@ -2,7 +2,7 @@ package com.ably.chat.room.lifecycle
 
 import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoomAttachmentResult
-import com.ably.chat.DefaultRoomLifecycle
+import com.ably.chat.DefaultStatusManager
 import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
@@ -43,7 +43,7 @@ class PrecedenceTest {
     @Suppress("LongMethod")
     @Test
     fun `(CHA-RL7a) If multiple operations are scheduled to run, they run as per LifecycleOperationPrecedence`() = runTest {
-        val statusLifecycle = spyk(DefaultRoomLifecycle(logger))
+        val statusLifecycle = spyk(DefaultStatusManager(logger))
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
         statusLifecycle.onChange {
             roomStatusChanges.add(it)
