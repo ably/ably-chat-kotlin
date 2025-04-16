@@ -102,7 +102,7 @@ public enum class RoomReactionEventType(public val eventName: String) {
 /**
  * Room events.
  */
-public enum class RoomEvents(public val event: String) {
+public enum class RoomEvent(public val event: String) {
     /**
      * Event triggered when a discontinuity is detected in the room's channel connection.
      * A discontinuity occurs when an attached or update event comes from the channel with resume=false,

@@ -43,7 +43,7 @@ internal enum class LifecycleOperationPrecedence(val priority: Int) {
 internal class RoomLifecycleManager(
     private val room: DefaultRoom,
     private val roomScope: CoroutineScope,
-    private val statusLifecycle: DefaultRoomLifecycle,
+    private val statusLifecycle: DefaultStatusManager,
     private val contributors: List<ContributesToRoomLifecycle>,
     roomLogger: Logger,
 ) {
@@ -167,7 +167,8 @@ internal class RoomLifecycleManager(
                 // CHA-RL1k
                 roomChannel.attachCoroutine()
                 statusLifecycle.setStatus(RoomStatus.Attached)
-                attachedOnce = true;
+                attachedOnce = true
+                explicitlyDetached = false
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
                 val errorMessage = "failed to attach room: ${attachException.message}"
@@ -217,7 +218,7 @@ internal class RoomLifecycleManager(
                 statusLifecycle.setStatus(RoomStatus.Detaching)
                 // CHA-RL2k
                 roomChannel.detachCoroutine()
-                explicitlyDetached = true;
+                explicitlyDetached = true
                 statusLifecycle.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {

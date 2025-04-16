@@ -44,7 +44,7 @@ internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity {
     }
 
     override fun discontinuityDetected(reason: ErrorInfo?) {
-        discontinuityEmitter.emit(RoomEvents.Discontinuity.event, reason)
+        discontinuityEmitter.emit(RoomEvent.Discontinuity.event, reason)
     }
 }
 

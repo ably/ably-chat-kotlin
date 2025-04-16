@@ -355,12 +355,6 @@ internal class DefaultMessages(
 
     private val chatApi = room.chatApi
 
-    /**
-     * (CHA-M1)
-     * the channel name for the chat messages channel.
-     */
-    private val messagesChannelName = "${room.roomId}::\$chat::\$chatMessages"
-
     val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)

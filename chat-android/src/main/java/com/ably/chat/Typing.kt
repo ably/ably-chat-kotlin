@@ -2,12 +2,10 @@ package com.ably.chat
 
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
-import io.ably.lib.types.MessageExtras
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds

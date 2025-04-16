@@ -167,7 +167,7 @@ internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus,
     }
 }
 
-internal class DefaultRoomLifecycle(logger: Logger) : InternalRoomLifecycle {
+internal class DefaultStatusManager(logger: Logger) : InternalRoomLifecycle {
 
     @Volatile
     private var _status = RoomStatus.Initialized // CHA-RS3
