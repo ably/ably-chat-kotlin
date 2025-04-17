@@ -6,63 +6,29 @@ package com.ably.chat
 public enum class ErrorCode(public val code: Int) {
 
     /**
-     * The messages feature failed to attach.
+     * The request cannot be understood
      */
-    MessagesAttachmentFailed(102_001),
+    BadRequest(40_000),
 
     /**
-     * The presence feature failed to attach.
+     * Invalid request body
      */
-    PresenceAttachmentFailed(102_002),
+    InvalidRequestBody(40_001),
 
     /**
-     * The reactions feature failed to attach.
+     * The message was rejected before publishing by a rule on the chat room.
      */
-    ReactionsAttachmentFailed(102_003),
+    MessageRejectedByBeforePublishRule(42_211),
 
     /**
-     * The occupancy feature failed to attach.
+     * The message was rejected before publishing by a moderation rule on the chat room.
      */
-    OccupancyAttachmentFailed(102_004),
-
-    /**
-     * The typing feature failed to attach.
-     */
-    TypingAttachmentFailed(102_005),
-    // 102_006 - 102_049 reserved for future use for attachment errors
-
-    /**
-     * The messages feature failed to detach.
-     */
-    MessagesDetachmentFailed(102_050),
-
-    /**
-     * The presence feature failed to detach.
-     */
-    PresenceDetachmentFailed(102_051),
-
-    /**
-     * The reactions feature failed to detach.
-     */
-    ReactionsDetachmentFailed(102_052),
-
-    /**
-     * The occupancy feature failed to detach.
-     */
-    OccupancyDetachmentFailed(102_053),
-
-    /**
-     * The typing feature failed to detach.
-     */
-    TypingDetachmentFailed(102_054),
-    // 102_055 - 102_099 reserved for future use for detachment errors
+    MessageRejectedByModeration(42_213),
 
     /**
      * The room has experienced a discontinuity.
      */
     RoomDiscontinuity(102_100),
-
-    // Unable to perform operation;
 
     /**
      * Cannot perform operation because the room is in a failed state.
@@ -88,26 +54,6 @@ public enum class ErrorCode(public val code: Int) {
      * Room is not in valid state to perform any realtime operation.
      */
     RoomInInvalidState(102_107),
-
-    /**
-     * Cannot perform operation because the previous operation failed.
-     */
-    PreviousOperationFailed(102_104),
-
-    /**
-     * An unknown error has happened in the room lifecycle.
-     */
-    RoomLifecycleError(102_105),
-
-    /**
-     * The request cannot be understood
-     */
-    BadRequest(40_000),
-
-    /**
-     * Invalid request body
-     */
-    InvalidRequestBody(40_001),
 
     /**
      * Internal error

@@ -1,7 +1,6 @@
 package com.ably.chat.integration
 
 import com.ably.chat.Reaction
-import com.ably.chat.get
 import com.ably.chat.reactions
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred

@@ -8,7 +8,6 @@ import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
-import com.ably.chat.get
 import com.ably.chat.presence
 import com.ably.chat.typing
 import io.ably.lib.types.AblyException
@@ -40,7 +39,7 @@ class RoomGetTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
-        val room = rooms.get("1234", buildRoomOptions())
+        val room = rooms.get("1234")
         Assert.assertNotNull(room)
         Assert.assertEquals("1234", room.roomId)
         Assert.assertEquals(buildRoomOptions(), room.options)
@@ -54,7 +53,7 @@ class RoomGetTest {
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         // Create room with id "1234"
-        val room = rooms.get("1234", buildRoomOptions())
+        val room = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomIdToRoom.size)
         Assert.assertEquals(room, rooms.RoomIdToRoom["1234"])
 
@@ -94,8 +93,7 @@ class RoomGetTest {
         val room5 = rooms.get("7890") {
             typing { heartbeatThrottle = 1500.milliseconds }
             presence {
-                enter = true
-                subscribe = false
+                enableEvents = true
             }
         }
 
@@ -105,8 +103,7 @@ class RoomGetTest {
         val room6 = rooms.get("7890") {
             typing { heartbeatThrottle = 1500.milliseconds }
             presence {
-                enter = true
-                subscribe = false
+                enableEvents = true
             }
         }
         Assert.assertEquals(3, rooms.RoomIdToRoom.size)
@@ -141,7 +138,7 @@ class RoomGetTest {
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -160,7 +157,7 @@ class RoomGetTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger)
             }
             room
         }

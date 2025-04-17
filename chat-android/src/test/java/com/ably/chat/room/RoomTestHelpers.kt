@@ -6,20 +6,23 @@ import com.ably.chat.AtomicCoroutineScope
 import com.ably.chat.ChatApi
 import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoom
-import com.ably.chat.DefaultRoomLifecycle
-import com.ably.chat.LifecycleOperationPrecedence
+import com.ably.chat.DefaultStatusManager
 import com.ably.chat.Logger
+import com.ably.chat.MutableRoomOptions
 import com.ably.chat.Room
 import com.ably.chat.RoomLifecycleManager
-import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
 import com.ably.chat.Typing
 import com.ably.chat.TypingEventType
+import com.ably.chat.buildRoomOptions
 import com.ably.chat.getPrivateField
 import com.ably.chat.invokePrivateMethod
-import com.ably.chat.invokePrivateSuspendMethod
+import com.ably.chat.occupancy
+import com.ably.chat.presence
+import com.ably.chat.reactions
 import com.ably.chat.setPrivateField
+import com.ably.chat.typing
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
@@ -86,7 +89,18 @@ internal fun createMockRoom(
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
 ): DefaultRoom =
-    DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, realtimeClient, chatApi, clientId, logger)
+    DefaultRoom(roomId, buildRoomOptions { RoomOptionsWithAllFeatures }, realtimeClient, chatApi, clientId, logger)
+
+
+internal val RoomOptionsWithAllFeatures: MutableRoomOptions.() -> Unit
+    get() = {
+        typing()
+        presence()
+        reactions()
+        occupancy {
+            enableEvents = true
+        }
+    }
 
 // Rooms mocks
 val Rooms.RoomIdToRoom get() = getPrivateField<MutableMap<String, Room>>("roomIdToRoom")
@@ -94,11 +108,11 @@ val Rooms.RoomGetDeferredMap get() = getPrivateField<MutableMap<String, Completa
 val Rooms.RoomReleaseDeferredMap get() = getPrivateField<MutableMap<String, CompletableDeferred<Unit>>>("roomReleaseDeferredMap")
 
 // Room mocks
-internal val Room.StatusLifecycle get() = getPrivateField<DefaultRoomLifecycle>("statusLifecycle")
+internal val Room.StatusLifecycle get() = getPrivateField<DefaultStatusManager>("statusLifecycle")
 internal val Room.LifecycleManager get() = getPrivateField<RoomLifecycleManager>("lifecycleManager")
 
 // DefaultRoomLifecycle mocks
-internal val DefaultRoomLifecycle.InternalEmitter get() = getPrivateField<RoomStatusEventEmitter>("internalEmitter")
+internal val DefaultStatusManager.InternalEmitter get() = getPrivateField<RoomStatusEventEmitter>("internalEmitter")
 
 // EventEmitter mocks
 internal val EventEmitter<*, *>.Listeners get() = getPrivateField<List<Any>>("listeners")
@@ -106,9 +120,8 @@ internal val EventEmitter<*, *>.Filters get() = getPrivateField<Map<Any, Any>>("
 
 // RoomLifeCycleManager Mocks
 internal fun RoomLifecycleManager.atomicCoroutineScope(): AtomicCoroutineScope = getPrivateField("atomicCoroutineScope")
-
-internal suspend fun RoomLifecycleManager.retry(exceptContributor: ContributesToRoomLifecycle) =
-    invokePrivateSuspendMethod<Unit>("doRetry", exceptContributor)
+internal val RoomLifecycleManager.hasAttachedOnce: Boolean get() = getPrivateField("hasAttachedOnce")
+internal val RoomLifecycleManager.isExplicitlyDetached: Boolean get() = getPrivateField("isExplicitlyDetached")
 
 internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
     get() = getPrivateField("typingHeartbeatStarted")
@@ -119,11 +132,6 @@ internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<Strin
 internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
     invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
 
-internal suspend fun RoomLifecycleManager.atomicRetry(exceptContributor: ContributesToRoomLifecycle) {
-    atomicCoroutineScope().async(LifecycleOperationPrecedence.Internal.priority) {
-        retry(exceptContributor)
-    }.await()
-}
 
 internal fun createRoomFeatureMocks(
     roomId: String = DEFAULT_ROOM_ID,

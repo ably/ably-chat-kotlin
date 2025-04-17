@@ -102,7 +102,7 @@ class ConfigureRoomOptionsTest {
         Assert.assertEquals(400, exception.errorInfo.statusCode)
 
         // room with all features
-        val roomWithAllFeatures = DefaultRoom("1234", RoomOptions.AllFeaturesEnabled, mockRealtimeClient, chatApi, clientId, logger)
+        val roomWithAllFeatures = DefaultRoom("1234", buildRoomOptions { RoomOptionsWithAllFeatures }, mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertNotNull(roomWithAllFeatures.presence)
         Assert.assertNotNull(roomWithAllFeatures.reactions)
         Assert.assertNotNull(roomWithAllFeatures.typing)
