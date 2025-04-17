@@ -96,7 +96,7 @@ fun App(chatClient: ChatClient) {
     LaunchedEffect(Unit) {
         val chatRoom = chatClient.rooms.get(
             Settings.ROOM_ID,
-            RoomOptions.AllFeaturesEnabled,
+            RoomOptionsAllFeaturesEnabled,
         )
         chatRoom.attach()
         room = chatRoom

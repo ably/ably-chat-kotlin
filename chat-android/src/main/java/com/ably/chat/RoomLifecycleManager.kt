@@ -69,9 +69,9 @@ internal class RoomLifecycleManager(
     @OptIn(InternalAPI::class)
     val channel: Channel = roomChannel.javaChannel // CHA-RC2f
 
-    private var attachedOnce: Boolean = false
+    private var hasAttachedOnce: Boolean = false
 
-    private var explicitlyDetached: Boolean = false
+    private var isExplicitlyDetached: Boolean = false
 
     private val operationInProcess: Boolean
         get() = !atomicCoroutineScope.finishedProcessing
@@ -125,7 +125,7 @@ internal class RoomLifecycleManager(
                 }
                 // CHA-RL12a, CHA-RL12b
                 if (channelStateChangeEvent.current == ChannelState.attached) {
-                    if (!channelStateChangeEvent.resumed && attachedOnce && !explicitlyDetached) {
+                    if (!channelStateChangeEvent.resumed && hasAttachedOnce && !isExplicitlyDetached) {
                         val errorInfo = channelStateChangeEvent.reason
                         errorInfo?.let {
                             it.message = "discontinuity detected, ${it.message}"
@@ -167,8 +167,8 @@ internal class RoomLifecycleManager(
                 // CHA-RL1k
                 roomChannel.attachCoroutine()
                 statusLifecycle.setStatus(RoomStatus.Attached)
-                attachedOnce = true
-                explicitlyDetached = false
+                hasAttachedOnce = true
+                isExplicitlyDetached = false
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
                 val errorMessage = "failed to attach room: ${attachException.message}"
@@ -218,7 +218,7 @@ internal class RoomLifecycleManager(
                 statusLifecycle.setStatus(RoomStatus.Detaching)
                 // CHA-RL2k
                 roomChannel.detachCoroutine()
-                explicitlyDetached = true
+                isExplicitlyDetached = true
                 statusLifecycle.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {

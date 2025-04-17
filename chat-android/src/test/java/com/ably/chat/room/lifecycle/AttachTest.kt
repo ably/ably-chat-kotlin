@@ -12,10 +12,16 @@ import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createMockLogger
 import com.ably.chat.room.createMockRoom
 import com.ably.chat.room.createRoomFeatureMocks
+import com.ably.chat.room.hasAttachedOnce
+import com.ably.chat.room.isExplicitlyDetached
+import com.ably.chat.serverError
 import com.ably.pubsub.RealtimeChannel
+import io.ably.lib.realtime.ChannelState
 import io.ably.lib.types.AblyException
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CoroutineName
@@ -69,7 +75,7 @@ class AttachTest {
                 roomLifecycle.attach()
             }
         }
-        Assert.assertEquals("unable to attach room; room is released", exception.errorInfo.message)
+        Assert.assertEquals("attach(); unable to attach room; room is released", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
         Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
@@ -124,16 +130,115 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1e) Attach op should transition room into ATTACHING state`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultStatusManager(logger))
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
-        statusLifecycle.onChange {
+        statusManager.onChange {
             roomStatusChanges.add(it)
         }
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, emptyList(), logger))
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, emptyList(), logger))
         roomLifecycle.attach()
 
         Assert.assertEquals(RoomStatus.Attaching, roomStatusChanges[0].current)
         Assert.assertEquals(RoomStatus.Attached, roomStatusChanges[1].current)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+    }
+
+    @Test
+    fun `(CHA-RL1k, CHA-RL1k1) When attach op is a success, room enters attached state`() = runTest {
+        val statusManager = spyk(DefaultStatusManager(logger))
+
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        val capturedChannels = mutableListOf<RealtimeChannel>()
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            capturedChannels.add(firstArg())
+        }
+
+        val contributors = createRoomFeatureMocks()
+        Assert.assertEquals(5, contributors.size)
+
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger))
+        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+        val result = kotlin.runCatching { roomLifecycle.attach() }
+        Assert.assertTrue(result.isSuccess)
+
+        Assert.assertEquals(1, capturedChannels.size)
+        Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
+
+        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+
+        // Channel is attached
+        Assert.assertEquals(RoomStatus.Attached, statusManager.status)
+        Assert.assertTrue(roomLifecycle.hasAttachedOnce)
+        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+    }
+
+    @Test
+    fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel suspended), room enters suspended state and op returns error`() = runTest {
+        val statusManager = spyk(DefaultStatusManager(logger))
+
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            // Throw error for channel attach
+            val channel = firstArg<RealtimeChannel>()
+            every { channel.state } returns ChannelState.suspended
+            throw serverError("error attaching channel ${channel.name}")
+        }
+
+        val contributors = createRoomFeatureMocks("1234")
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger), recordPrivateCalls = true)
+
+        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+        val result = kotlin.runCatching { roomLifecycle.attach() }
+
+        Assert.assertTrue(result.isFailure)
+        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+
+        Assert.assertEquals(RoomStatus.Suspended, statusManager.status)
+
+        val exception = result.exceptionOrNull() as AblyException
+        Assert.assertEquals("failed to attach room: ", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.InternalError, exception.errorInfo.code)
+        Assert.assertEquals(500, exception.errorInfo.statusCode)
+    }
+
+    @Test
+    fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel failed), room status becomes failed and returns error`() = runTest {
+        val statusManager = spyk(DefaultStatusManager(logger))
+
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+            // Throw error for channel attach
+            val channel = firstArg<RealtimeChannel>()
+            every { channel.state } returns ChannelState.failed
+            throw serverError("error attaching channel ${channel.name}")
+        }
+
+        val contributors = createRoomFeatureMocks("1234")
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger), recordPrivateCalls = true)
+
+        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+        val result = kotlin.runCatching { roomLifecycle.attach() }
+
+        Assert.assertTrue(result.isFailure)
+        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+
+        Assert.assertEquals(RoomStatus.Failed, statusManager.status)
+
+        val exception = result.exceptionOrNull() as AblyException
+        Assert.assertEquals("failed to attach room: ", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.InternalError, exception.errorInfo.code)
+        Assert.assertEquals(500, exception.errorInfo.statusCode)
     }
 }

@@ -9,13 +9,13 @@ import com.ably.chat.attachCoroutine
 import com.ably.chat.detachCoroutine
 import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createMockLogger
+import com.ably.chat.room.createMockRoom
 import com.ably.chat.room.createRoomFeatureMocks
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.unmockkStatic
@@ -49,10 +49,10 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3a) Release success when room is already in released state`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Released)
         }
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, createRoomFeatureMocks(), logger))
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
@@ -60,14 +60,14 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3b) If room is in detached state, room is immediately transitioned to released`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Detached)
         }
         val states = mutableListOf<RoomStatusChange>()
-        statusLifecycle.onChange {
+        statusManager.onChange {
             states.add(it)
         }
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, createRoomFeatureMocks(), logger))
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -79,14 +79,14 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3j) If room is in initialized state, room is immediately transitioned to released`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Initialized)
         }
         val states = mutableListOf<RoomStatusChange>()
-        statusLifecycle.onChange {
+        statusManager.onChange {
             states.add(it)
         }
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, createRoomFeatureMocks(), logger))
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -97,7 +97,67 @@ class ReleaseTest {
     }
 
     @Test
-    fun `(CHA-RL3l) Release op should transition room into RELEASING state, transient timeouts should be cleared`() = runTest {
+    fun `(CHA-RL3k) Release op should wait for existing operation as per (CHA-RL7)`() = runTest {
+        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+            setStatus(RoomStatus.Attached)
+        }
+
+        val roomEvents = mutableListOf<RoomStatusChange>()
+
+        statusManager.onChange {
+            roomEvents.add(it)
+        }
+
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
+            val channel = firstArg<RealtimeChannel>()
+            every { channel.state } returns ChannelState.detached
+        }
+
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
+
+        val roomAttached = Channel<Boolean>()
+        coEvery {
+            roomLifecycle.attach()
+        } coAnswers {
+            roomLifecycle.atomicCoroutineScope().async {
+                statusManager.setStatus(RoomStatus.Attaching)
+                roomAttached.receive()
+                statusManager.setStatus(RoomStatus.Attached)
+            }
+        }
+
+        // ATTACH op started from separate coroutine
+        launch { roomLifecycle.attach() }
+        assertWaiter { !roomLifecycle.atomicCoroutineScope().finishedProcessing }
+        Assert.assertEquals(0, roomLifecycle.atomicCoroutineScope().pendingJobCount) // no queued jobs, one job running
+        assertWaiter { statusManager.status == RoomStatus.Attaching }
+
+        // Release op started from separate coroutine
+        val roomReleaseOpDeferred = async { roomLifecycle.release() }
+        assertWaiter { roomLifecycle.atomicCoroutineScope().pendingJobCount == 1 } // release op queued
+        Assert.assertEquals(RoomStatus.Attaching, statusManager.status)
+
+        // Finish room ATTACH
+        roomAttached.send(true)
+
+        val result = kotlin.runCatching { roomReleaseOpDeferred.await() }
+        Assert.assertTrue(result.isSuccess)
+        Assert.assertEquals(RoomStatus.Released, statusManager.status)
+
+        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+
+        Assert.assertEquals(4, roomEvents.size)
+        Assert.assertEquals(RoomStatus.Attaching, roomEvents[0].current)
+        Assert.assertEquals(RoomStatus.Attached, roomEvents[1].current)
+        Assert.assertEquals(RoomStatus.Releasing, roomEvents[2].current)
+        Assert.assertEquals(RoomStatus.Released, roomEvents[3].current)
+
+        coVerify { roomLifecycle.attach() }
+    }
+
+    @Test
+    fun `(CHA-RL3m) Release op should transition room into RELEASING state`() = runTest {
         val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
@@ -106,23 +166,18 @@ class ReleaseTest {
             roomStatusChanges.add(it)
         }
 
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, emptyList(), logger), recordPrivateCalls = true)
-        justRun { roomLifecycle invokeNoArgs "clearAllTransientDetachTimeouts" }
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, emptyList(), logger), recordPrivateCalls = true)
 
         roomLifecycle.release()
         Assert.assertEquals(RoomStatus.Releasing, roomStatusChanges[0].current)
         Assert.assertEquals(RoomStatus.Released, roomStatusChanges[1].current)
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
-
-        verify(exactly = 1) {
-            roomLifecycle invokeNoArgs "clearAllTransientDetachTimeouts"
-        }
     }
 
     @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RL3d, CHA-RC2e) Release op should detach each contributor channel sequentially and room should be considered RELEASED`() =
+    fun `(CHA-RL3n2) Release op should detach room channel and room should be considered RELEASED`() =
         runTest {
             val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
                 setStatus(RoomStatus.Attached)
@@ -137,26 +192,19 @@ class ReleaseTest {
             val contributors = createRoomFeatureMocks()
             Assert.assertEquals(5, contributors.size)
 
-            val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
+            val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger))
             val result = kotlin.runCatching { roomLifecycle.release() }
             Assert.assertTrue(result.isSuccess)
             Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
 
-            Assert.assertEquals(5, capturedChannels.size)
-            repeat(5) {
-                Assert.assertEquals(contributors[it].channelWrapper.name, capturedChannels[it].name)
-            }
-            Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
-            Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-            Assert.assertEquals("1234::\$chat", capturedChannels[2].name)
-            Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
-            Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
+            Assert.assertEquals(1, capturedChannels.size)
+            Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
 
             assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
         }
 
     @Test
-    fun `(CHA-RL3e, CHA-RC2e) If a one of the contributors is in failed state, release op continues for other contributors`() = runTest {
+    fun `(CHA-RL3n3) If channel detach enters failed state, release op finishes with released state`() = runTest {
         val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
@@ -164,18 +212,15 @@ class ReleaseTest {
         mockkStatic(RealtimeChannel::detachCoroutine)
         val capturedChannels = mutableListOf<RealtimeChannel>()
         coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
-            capturedChannels.add(firstArg())
+            val channel = firstArg<RealtimeChannel>()
+            capturedChannels.add(channel)
+            every { channel.state } returns ChannelState.failed
+            error("failed to detach channel")
         }
 
         val contributors = createRoomFeatureMocks("1234")
 
-        // Put typing contributor into failed state, so it won't be detached
-        contributors.first { it.channelWrapper.name.contains("typing") }.apply {
-            val channel = channelWrapper
-            every { channel.state } returns ChannelState.failed
-        }
-
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -183,15 +228,13 @@ class ReleaseTest {
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
-        Assert.assertEquals(4, capturedChannels.size)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-        Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[2].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[3].name)
+        Assert.assertEquals(1, capturedChannels.size)
+        Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
+        Assert.assertEquals(ChannelState.failed, roomLifecycle.channel.state)
     }
 
     @Test
-    fun `(CHA-RL3f) If a one of the contributors fails to detach, release op continues for all contributors after 250ms delay`() = runTest {
+    fun `(CHA-RL3n4) If channel detach fails with other state (other than failed), channel detach retried after 250ms delay`() = runTest {
         val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
@@ -213,7 +256,7 @@ class ReleaseTest {
         }
 
         val contributors = createRoomFeatureMocks("1234")
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -226,12 +269,12 @@ class ReleaseTest {
 
         // Channel release success on 6th call
         coVerify(exactly = 6) {
-            roomLifecycle invokeNoArgs "doRelease"
+            any<RealtimeChannel>().detachCoroutine()
         }
     }
 
     @Test
-    fun `(CHA-RL3g, CHA-RC2e) Release op continues till all contributors enters either DETACHED or FAILED state`() = runTest {
+    fun `(CHA-RL3n) Release op continues till channel enters either DETACHED or FAILED state`() = runTest {
         val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
@@ -253,33 +296,26 @@ class ReleaseTest {
         val contributors = createRoomFeatureMocks()
         Assert.assertEquals(5, contributors.size)
 
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
         roomLifecycle.release()
         Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
 
-        Assert.assertEquals(5, capturedChannels.size)
-        repeat(5) {
-            Assert.assertEquals(contributors[it].channelWrapper.name, capturedChannels[it].name)
-        }
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[0].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[1].name)
-        Assert.assertEquals("1234::\$chat", capturedChannels[2].name)
-        Assert.assertEquals("1234::\$chat::\$reactions", capturedChannels[3].name)
-        Assert.assertEquals("1234::\$chat::\$chatMessages", capturedChannels[4].name)
+        Assert.assertEquals(1, capturedChannels.size)
+        Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         // Channel release success on 6th call
         coVerify(exactly = 6) {
-            roomLifecycle invokeNoArgs "doRelease"
+            any<RealtimeChannel>().detachCoroutine()
         }
     }
 
     @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RL3h, CHA-RC2e) Upon channel release, underlying Realtime Channels are released from the core SDK prevent leakage`() =
+    fun `(CHA-RL3h) Upon channel release, underlying room features are released from the core SDK to prevent leakage`() =
         runTest {
-            val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+            val statusManager = spyk(DefaultStatusManager(logger)).apply {
                 setStatus(RoomStatus.Attached)
             }
 
@@ -292,27 +328,27 @@ class ReleaseTest {
             val contributors = createRoomFeatureMocks()
             Assert.assertEquals(5, contributors.size)
 
-            val releasedChannels = mutableListOf<RealtimeChannel>()
+            val releasedFeatures = mutableListOf<String>()
             for (contributor in contributors) {
                 every { contributor.release() } answers {
-                    releasedChannels.add(contributor.channelWrapper)
+                    releasedFeatures.add(contributor.featureName)
                 }
             }
 
-            val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, contributors, logger))
+            val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger))
             val result = kotlin.runCatching { roomLifecycle.release() }
             Assert.assertTrue(result.isSuccess)
-            Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
+            Assert.assertEquals(RoomStatus.Released, statusManager.status)
 
-            Assert.assertEquals(5, releasedChannels.size)
+            Assert.assertEquals(5, releasedFeatures.size)
             repeat(5) {
-                Assert.assertEquals(contributors[it].channelWrapper.name, releasedChannels[it].name)
+                Assert.assertEquals(contributors[it].featureName, releasedFeatures[it])
             }
-            Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[0].name)
-            Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[1].name)
-            Assert.assertEquals("1234::\$chat", releasedChannels[2].name)
-            Assert.assertEquals("1234::\$chat::\$reactions", releasedChannels[3].name)
-            Assert.assertEquals("1234::\$chat::\$chatMessages", releasedChannels[4].name)
+            Assert.assertEquals("messages", releasedFeatures[0])
+            Assert.assertEquals("presence", releasedFeatures[1])
+            Assert.assertEquals("occupancy", releasedFeatures[2])
+            Assert.assertEquals("typing", releasedFeatures[3])
+            Assert.assertEquals("reactions", releasedFeatures[4])
 
             assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
@@ -322,64 +358,4 @@ class ReleaseTest {
                 }
             }
         }
-
-    @Test
-    fun `(CHA-RL3k) Release op should wait for existing operation as per (CHA-RL7)`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
-            setStatus(RoomStatus.Attached)
-        }
-
-        val roomEvents = mutableListOf<RoomStatusChange>()
-
-        statusLifecycle.onChange {
-            roomEvents.add(it)
-        }
-
-        mockkStatic(RealtimeChannel::detachCoroutine)
-        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
-            val channel = firstArg<RealtimeChannel>()
-            every { channel.state } returns ChannelState.detached
-        }
-
-        val roomLifecycle = spyk(RoomLifecycleManager(roomScope, statusLifecycle, createRoomFeatureMocks(), logger))
-
-        val roomAttached = Channel<Boolean>()
-        coEvery {
-            roomLifecycle.attach()
-        } coAnswers {
-            roomLifecycle.atomicCoroutineScope().async {
-                statusLifecycle.setStatus(RoomStatus.Attaching)
-                roomAttached.receive()
-                statusLifecycle.setStatus(RoomStatus.Attached)
-            }
-        }
-
-        // ATTACH op started from separate coroutine
-        launch { roomLifecycle.attach() }
-        assertWaiter { !roomLifecycle.atomicCoroutineScope().finishedProcessing }
-        Assert.assertEquals(0, roomLifecycle.atomicCoroutineScope().pendingJobCount) // no queued jobs, one job running
-        assertWaiter { statusLifecycle.status == RoomStatus.Attaching }
-
-        // Release op started from separate coroutine
-        val roomReleaseOpDeferred = async { roomLifecycle.release() }
-        assertWaiter { roomLifecycle.atomicCoroutineScope().pendingJobCount == 1 } // release op queued
-        Assert.assertEquals(RoomStatus.Attaching, statusLifecycle.status)
-
-        // Finish room ATTACH
-        roomAttached.send(true)
-
-        val result = kotlin.runCatching { roomReleaseOpDeferred.await() }
-        Assert.assertTrue(result.isSuccess)
-        Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
-
-        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
-
-        Assert.assertEquals(4, roomEvents.size)
-        Assert.assertEquals(RoomStatus.Attaching, roomEvents[0].current)
-        Assert.assertEquals(RoomStatus.Attached, roomEvents[1].current)
-        Assert.assertEquals(RoomStatus.Releasing, roomEvents[2].current)
-        Assert.assertEquals(RoomStatus.Released, roomEvents[3].current)
-
-        coVerify { roomLifecycle.attach() }
-    }
 }

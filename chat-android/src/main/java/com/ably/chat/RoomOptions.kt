@@ -92,7 +92,7 @@ public class MutableRoomOptions : RoomOptions {
 
 @ChatDsl
 public class MutablePresenceOptions : PresenceOptions {
-    override val enableEvents: Boolean = true
+    override var enableEvents: Boolean = true
 }
 
 @ChatDsl
