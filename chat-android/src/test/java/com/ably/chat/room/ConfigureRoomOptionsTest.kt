@@ -2,7 +2,6 @@ package com.ably.chat.room
 
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
-import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.typing

@@ -59,20 +59,17 @@ class PrecedenceTest {
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
             delay(500)
-            statusManager.setStatus(RoomStatus.Attached)
         }
 
         // Detach operation
-        mockkStatic(RealtimeChannel::detachCoroutine)
         coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             delay(500)
-            statusManager.setStatus(RoomStatus.Detached)
         }
+
 
         // Release operation
         coEvery { roomLifecycle invokeNoArgs "retryUntilChannelDetachedOrFailed" } coAnswers {
             delay(200)
-            statusManager.setStatus(RoomStatus.Released)
         }
 
         withContext(Dispatchers.Default.limitedParallelism(1)) {
@@ -97,8 +94,8 @@ class PrecedenceTest {
         Assert.assertEquals(4, roomStatusChanges.size)
         Assert.assertEquals(RoomStatus.Attaching, roomStatusChanges[0].current)
         Assert.assertEquals(RoomStatus.Attached, roomStatusChanges[1].current)
-        Assert.assertEquals(RoomStatus.Releasing, roomStatusChanges[4].current)
-        Assert.assertEquals(RoomStatus.Released, roomStatusChanges[5].current)
+        Assert.assertEquals(RoomStatus.Releasing, roomStatusChanges[2].current)
+        Assert.assertEquals(RoomStatus.Released, roomStatusChanges[3].current)
 
         coVerify {
             any<RealtimeChannel>().attachCoroutine()

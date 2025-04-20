@@ -148,7 +148,6 @@ internal fun createRoomFeatureMocks(
     val typingContributor = spyk(room.typing, recordPrivateCalls = true) as ContributesToRoomLifecycle
     val reactionsContributor = spyk(room.reactions, recordPrivateCalls = true) as ContributesToRoomLifecycle
 
-    // CHA-RC2e - Add contributors/features as per the order of precedence
     return listOf(messagesContributor, presenceContributor, typingContributor, reactionsContributor, occupancyContributor)
 }
 

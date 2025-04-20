@@ -161,6 +161,10 @@ class ReleaseTest {
         val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
+
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {}
+
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
         statusLifecycle.onChange {
             roomStatusChanges.add(it)
@@ -230,7 +234,7 @@ class ReleaseTest {
 
         Assert.assertEquals(1, capturedChannels.size)
         Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
-        Assert.assertEquals(ChannelState.failed, roomLifecycle.channel.state)
+        Assert.assertEquals(ChannelState.failed, roomLifecycle.roomChannel.state)
     }
 
     @Test
@@ -346,9 +350,9 @@ class ReleaseTest {
             }
             Assert.assertEquals("messages", releasedFeatures[0])
             Assert.assertEquals("presence", releasedFeatures[1])
-            Assert.assertEquals("occupancy", releasedFeatures[2])
-            Assert.assertEquals("typing", releasedFeatures[3])
-            Assert.assertEquals("reactions", releasedFeatures[4])
+            Assert.assertEquals("typing", releasedFeatures[2])
+            Assert.assertEquals("reactions", releasedFeatures[3])
+            Assert.assertEquals("occupancy", releasedFeatures[4])
 
             assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 

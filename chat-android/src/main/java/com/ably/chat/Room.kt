@@ -180,7 +180,6 @@ internal class DefaultRoom(
 
         options.validateRoomOptions(this.logger) // CHA-RC2a
 
-        // CHA-RC2e - Add contributors/features as per the order of precedence
         val roomFeatures = mutableListOf(messages, presence, typing, reactions, occupancy)
 
         lifecycleManager = RoomLifecycleManager(this, roomScope, roomStatusManager, roomFeatures, this.logger)

@@ -64,7 +64,7 @@ internal class RoomLifecycleManager(
      */
     private val retryDurationInMs: Long = 250
 
-    private val roomChannel = room.channel
+    val roomChannel = room.channel
 
     @OptIn(InternalAPI::class)
     val channel: Channel = roomChannel.javaChannel // CHA-RC2f
@@ -156,7 +156,7 @@ internal class RoomLifecycleManager(
 
             if (statusLifecycle.status == RoomStatus.Released) { // CHA-RL1c
                 logger.error("attach(); attach failed, room is in released state")
-                throw lifeCycleException("attach(); unable to attach room; room is released", ErrorCode.RoomIsReleased)
+                throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomIsReleased)
             }
 
             logger.debug("attach(); attaching room", context = mapOf("state" to room.status.stateName));
@@ -171,7 +171,7 @@ internal class RoomLifecycleManager(
                 isExplicitlyDetached = false
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
-                val errorMessage = "failed to attach room: ${attachException.message}"
+                val errorMessage = "failed to attach room: ${attachException.errorInfo.message}"
                 logger.error(errorMessage)
                 attachException.errorInfo?.let {
                     it.message = errorMessage
@@ -196,13 +196,13 @@ internal class RoomLifecycleManager(
 
             // CHA-RL2d
             if (statusLifecycle.status == RoomStatus.Failed) {
-                throw lifeCycleException("detach(); cannot detach room, room is in failed state", ErrorCode.RoomInFailedState)
+                throw lifeCycleException("cannot detach room, room is in failed state", ErrorCode.RoomInFailedState)
             }
 
             // CHA-RL2c
             if (statusLifecycle.status == RoomStatus.Released) {
                 logger.error("detach(); detach failed, room is in released state")
-                throw lifeCycleException("detach(); unable to detach room; room is released", ErrorCode.RoomIsReleased)
+                throw lifeCycleException("unable to detach room; room is released", ErrorCode.RoomIsReleased)
             }
 
             // CHA-RL2a
@@ -222,7 +222,7 @@ internal class RoomLifecycleManager(
                 statusLifecycle.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {
-                val errorMessage = "failed to attach room: ${detachException.message}"
+                val errorMessage = "failed to attach room: ${detachException.errorInfo.message}"
                 logger.error(errorMessage)
                 detachException.errorInfo?.let {
                     it.message = errorMessage

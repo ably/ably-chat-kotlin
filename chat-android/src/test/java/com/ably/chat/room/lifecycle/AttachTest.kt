@@ -75,9 +75,9 @@ class AttachTest {
                 roomLifecycle.attach()
             }
         }
-        Assert.assertEquals("attach(); unable to attach room; room is released", exception.errorInfo.message)
+        Assert.assertEquals("unable to attach room; room is released", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
-        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
+        Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
 
@@ -122,7 +122,7 @@ class AttachTest {
 
         Assert.assertEquals("unable to attach room; room is released", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
-        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
+        Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         coVerify { roomLifecycle.release() }
@@ -131,6 +131,10 @@ class AttachTest {
     @Test
     fun `(CHA-RL1e) Attach op should transition room into ATTACHING state`() = runTest {
         val statusManager = spyk(DefaultStatusManager(logger))
+
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers { }
+
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
         statusManager.onChange {
             roomStatusChanges.add(it)
@@ -203,9 +207,9 @@ class AttachTest {
         Assert.assertEquals(RoomStatus.Suspended, statusManager.status)
 
         val exception = result.exceptionOrNull() as AblyException
-        Assert.assertEquals("failed to attach room: ", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.InternalError, exception.errorInfo.code)
-        Assert.assertEquals(500, exception.errorInfo.statusCode)
+        Assert.assertEquals("failed to attach room: error attaching channel 1234::\$chat", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
+        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
     }
 
     @Test
@@ -237,8 +241,8 @@ class AttachTest {
         Assert.assertEquals(RoomStatus.Failed, statusManager.status)
 
         val exception = result.exceptionOrNull() as AblyException
-        Assert.assertEquals("failed to attach room: ", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.InternalError, exception.errorInfo.code)
-        Assert.assertEquals(500, exception.errorInfo.statusCode)
+        Assert.assertEquals("failed to attach room: error attaching channel 1234::\$chat", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
+        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
     }
 }

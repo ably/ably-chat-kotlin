@@ -74,9 +74,9 @@ class DetachTest {
                 roomLifecycle.detach()
             }
         }
-        Assert.assertEquals("detach(); unable to detach room; room is released", exception.errorInfo.message)
+        Assert.assertEquals("unable to detach room; room is released", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
-        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
+        Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
 
@@ -85,15 +85,16 @@ class DetachTest {
         val statusManager = spyk(DefaultStatusManager(logger)).apply {
             setStatus(RoomStatus.Failed)
         }
+
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, listOf(), logger))
         val exception = Assert.assertThrows(AblyException::class.java) {
             runBlocking {
                 roomLifecycle.detach()
             }
         }
-        Assert.assertEquals("detach(); unable to detach room; room is in failed state", exception.errorInfo.message)
+        Assert.assertEquals("cannot detach room, room is in failed state", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomInFailedState.code, exception.errorInfo.code)
-        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
+        Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
 
@@ -136,9 +137,9 @@ class DetachTest {
         Assert.assertTrue(result.isFailure)
         val exception = result.exceptionOrNull() as AblyException
 
-        Assert.assertEquals("detach(); unable to detach room; room is released", exception.errorInfo.message)
+        Assert.assertEquals("unable to detach room; room is released", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
-        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
+        Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         coVerify { roomLifecycle.release() }
@@ -148,6 +149,9 @@ class DetachTest {
     fun `(CHA-RL2j) Detach op should transition room into DETACHING state`() = runTest {
         val statusManager = spyk(DefaultStatusManager(logger))
         statusManager.setStatus(RoomStatus.Attached)
+
+        mockkStatic(RealtimeChannel::detachCoroutine)
+        coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {}
 
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
         statusManager.onChange {
@@ -218,8 +222,8 @@ class DetachTest {
         Assert.assertEquals(RoomStatus.Suspended, statusManager.status)
 
         val exception = result.exceptionOrNull() as AblyException
-        Assert.assertEquals("failed to detach room: ", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.InternalError, exception.errorInfo.code)
+        Assert.assertEquals("failed to attach room: error detaching channel 1234::\$chat", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
         Assert.assertEquals(500, exception.errorInfo.statusCode)
     }
 
@@ -250,8 +254,8 @@ class DetachTest {
         Assert.assertEquals(RoomStatus.Failed, statusManager.status)
 
         val exception = result.exceptionOrNull() as AblyException
-        Assert.assertEquals("failed to detach room: ", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.InternalError, exception.errorInfo.code)
+        Assert.assertEquals("failed to attach room: error detaching channel 1234::\$chat", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
         Assert.assertEquals(500, exception.errorInfo.statusCode)
     }
 }
