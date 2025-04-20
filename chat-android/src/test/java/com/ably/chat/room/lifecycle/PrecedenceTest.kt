@@ -53,7 +53,10 @@ class PrecedenceTest {
         val contributors = createRoomFeatureMocks("1234")
         Assert.assertEquals(5, contributors.size)
 
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle = spyk(
+            RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger),
+            recordPrivateCalls = true,
+        )
 
         // Attach operation
         mockkStatic(RealtimeChannel::attachCoroutine)
@@ -65,7 +68,6 @@ class PrecedenceTest {
         coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {
             delay(500)
         }
-
 
         // Release operation
         coEvery { roomLifecycle invokeNoArgs "retryUntilChannelDetachedOrFailed" } coAnswers {

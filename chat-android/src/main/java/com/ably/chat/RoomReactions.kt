@@ -114,7 +114,7 @@ internal data class SendReactionParams(
 
 internal class DefaultRoomReactions(
     private val room: DefaultRoom,
-) : RoomReactions, ContributesToRoomLifecycle{
+) : RoomReactions, ContributesToRoomLifecycle {
 
     override val featureName = "reactions"
 

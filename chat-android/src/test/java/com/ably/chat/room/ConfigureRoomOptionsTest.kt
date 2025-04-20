@@ -28,7 +28,7 @@ class ConfigureRoomOptionsTest {
     private val logger = createMockLogger()
 
     @Test
-        fun `(CHA-RC2a) If a room is requested with a negative typing timeout, an ErrorInfo with code 40001 must be thrown`() = runTest {
+    fun `(CHA-RC2a) If a room is requested with a negative typing timeout, an ErrorInfo with code 40001 must be thrown`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
 
@@ -80,10 +80,14 @@ class ConfigureRoomOptionsTest {
         }.exceptionOrNull()
         Assert.assertNull(ex)
 
-        room = DefaultRoom("1234", buildRoomOptions {
-            presence { enableEvents = false }
-            occupancy { enableEvents = false }
-        }, mockRealtimeClient, chatApi, clientId, logger)
+        room = DefaultRoom(
+            "1234",
+            buildRoomOptions {
+                presence { enableEvents = false }
+                occupancy { enableEvents = false }
+            },
+            mockRealtimeClient, chatApi, clientId, logger,
+        )
 
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)

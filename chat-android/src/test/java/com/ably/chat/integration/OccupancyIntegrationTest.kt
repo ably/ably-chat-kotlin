@@ -2,7 +2,6 @@ package com.ably.chat.integration
 
 import com.ably.chat.DefaultOccupancyEvent
 import com.ably.chat.OccupancyEvent
-import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
 import com.ably.chat.subscribeOnce
 import java.util.UUID

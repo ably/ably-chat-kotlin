@@ -2,8 +2,8 @@ package com.ably.chat.room
 
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
-import com.ably.chat.DefaultStatusManager
 import com.ably.chat.DefaultRoomStatusChange
+import com.ably.chat.DefaultStatusManager
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.Room

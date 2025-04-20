@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 /**
  * Represents a chat room.
  */
-public interface Room {
+public interface Room : Discontinuity {
     /**
      * Get the underlying Ably realtime channel used for the room.
      * @returns The realtime channel.
@@ -120,12 +120,6 @@ public interface Room {
      * Detaches from the room to stop receiving events in realtime.
      */
     public suspend fun detach()
-
-    /**
-     * Register a listener to be called when a discontinuity is detected.
-     * @param listener The listener to be called when a discontinuity is detected.
-     */
-    public fun onDiscontinuity(listener: Discontinuity.Listener): StatusSubscription
 }
 
 /**

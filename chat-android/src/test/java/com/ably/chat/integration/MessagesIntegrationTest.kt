@@ -4,7 +4,6 @@ import com.ably.chat.BuildConfig
 import com.ably.chat.Message
 import com.ably.chat.MessageEvent
 import com.ably.chat.MessageMetadata
-import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.copy

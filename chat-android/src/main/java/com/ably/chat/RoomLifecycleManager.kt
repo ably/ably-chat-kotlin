@@ -87,24 +87,20 @@ internal class RoomLifecycleManager(
         ChannelState.detaching to RoomStatus.Detaching,
         ChannelState.detached to RoomStatus.Detached,
         ChannelState.failed to RoomStatus.Failed,
-        ChannelState.suspended to RoomStatus.Suspended
+        ChannelState.suspended to RoomStatus.Suspended,
     )
+
+    init {
+        // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
+        channel.on { eventBus.tryEmit(it) }
+        stateChangeEventHandler = handleChannelStateChanges()
+    }
 
     /**
      * Maps a channel state to a room status.
      */
-    private fun mapChannelStateToRoomStatus(channelState: ChannelState): RoomStatus {
-        return channelStateToRoomStatusMap[channelState] ?: error("Unknown ChannelState: $channelState")
-    }
-
-
-    init {
-        // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
-        channel.on {
-            eventBus.tryEmit(it)
-        }
-        stateChangeEventHandler = handleChannelStateChanges()
-    }
+    private fun mapChannelStateToRoomStatus(channelState: ChannelState): RoomStatus =
+        channelStateToRoomStatusMap[channelState] ?: error("Unknown ChannelState: $channelState")
 
     /**
      * Sets up monitoring of channel state changes to keep room status in sync.
@@ -116,8 +112,10 @@ internal class RoomLifecycleManager(
         return roomScope.launch {
             eventBus.collect { channelStateChangeEvent ->
                 // CHA-RL11a
-                logger.debug("handleChannelStateChanges(); RoomLifecycleManager.channel state changed",
-                    context = mapOf("change" to channelStateChangeEvent.toString()))
+                logger.debug(
+                    "handleChannelStateChanges(); RoomLifecycleManager.channel state changed",
+                    context = mapOf("change" to channelStateChangeEvent.toString()),
+                )
                 // CHA-RL11b, CHA-RL11c
                 if (!operationInProcess) {
                     val newStatus = mapChannelStateToRoomStatus(channelStateChangeEvent.current)
@@ -132,7 +130,7 @@ internal class RoomLifecycleManager(
                             it.code = ErrorCode.RoomDiscontinuity.code
                         }
                         logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorInfo.toString()))
-                        room.discontinuityDetected(errorInfo);
+                        room.discontinuityDetected(errorInfo)
                     }
                 }
             }
@@ -159,7 +157,7 @@ internal class RoomLifecycleManager(
                 throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomIsReleased)
             }
 
-            logger.debug("attach(); attaching room", context = mapOf("state" to room.status.stateName));
+            logger.debug("attach(); attaching room", context = mapOf("state" to room.status.stateName))
 
             try {
                 // CHA-RL1e
@@ -190,6 +188,7 @@ internal class RoomLifecycleManager(
      * If already detached, this is a no-op.
      * Spec: CHA-RL2
      */
+    @Suppress("ThrowsCount")
     internal suspend fun detach() {
         logger.trace("detach();")
         val deferredDetach = atomicCoroutineScope.async(LifecycleOperationPrecedence.AttachOrDetach.priority) { // CHA-RL2i

@@ -32,7 +32,7 @@ public interface Rooms {
      * throw an exception
      *
      * @param roomId The ID of the room.
-     * @param options The options for the room.
+     * @param initOptions The options for the room.
      * @throws [io.ably.lib.types.ErrorInfo] if a room with the same ID but different options already exists.
      * @returns Room A new or existing Room object.
      * Spec: CHA-RC1f

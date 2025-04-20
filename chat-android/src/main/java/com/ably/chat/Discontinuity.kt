@@ -8,11 +8,6 @@ import kotlinx.coroutines.flow.Flow
  * An interface to be implemented by objects that can emit discontinuities to listeners.
  */
 public interface Discontinuity {
-    /**
-     * Called when a discontinuity is detected on the channel.
-     * @param reason The error that caused the discontinuity.
-     */
-    public fun discontinuityDetected(reason: ErrorInfo?)
 
     /**
      * Register a listener to be called when a discontinuity is detected.
@@ -43,7 +38,7 @@ internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity {
         }
     }
 
-    override fun discontinuityDetected(reason: ErrorInfo?) {
+    fun discontinuityDetected(reason: ErrorInfo?) {
         discontinuityEmitter.emit(RoomEvent.Discontinuity.event, reason)
     }
 }

@@ -108,9 +108,8 @@ public class MutableOccupancyOptions : OccupancyOptions {
     override var enableEvents: Boolean = false
 }
 
-internal fun buildRoomOptions(init: (MutableRoomOptions.() -> Unit)? = null): RoomOptions {
-    return MutableRoomOptions().apply(init ?: {}).asEquatable()
-}
+internal fun buildRoomOptions(init: (MutableRoomOptions.() -> Unit)? = null): RoomOptions =
+    MutableRoomOptions().apply(init ?: {}).asEquatable()
 
 public fun MutableRoomOptions.presence(init: MutablePresenceOptions.() -> Unit = {}) {
     this.presence = MutablePresenceOptions().apply(init)
@@ -136,7 +135,7 @@ internal data class EquatableRoomOptions(
 ) : RoomOptions
 
 internal data class EquatablePresenceOptions(
-    override val enableEvents: Boolean
+    override val enableEvents: Boolean,
 ) : PresenceOptions
 
 internal data class EquatableTypingOptions(
@@ -144,7 +143,7 @@ internal data class EquatableTypingOptions(
 ) : TypingOptions
 
 internal data class EquatableOccupancyOptions(
-    override val enableEvents: Boolean
+    override val enableEvents: Boolean,
 ) : OccupancyOptions
 
 internal data object EquatableRoomReactionsOptions : RoomReactionsOptions

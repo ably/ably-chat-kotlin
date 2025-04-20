@@ -108,5 +108,5 @@ public enum class RoomEvent(public val event: String) {
      * A discontinuity occurs when an attached or update event comes from the channel with resume=false,
      * except for the first attach or attaches after explicit detach calls.
      */
-    Discontinuity("room.discontinuity")
+    Discontinuity("room.discontinuity"),
 }

@@ -170,7 +170,8 @@ class ReleaseTest {
             roomStatusChanges.add(it)
         }
 
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, emptyList(), logger), recordPrivateCalls = true)
+        val roomLifecycle =
+            spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, emptyList(), logger), recordPrivateCalls = true)
 
         roomLifecycle.release()
         Assert.assertEquals(RoomStatus.Releasing, roomStatusChanges[0].current)
@@ -224,7 +225,8 @@ class ReleaseTest {
 
         val contributors = createRoomFeatureMocks("1234")
 
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle =
+            spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -260,7 +262,8 @@ class ReleaseTest {
         }
 
         val contributors = createRoomFeatureMocks("1234")
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle =
+            spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -300,7 +303,8 @@ class ReleaseTest {
         val contributors = createRoomFeatureMocks()
         Assert.assertEquals(5, contributors.size)
 
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle =
+            spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusLifecycle, contributors, logger), recordPrivateCalls = true)
         roomLifecycle.release()
         Assert.assertEquals(RoomStatus.Released, statusLifecycle.status)
 

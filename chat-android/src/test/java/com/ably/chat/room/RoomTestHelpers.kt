@@ -91,7 +91,6 @@ internal fun createMockRoom(
 ): DefaultRoom =
     DefaultRoom(roomId, buildRoomOptions { RoomOptionsWithAllFeatures }, realtimeClient, chatApi, clientId, logger)
 
-
 internal val RoomOptionsWithAllFeatures: MutableRoomOptions.() -> Unit
     get() = {
         typing()
@@ -131,7 +130,6 @@ internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<Strin
 
 internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
     invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
-
 
 internal fun createRoomFeatureMocks(
     roomId: String = DEFAULT_ROOM_ID,

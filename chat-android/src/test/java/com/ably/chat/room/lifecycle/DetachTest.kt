@@ -195,6 +195,7 @@ class DetachTest {
         Assert.assertTrue(roomLifecycle.isExplicitlyDetached)
     }
 
+    @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL2k1, CHA-RL2k3) When detach op is a failure (channel suspended), room enters suspended state and op returns error`() = runTest {
         val statusManager = spyk(DefaultStatusManager(logger))
@@ -209,7 +210,10 @@ class DetachTest {
         }
 
         val contributors = createRoomFeatureMocks("1234")
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle = spyk(
+            RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger),
+            recordPrivateCalls = true,
+        )
 
         Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
         val result = kotlin.runCatching { roomLifecycle.detach() }
@@ -241,7 +245,10 @@ class DetachTest {
         }
 
         val contributors = createRoomFeatureMocks("1234")
-        val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger), recordPrivateCalls = true)
+        val roomLifecycle = spyk(
+            RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger),
+            recordPrivateCalls = true,
+        )
 
         Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
         val result = kotlin.runCatching { roomLifecycle.detach() }
