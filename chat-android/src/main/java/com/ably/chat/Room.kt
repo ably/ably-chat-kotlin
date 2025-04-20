@@ -229,7 +229,7 @@ internal class DefaultRoom(
                 val attachDeferred = CompletableDeferred<Unit>()
                 roomScope.launch {
                     when (roomStatusManager.status) {
-                        RoomStatus.Attached -> {
+                        RoomStatus.Attached -> { // CHA-RL9d
                             featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
                             attachDeferred.complete(Unit)
                         }
