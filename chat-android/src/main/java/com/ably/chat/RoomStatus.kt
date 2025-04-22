@@ -113,42 +113,12 @@ internal interface RoomLifecycle {
      * @returns An object that can be used to unregister the listener.
      */
     fun onChange(listener: Room.Listener): Subscription
-}
 
-/**
- * A new room status that can be set.
- */
-internal interface NewRoomStatus {
-    /**
-     * The new status of the room.
-     */
-    val status: RoomStatus
-
-    /**
-     * An error that provides a reason why the room has
-     * entered the new status, if applicable.
-     */
-    val error: ErrorInfo?
-}
-
-/**
- * An internal interface for the status of a room, which can be used to separate critical
- * internal functionality from user listeners.
- * @internal
- */
-internal interface InternalRoomLifecycle : RoomLifecycle {
     /**
      * Registers a listener that will be called once when the room status changes.
      * @param listener The function to call when the status changes.
      */
     fun onChangeOnce(listener: Room.Listener)
-
-    /**
-     * Sets the status of the room.
-     *
-     * @param params The new status of the room.
-     */
-    fun setStatus(params: NewRoomStatus)
 }
 
 internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, Room.Listener>() {
@@ -167,7 +137,7 @@ internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus,
     }
 }
 
-internal class DefaultStatusManager(logger: Logger) : InternalRoomLifecycle {
+internal class DefaultRoomStatusManager(logger: Logger) : RoomLifecycle {
 
     @Volatile
     private var _status = RoomStatus.Initialized // CHA-RS3
@@ -195,10 +165,6 @@ internal class DefaultStatusManager(logger: Logger) : InternalRoomLifecycle {
 
     override fun onChangeOnce(listener: Room.Listener) {
         internalEmitter.once(listener)
-    }
-
-    override fun setStatus(params: NewRoomStatus) {
-        setStatus(params.status, params.error)
     }
 
     internal fun setStatus(status: RoomStatus, error: ErrorInfo? = null) {

@@ -6,7 +6,7 @@ import com.ably.chat.AtomicCoroutineScope
 import com.ably.chat.ChatApi
 import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoom
-import com.ably.chat.DefaultStatusManager
+import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.Logger
 import com.ably.chat.MutableRoomOptions
 import com.ably.chat.Room
@@ -107,11 +107,11 @@ val Rooms.RoomGetDeferredMap get() = getPrivateField<MutableMap<String, Completa
 val Rooms.RoomReleaseDeferredMap get() = getPrivateField<MutableMap<String, CompletableDeferred<Unit>>>("roomReleaseDeferredMap")
 
 // Room mocks
-internal val Room.StatusLifecycle get() = getPrivateField<DefaultStatusManager>("statusLifecycle")
+internal val Room.statusManager get() = getPrivateField<DefaultRoomStatusManager>("statusManager")
 internal val Room.LifecycleManager get() = getPrivateField<RoomLifecycleManager>("lifecycleManager")
 
 // DefaultRoomLifecycle mocks
-internal val DefaultStatusManager.InternalEmitter get() = getPrivateField<RoomStatusEventEmitter>("internalEmitter")
+internal val DefaultRoomStatusManager.InternalEmitter get() = getPrivateField<RoomStatusEventEmitter>("internalEmitter")
 
 // EventEmitter mocks
 internal val EventEmitter<*, *>.Listeners get() = getPrivateField<List<Any>>("listeners")

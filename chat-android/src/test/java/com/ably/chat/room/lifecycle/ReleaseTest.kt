@@ -1,6 +1,6 @@
 package com.ably.chat.room.lifecycle
 
-import com.ably.chat.DefaultStatusManager
+import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
@@ -49,7 +49,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3a) Release success when room is already in released state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Released)
         }
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
@@ -60,7 +60,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3b) If room is in detached state, room is immediately transitioned to released`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Detached)
         }
         val states = mutableListOf<RoomStatusChange>()
@@ -79,7 +79,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3j) If room is in initialized state, room is immediately transitioned to released`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Initialized)
         }
         val states = mutableListOf<RoomStatusChange>()
@@ -98,7 +98,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3k) Release op should wait for existing operation as per (CHA-RL7)`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
 
@@ -158,7 +158,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3m) Release op should transition room into RELEASING state`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusLifecycle = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
 
@@ -184,7 +184,7 @@ class ReleaseTest {
     @Test
     fun `(CHA-RL3n2) Release op should detach room channel and room should be considered RELEASED`() =
         runTest {
-            val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+            val statusLifecycle = spyk(DefaultRoomStatusManager(logger)).apply {
                 setStatus(RoomStatus.Attached)
             }
 
@@ -210,7 +210,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3n3) If channel detach enters failed state, release op finishes with released state`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusLifecycle = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
 
@@ -241,7 +241,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3n4) If channel detach fails with other state (other than failed), channel detach retried after 250ms delay`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusLifecycle = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
 
@@ -282,7 +282,7 @@ class ReleaseTest {
 
     @Test
     fun `(CHA-RL3n) Release op continues till channel enters either DETACHED or FAILED state`() = runTest {
-        val statusLifecycle = spyk(DefaultStatusManager(logger)).apply {
+        val statusLifecycle = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
 
@@ -323,7 +323,7 @@ class ReleaseTest {
     @Test
     fun `(CHA-RL3h) Upon channel release, underlying room features are released from the core SDK to prevent leakage`() =
         runTest {
-            val statusManager = spyk(DefaultStatusManager(logger)).apply {
+            val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
                 setStatus(RoomStatus.Attached)
             }
 

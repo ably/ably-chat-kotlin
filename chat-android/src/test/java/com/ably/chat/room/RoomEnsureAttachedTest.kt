@@ -3,7 +3,7 @@ package com.ably.chat.room
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomStatusChange
-import com.ably.chat.DefaultStatusManager
+import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.Room
@@ -41,7 +41,7 @@ class RoomEnsureAttachedTest {
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Set room status to ATTACHED
-        room.StatusLifecycle.setStatus(RoomStatus.Attached)
+        room.statusManager.setStatus(RoomStatus.Attached)
         Assert.assertEquals(RoomStatus.Attached, room.status)
 
         val result = kotlin.runCatching { room.ensureAttached(logger) }
@@ -66,7 +66,7 @@ class RoomEnsureAttachedTest {
         )
 
         for (invalidStatus in invalidStatuses) {
-            room.StatusLifecycle.setStatus(invalidStatus)
+            room.statusManager.setStatus(invalidStatus)
             Assert.assertEquals(invalidStatus, room.status)
 
             // Check for exception when ensuring room ATTACHED
@@ -85,17 +85,17 @@ class RoomEnsureAttachedTest {
         val room = DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
-        val roomLifecycleMock = spyk(DefaultStatusManager(logger))
+        val roomLifecycleMock = spyk(DefaultRoomStatusManager(logger))
         every {
             roomLifecycleMock.onChangeOnce(any<Room.Listener>())
         } answers {
             val listener = firstArg<Room.Listener>()
             listener.roomStatusChanged(DefaultRoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
         }
-        room.setPrivateField("statusLifecycle", roomLifecycleMock)
+        room.setPrivateField("statusManager", roomLifecycleMock)
 
         // Set room status to ATTACHING
-        room.StatusLifecycle.setStatus(RoomStatus.Attaching)
+        room.statusManager.setStatus(RoomStatus.Attaching)
         Assert.assertEquals(RoomStatus.Attaching, room.status)
 
         room.ensureAttached(logger)
@@ -111,21 +111,21 @@ class RoomEnsureAttachedTest {
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Set room status to ATTACHING
-        room.StatusLifecycle.setStatus(RoomStatus.Attaching)
+        room.statusManager.setStatus(RoomStatus.Attaching)
         Assert.assertEquals(RoomStatus.Attaching, room.status)
 
         val ensureAttachJob = async { room.ensureAttached(logger) }
 
         // Wait for listener to be registered
-        assertWaiter { room.StatusLifecycle.InternalEmitter.Filters.size == 1 }
+        assertWaiter { room.statusManager.InternalEmitter.Filters.size == 1 }
 
         // Set ATTACHED status
-        room.StatusLifecycle.setStatus(RoomStatus.Attached)
+        room.statusManager.setStatus(RoomStatus.Attached)
 
         val result = kotlin.runCatching { ensureAttachJob.await() }
         Assert.assertTrue(result.isSuccess)
 
-        Assert.assertEquals(0, room.StatusLifecycle.InternalEmitter.Filters.size) // Emitted event processed
+        Assert.assertEquals(0, room.statusManager.InternalEmitter.Filters.size) // Emitted event processed
     }
 
     @Suppress("MaximumLineLength")
@@ -147,16 +147,16 @@ class RoomEnsureAttachedTest {
 
         for (invalidStatus in invalidStatuses) {
             // Set room status to ATTACHING
-            room.StatusLifecycle.setStatus(RoomStatus.Attaching)
+            room.statusManager.setStatus(RoomStatus.Attaching)
             Assert.assertEquals(RoomStatus.Attaching, room.status)
 
             val ensureAttachJob = async(SupervisorJob()) { room.ensureAttached(logger) }
 
             // Wait for listener to be registered
-            assertWaiter { room.StatusLifecycle.InternalEmitter.Filters.size == 1 }
+            assertWaiter { room.statusManager.InternalEmitter.Filters.size == 1 }
 
             // set invalid room status
-            room.StatusLifecycle.setStatus(invalidStatus)
+            room.statusManager.setStatus(invalidStatus)
 
             // Check for exception when ensuring room ATTACHED
             val result = kotlin.runCatching { ensureAttachJob.await() }
@@ -167,7 +167,7 @@ class RoomEnsureAttachedTest {
             val errMsg = "Can't perform operation; the room '$roomId' is in an invalid state: $invalidStatus"
             Assert.assertEquals(errMsg, exception.errorInfo.message)
 
-            Assert.assertEquals(0, room.StatusLifecycle.InternalEmitter.Filters.size) // Emitted event processed
+            Assert.assertEquals(0, room.statusManager.InternalEmitter.Filters.size) // Emitted event processed
         }
     }
 }

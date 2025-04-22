@@ -158,7 +158,7 @@ internal class DefaultTyping(
 
     private var typingHeartbeatStarted: ValueTimeMark? = null
 
-    val channelWrapper: RealtimeChannel = room.channel
+    private val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f

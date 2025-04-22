@@ -159,15 +159,15 @@ internal class DefaultRoom(
 
     override val occupancy = DefaultOccupancy(room = this)
 
-    private val roomStatusManager = DefaultStatusManager(this.logger)
+    private val statusManager = DefaultRoomStatusManager(this.logger)
 
     override val status: RoomStatus
-        get() = roomStatusManager.status
+        get() = statusManager.status
 
     override val error: ErrorInfo?
-        get() = roomStatusManager.error
+        get() = statusManager.error
 
-    private var lifecycleManager: RoomLifecycleManager
+    private val lifecycleManager: RoomLifecycleManager
 
     init {
         this.logger.debug("Initializing based on provided RoomOptions: $options")
@@ -176,13 +176,13 @@ internal class DefaultRoom(
 
         val roomFeatures = mutableListOf(messages, presence, typing, reactions, occupancy)
 
-        lifecycleManager = RoomLifecycleManager(this, roomScope, roomStatusManager, roomFeatures, this.logger)
+        lifecycleManager = RoomLifecycleManager(this, roomScope, statusManager, roomFeatures, this.logger)
 
         this.logger.debug("Initialized with features: ${roomFeatures.map { it.featureName }.joinWithBrackets}")
     }
 
     override fun onStatusChange(listener: Room.Listener): Subscription =
-        roomStatusManager.onChange(listener)
+        statusManager.onChange(listener)
 
     override suspend fun attach() {
         logger.trace("attach();")
@@ -212,7 +212,7 @@ internal class DefaultRoom(
     internal suspend fun ensureAttached(featureLogger: Logger) {
         featureLogger.trace("ensureAttached();")
         // CHA-PR3e, CHA-PR10e, CHA-PR4d, CHA-PR6d, CHA-T2d, CHA-T4a1, CHA-T5e
-        when (val currentRoomStatus = roomStatusManager.status) {
+        when (val currentRoomStatus = statusManager.status) {
             RoomStatus.Attached -> {
                 featureLogger.debug("ensureAttached(); Room is already attached")
                 return
@@ -222,29 +222,29 @@ internal class DefaultRoom(
                 featureLogger.debug("ensureAttached(); Room is in attaching state, waiting for attach to complete")
                 val attachDeferred = CompletableDeferred<Unit>()
                 roomScope.launch {
-                    when (roomStatusManager.status) {
+                    when (statusManager.status) {
                         RoomStatus.Attached -> { // CHA-RL9d
                             featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
                             attachDeferred.complete(Unit)
                         }
 
-                        RoomStatus.Attaching -> roomStatusManager.onChangeOnce {
+                        RoomStatus.Attaching -> statusManager.onChangeOnce {
                             if (it.current == RoomStatus.Attached) {
                                 featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
                                 attachDeferred.complete(Unit)
                             } else {
                                 featureLogger.error("ensureAttached(); waiting complete, room ATTACHING failed with error: ${it.error}")
                                 val exception =
-                                    roomInvalidStateException(roomId, roomStatusManager.status, HttpStatusCode.InternalServerError)
+                                    roomInvalidStateException(roomId, statusManager.status, HttpStatusCode.InternalServerError)
                                 attachDeferred.completeExceptionally(exception)
                             }
                         }
 
                         else -> {
                             featureLogger.error(
-                                "ensureAttached(); waiting complete, room ATTACHING failed with error: ${roomStatusManager.error}",
+                                "ensureAttached(); waiting complete, room ATTACHING failed with error: ${statusManager.error}",
                             )
-                            val exception = roomInvalidStateException(roomId, roomStatusManager.status, HttpStatusCode.InternalServerError)
+                            val exception = roomInvalidStateException(roomId, statusManager.status, HttpStatusCode.InternalServerError)
                             attachDeferred.completeExceptionally(exception)
                         }
                     }
@@ -254,7 +254,7 @@ internal class DefaultRoom(
             }
             // CHA-PR3h, CHA-PR10h, CHA-PR4c, CHA-PR6h, CHA-T2g, CHA-T4a4, CHA-T5d
             else -> {
-                featureLogger.error("ensureAttached(); Room is in invalid state: $currentRoomStatus, error: ${roomStatusManager.error}")
+                featureLogger.error("ensureAttached(); Room is in invalid state: $currentRoomStatus, error: ${statusManager.error}")
                 throw roomInvalidStateException(roomId, currentRoomStatus, HttpStatusCode.BadRequest)
             }
         }

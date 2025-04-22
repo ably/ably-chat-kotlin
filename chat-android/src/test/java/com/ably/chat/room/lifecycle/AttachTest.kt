@@ -1,6 +1,6 @@
 package com.ably.chat.room.lifecycle
 
-import com.ably.chat.DefaultStatusManager
+import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.RoomLifecycleManager
@@ -55,7 +55,7 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1a) Attach success when room is already in attached state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Attached)
         }
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
@@ -66,7 +66,7 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1c) Attach throws exception when room in released state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Released)
         }
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, listOf(), logger))
@@ -83,7 +83,7 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1d) Attach op should wait for existing operation as per (CHA-RL7)`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
         Assert.assertEquals(RoomStatus.Initialized, statusManager.status) // CHA-RS3
 
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
@@ -130,7 +130,7 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1e) Attach op should transition room into ATTACHING state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers { }
@@ -149,7 +149,7 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1k, CHA-RL1k1) When attach op is a success, room enters attached state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         val capturedChannels = mutableListOf<RealtimeChannel>()
@@ -181,7 +181,7 @@ class AttachTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel suspended), room enters suspended state and op returns error`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
@@ -216,7 +216,7 @@ class AttachTest {
 
     @Test
     fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel failed), room status becomes failed and returns error`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {

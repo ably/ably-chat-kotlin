@@ -1,6 +1,6 @@
 package com.ably.chat.room.lifecycle
 
-import com.ably.chat.DefaultStatusManager
+import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.RoomLifecycleManager
@@ -54,7 +54,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2a) Detach success when room is already in detached state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Detached)
         }
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
@@ -65,7 +65,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2c) Detach throws exception when room in released state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Released)
         }
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, listOf(), logger))
@@ -82,7 +82,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2d) Detach throws exception when room is in failed state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger)).apply {
+        val statusManager = spyk(DefaultRoomStatusManager(logger)).apply {
             setStatus(RoomStatus.Failed)
         }
 
@@ -100,7 +100,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2i) Detach op should wait for existing operation as per (CHA-RL7)`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
         Assert.assertEquals(RoomStatus.Initialized, statusManager.status) // CHA-RS3
 
         val roomLifecycle = spyk(RoomLifecycleManager(createMockRoom(), roomScope, statusManager, createRoomFeatureMocks(), logger))
@@ -147,7 +147,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2j) Detach op should transition room into DETACHING state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
         statusManager.setStatus(RoomStatus.Attached)
 
         mockkStatic(RealtimeChannel::detachCoroutine)
@@ -167,7 +167,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2k, CHA-RL2k1) When detach op is a success, room enters detached state`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
         statusManager.setStatus(RoomStatus.Attached)
 
         mockkStatic(RealtimeChannel::detachCoroutine)
@@ -198,7 +198,7 @@ class DetachTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL2k1, CHA-RL2k3) When detach op is a failure (channel suspended), room enters suspended state and op returns error`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
         statusManager.setStatus(RoomStatus.Attached)
 
         mockkStatic(RealtimeChannel::detachCoroutine)
@@ -233,7 +233,7 @@ class DetachTest {
 
     @Test
     fun `(CHA-RL2k1, CHA-RL2k3) When detach op is a failure (channel failed), room status becomes failed and returns error`() = runTest {
-        val statusManager = spyk(DefaultStatusManager(logger))
+        val statusManager = spyk(DefaultRoomStatusManager(logger))
         statusManager.setStatus(RoomStatus.Attached)
 
         mockkStatic(RealtimeChannel::detachCoroutine)

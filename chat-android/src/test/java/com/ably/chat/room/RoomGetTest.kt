@@ -8,6 +8,7 @@ import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
+import com.ably.chat.occupancy
 import com.ably.chat.presence
 import com.ably.chat.typing
 import io.ably.lib.types.AblyException
@@ -58,9 +59,19 @@ class RoomGetTest {
         Assert.assertEquals(room, rooms.RoomIdToRoom["1234"])
 
         // Throws exception for requesting room for different roomOptions
-        val exception = assertThrows(AblyException::class.java) {
+        var exception = assertThrows(AblyException::class.java) {
             runBlocking {
-                rooms.get("1234") { typing() }
+                rooms.get("1234") { presence { enableEvents = false } }
+            }
+        }
+        Assert.assertNotNull(exception)
+        Assert.assertEquals(40_000, exception.errorInfo.code)
+        Assert.assertEquals("room already exists with different options", exception.errorInfo.message)
+
+        // Throws exception for requesting room for different roomOptions
+        exception = assertThrows(AblyException::class.java) {
+            runBlocking {
+                rooms.get("1234") { occupancy { enableEvents = true } }
             }
         }
         Assert.assertNotNull(exception)
@@ -146,9 +157,9 @@ class RoomGetTest {
         coEvery {
             defaultRoom.release()
         } coAnswers {
-            defaultRoom.StatusLifecycle.setStatus(RoomStatus.Releasing)
+            defaultRoom.statusManager.setStatus(RoomStatus.Releasing)
             roomReleased.receive()
-            defaultRoom.StatusLifecycle.setStatus(RoomStatus.Released)
+            defaultRoom.statusManager.setStatus(RoomStatus.Released)
             roomReleased.close()
         }
 

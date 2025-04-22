@@ -164,7 +164,7 @@ internal class DefaultPresence(
 
     override val featureName = "presence"
 
-    val channelWrapper: RealtimeChannel = room.channel
+    private val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel

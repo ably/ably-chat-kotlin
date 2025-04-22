@@ -15,6 +15,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 private const val API_PROTOCOL_VERSION = 3
 private const val PROTOCOL_VERSION_PARAM_NAME = "v"
 private val apiProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, API_PROTOCOL_VERSION.toString())
+private const val ENDPOINT_VERSION = PROTOCOL_VERSION_PARAM_NAME + API_PROTOCOL_VERSION
 
 internal class ChatApi(
     private val realtimeClient: RealtimeClient,
@@ -36,7 +37,7 @@ internal class ChatApi(
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
-            url = "/chat/v3/rooms/$roomId/messages",
+            url = "/chat/$ENDPOINT_VERSION/rooms/$roomId/messages",
             method = HttpMethod.Get,
             params = params,
         ) {
@@ -70,7 +71,7 @@ internal class ChatApi(
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
-            "/chat/v3/rooms/$roomId/messages",
+            "/chat/$ENDPOINT_VERSION/rooms/$roomId/messages",
             HttpMethod.Post,
             body,
         )?.let {
@@ -102,7 +103,7 @@ internal class ChatApi(
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
-            "/chat/v3/rooms/${message.roomId}/messages/${message.serial}",
+            "/chat/$ENDPOINT_VERSION/rooms/${message.roomId}/messages/${message.serial}",
             HttpMethod.Put,
             body,
         )?.let {
@@ -134,7 +135,7 @@ internal class ChatApi(
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
-            "/chat/v3/rooms/${message.roomId}/messages/${message.serial}/delete",
+            "/chat/$ENDPOINT_VERSION/rooms/${message.roomId}/messages/${message.serial}/delete",
             HttpMethod.Post,
             body,
         )?.let {
@@ -163,7 +164,7 @@ internal class ChatApi(
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
         logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
-        return this.makeAuthorizedRequest("/chat/v3/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
+        return this.makeAuthorizedRequest("/chat/$ENDPOINT_VERSION/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
             DefaultOccupancyEvent(
                 connections = it.requireInt("connections"),

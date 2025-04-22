@@ -43,7 +43,7 @@ internal enum class LifecycleOperationPrecedence(val priority: Int) {
 internal class RoomLifecycleManager(
     private val room: DefaultRoom,
     private val roomScope: CoroutineScope,
-    private val statusLifecycle: DefaultStatusManager,
+    private val statusManager: DefaultRoomStatusManager,
     private val contributors: List<ContributesToRoomLifecycle>,
     roomLogger: Logger,
 ) {
@@ -119,7 +119,7 @@ internal class RoomLifecycleManager(
                 // CHA-RL11b, CHA-RL11c
                 if (!operationInProcess) {
                     val newStatus = mapChannelStateToRoomStatus(channelStateChangeEvent.current)
-                    statusLifecycle.setStatus(newStatus, channelStateChangeEvent.reason)
+                    statusManager.setStatus(newStatus, channelStateChangeEvent.reason)
                 }
                 // CHA-RL12a, CHA-RL12b
                 if (channelStateChangeEvent.current == ChannelState.attached) {
@@ -147,12 +147,12 @@ internal class RoomLifecycleManager(
         logger.trace("attach();")
         val deferredAttach = atomicCoroutineScope.async(LifecycleOperationPrecedence.AttachOrDetach.priority) { // CHA-RL1d
 
-            if (statusLifecycle.status == RoomStatus.Attached) { // CHA-RL1a
+            if (statusManager.status == RoomStatus.Attached) { // CHA-RL1a
                 logger.debug("attach(); room is already attached")
                 return@async
             }
 
-            if (statusLifecycle.status == RoomStatus.Released) { // CHA-RL1c
+            if (statusManager.status == RoomStatus.Released) { // CHA-RL1c
                 logger.error("attach(); attach failed, room is in released state")
                 throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomIsReleased)
             }
@@ -161,10 +161,10 @@ internal class RoomLifecycleManager(
 
             try {
                 // CHA-RL1e
-                statusLifecycle.setStatus(RoomStatus.Attaching)
+                statusManager.setStatus(RoomStatus.Attaching)
                 // CHA-RL1k
                 roomChannel.attachCoroutine()
-                statusLifecycle.setStatus(RoomStatus.Attached)
+                statusManager.setStatus(RoomStatus.Attached)
                 hasAttachedOnce = true
                 isExplicitlyDetached = false
                 logger.debug("attach(): room attached successfully")
@@ -175,7 +175,7 @@ internal class RoomLifecycleManager(
                     it.message = errorMessage
                 }
                 val newStatus = mapChannelStateToRoomStatus(roomChannel.state)
-                statusLifecycle.setStatus(newStatus, attachException.errorInfo)
+                statusManager.setStatus(newStatus, attachException.errorInfo)
                 throw attachException
             }
         }
@@ -194,18 +194,18 @@ internal class RoomLifecycleManager(
         val deferredDetach = atomicCoroutineScope.async(LifecycleOperationPrecedence.AttachOrDetach.priority) { // CHA-RL2i
 
             // CHA-RL2d
-            if (statusLifecycle.status == RoomStatus.Failed) {
+            if (statusManager.status == RoomStatus.Failed) {
                 throw lifeCycleException("cannot detach room, room is in failed state", ErrorCode.RoomInFailedState)
             }
 
             // CHA-RL2c
-            if (statusLifecycle.status == RoomStatus.Released) {
+            if (statusManager.status == RoomStatus.Released) {
                 logger.error("detach(); detach failed, room is in released state")
                 throw lifeCycleException("unable to detach room; room is released", ErrorCode.RoomIsReleased)
             }
 
             // CHA-RL2a
-            if (statusLifecycle.status == RoomStatus.Detached) {
+            if (statusManager.status == RoomStatus.Detached) {
                 logger.debug("detach(); room is already detached")
                 return@async
             }
@@ -214,11 +214,11 @@ internal class RoomLifecycleManager(
 
             try {
                 // CHA-RL2j
-                statusLifecycle.setStatus(RoomStatus.Detaching)
+                statusManager.setStatus(RoomStatus.Detaching)
                 // CHA-RL2k
                 roomChannel.detachCoroutine()
                 isExplicitlyDetached = true
-                statusLifecycle.setStatus(RoomStatus.Detached)
+                statusManager.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {
                 val errorMessage = "failed to attach room: ${detachException.errorInfo.message}"
@@ -227,7 +227,7 @@ internal class RoomLifecycleManager(
                     it.message = errorMessage
                 }
                 val newStatus = mapChannelStateToRoomStatus(roomChannel.state)
-                statusLifecycle.setStatus(newStatus, detachException.errorInfo)
+                statusManager.setStatus(newStatus, detachException.errorInfo)
                 throw detachException
             }
         }
@@ -244,19 +244,19 @@ internal class RoomLifecycleManager(
         logger.trace("release();")
         val deferredRelease = atomicCoroutineScope.async(LifecycleOperationPrecedence.Release.priority) { // CHA-RL3k
             // CHA-RL3a
-            if (statusLifecycle.status == RoomStatus.Released) {
+            if (statusManager.status == RoomStatus.Released) {
                 logger.debug("release(); room is already released, no-op")
                 return@async
             }
 
             // CHA-RL3b, CHA-RL3j
-            if (statusLifecycle.status == RoomStatus.Initialized || statusLifecycle.status == RoomStatus.Detached) {
+            if (statusManager.status == RoomStatus.Initialized || statusManager.status == RoomStatus.Detached) {
                 logger.debug("release(); room is initialized or detached, releasing immediately")
                 doRelease()
                 return@async
             }
             // CHA-RL3m
-            statusLifecycle.setStatus(RoomStatus.Releasing)
+            statusManager.setStatus(RoomStatus.Releasing)
             // CHA-RL3n
             logger.debug("release(); attempting channel detach before release", context = mapOf("state" to room.status.stateName))
             retryUntilChannelDetachedOrFailed()
@@ -302,7 +302,7 @@ internal class RoomLifecycleManager(
         }
         stateChangeEventHandler.cancel()
         logger.debug("doRelease(); underlying resources released each room feature")
-        statusLifecycle.setStatus(RoomStatus.Released) // CHA-RL3g
+        statusManager.setStatus(RoomStatus.Released) // CHA-RL3g
         logger.debug("doRelease(); transitioned room to RELEASED state")
     }
 }
