@@ -18,7 +18,7 @@ class OccupancyIntegrationTest {
         val chatClient = sandbox.createSandboxChatClient("client1")
         val roomId = UUID.randomUUID().toString()
 
-        val chatClientRoom = chatClient.rooms.get(roomId) { occupancy() }
+        val chatClientRoom = chatClient.rooms.get(roomId) { occupancy { enableEvents = true } }
 
         val firstOccupancyEvent = CompletableDeferred<OccupancyEvent>()
         chatClientRoom.occupancy.subscribeOnce {

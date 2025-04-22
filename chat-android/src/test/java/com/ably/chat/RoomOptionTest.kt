@@ -33,7 +33,9 @@ class RoomOptionTest {
                 typing()
                 presence()
                 reactions()
-                occupancy()
+                occupancy {
+                    enableEvents = true
+                }
             },
         )
     }

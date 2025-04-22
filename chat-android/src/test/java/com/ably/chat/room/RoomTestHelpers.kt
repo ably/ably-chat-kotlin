@@ -89,7 +89,7 @@ internal fun createMockRoom(
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
 ): DefaultRoom =
-    DefaultRoom(roomId, buildRoomOptions { RoomOptionsWithAllFeatures }, realtimeClient, chatApi, clientId, logger)
+    DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), realtimeClient, chatApi, clientId, logger)
 
 internal val RoomOptionsWithAllFeatures: MutableRoomOptions.() -> Unit
     get() = {

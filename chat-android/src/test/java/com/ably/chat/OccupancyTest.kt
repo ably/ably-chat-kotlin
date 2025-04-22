@@ -30,7 +30,7 @@ class OccupancyTest {
         every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
         val mockChatApi = createMockChatApi(realtimeClient)
         val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi)
-        occupancy = room.occupancy as DefaultOccupancy
+        occupancy = room.occupancy
     }
 
     /**

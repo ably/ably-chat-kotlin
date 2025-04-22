@@ -50,7 +50,7 @@ class RoomFeatureSharedChannelTest {
     }
 
     @Test
-        fun `(CHA-RC3, CHA-RC3b) Shared channels should combine modes+options in accordance with room options`() = runTest {
+    fun `(CHA-RC3, CHA-RC3b) Shared channels should combine modes+options in accordance with room options`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val capturedChannelOptions = mutableListOf<ChannelOptions>()
         val chatApi = mockk<ChatApi>(relaxed = true)

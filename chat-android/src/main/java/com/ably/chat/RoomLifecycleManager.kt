@@ -5,6 +5,7 @@ import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
 import io.ably.lib.types.AblyException
+import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -129,9 +130,12 @@ internal class RoomLifecycleManager(
                             it.message = "discontinuity detected, ${it.message}"
                             it.code = ErrorCode.RoomDiscontinuity.code
                         }
-                        logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorInfo.toString()))
+                        val errorContext = errorInfo?.toString() ?: "no error info"
+                        logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
                         room.discontinuityDetected(errorInfo)
                     }
+                    hasAttachedOnce = true
+                    isExplicitlyDetached = false
                 }
             }
         }
@@ -165,8 +169,6 @@ internal class RoomLifecycleManager(
                 // CHA-RL1k
                 roomChannel.attachCoroutine()
                 statusManager.setStatus(RoomStatus.Attached)
-                hasAttachedOnce = true
-                isExplicitlyDetached = false
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
                 val errorMessage = "failed to attach room: ${attachException.errorInfo.message}"
