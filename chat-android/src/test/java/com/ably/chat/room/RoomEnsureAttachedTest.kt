@@ -1,19 +1,13 @@
 package com.ably.chat.room
 
-import com.ably.chat.ChatApi
-import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomStatusChange
-import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
-import com.ably.chat.buildRoomOptions
-import com.ably.chat.setPrivateField
 import io.ably.lib.types.AblyException
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.SupervisorJob
@@ -29,19 +23,17 @@ import org.junit.Test
  */
 class RoomEnsureAttachedTest {
 
-    private val clientId = "clientId"
     private val logger = createMockLogger()
-    private val roomId = "1234"
-    private val mockRealtimeClient = createMockRealtimeClient()
-    private val chatApi = mockk<ChatApi>(relaxed = true)
 
     @Test
     fun `(CHA-PR3d, CHA-PR10d, CHA-PR6c, CHA-PR6c) When room is already ATTACHED, ensureAttached is a success`() = runTest {
-        val room = createMockRoom()
+        val room = createTestRoom()
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
+        val statusManager = room.StatusManager
+
         // Set room status to ATTACHED
-        room.statusManager.setStatus(RoomStatus.Attached)
+        statusManager.setStatus(RoomStatus.Attached)
         Assert.assertEquals(RoomStatus.Attached, room.status)
 
         val result = kotlin.runCatching { room.ensureAttached(logger) }
@@ -51,7 +43,9 @@ class RoomEnsureAttachedTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-PR3h, CHA-PR10h, CHA-PR6h, CHA-T2g) When room is not ATTACHED or ATTACHING, ensureAttached throws error with code RoomInInvalidState`() = runTest {
-        val room = createMockRoom()
+        val room = createTestRoom()
+        val statusManager = room.StatusManager
+
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // List of room status other than ATTACHED/ATTACHING
@@ -66,7 +60,7 @@ class RoomEnsureAttachedTest {
         )
 
         for (invalidStatus in invalidStatuses) {
-            room.statusManager.setStatus(invalidStatus)
+            statusManager.setStatus(invalidStatus)
             Assert.assertEquals(invalidStatus, room.status)
 
             // Check for exception when ensuring room ATTACHED
@@ -82,57 +76,61 @@ class RoomEnsureAttachedTest {
 
     @Test
     fun `(CHA-RL9a) When room is ATTACHING, subscribe once for next room status`() = runTest {
-        val room = DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger)
+        val room = createTestRoom()
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
-        val roomLifecycleMock = spyk(DefaultRoomStatusManager(logger))
+        val statusManager = spyk(room.StatusManager)
         every {
-            roomLifecycleMock.onChangeOnce(any<Room.Listener>())
+            statusManager.onChangeOnce(any<Room.Listener>())
         } answers {
             val listener = firstArg<Room.Listener>()
             listener.roomStatusChanged(DefaultRoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
         }
-        room.setPrivateField("statusManager", roomLifecycleMock)
+        room.StatusManager = statusManager
 
         // Set room status to ATTACHING
-        room.statusManager.setStatus(RoomStatus.Attaching)
+        statusManager.setStatus(RoomStatus.Attaching)
         Assert.assertEquals(RoomStatus.Attaching, room.status)
 
         room.ensureAttached(logger)
 
         verify(exactly = 1) {
-            roomLifecycleMock.onChangeOnce(any<Room.Listener>())
+            statusManager.onChangeOnce(any<Room.Listener>())
         }
     }
 
     @Test
     fun `(CHA-RL9b) When room is ATTACHING, subscription is registered, ensureAttached is a success`() = runTest {
-        val room = DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger)
+        val room = createTestRoom()
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
+        val statusManager = room.StatusManager
+
         // Set room status to ATTACHING
-        room.statusManager.setStatus(RoomStatus.Attaching)
+        statusManager.setStatus(RoomStatus.Attaching)
         Assert.assertEquals(RoomStatus.Attaching, room.status)
 
         val ensureAttachJob = async { room.ensureAttached(logger) }
 
         // Wait for listener to be registered
-        assertWaiter { room.statusManager.InternalEmitter.Filters.size == 1 }
+        assertWaiter { statusManager.InternalEmitter.Filters.size == 1 }
 
         // Set ATTACHED status
-        room.statusManager.setStatus(RoomStatus.Attached)
+        statusManager.setStatus(RoomStatus.Attached)
 
         val result = kotlin.runCatching { ensureAttachJob.await() }
         Assert.assertTrue(result.isSuccess)
 
-        Assert.assertEquals(0, room.statusManager.InternalEmitter.Filters.size) // Emitted event processed
+        Assert.assertEquals(0, statusManager.InternalEmitter.Filters.size) // Emitted event processed
     }
 
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RL9c) When room is ATTACHING and subscription is registered and fails, ensureAttached throws error with code RoomInInvalidState`() = runTest {
-        val room = DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger)
+        val room = createTestRoom()
         Assert.assertEquals(RoomStatus.Initialized, room.status)
+
+        val statusManager = room.StatusManager
 
         // List of room status other than ATTACHED/ATTACHING
         val invalidStatuses = listOf(
@@ -147,16 +145,16 @@ class RoomEnsureAttachedTest {
 
         for (invalidStatus in invalidStatuses) {
             // Set room status to ATTACHING
-            room.statusManager.setStatus(RoomStatus.Attaching)
+            statusManager.setStatus(RoomStatus.Attaching)
             Assert.assertEquals(RoomStatus.Attaching, room.status)
 
             val ensureAttachJob = async(SupervisorJob()) { room.ensureAttached(logger) }
 
             // Wait for listener to be registered
-            assertWaiter { room.statusManager.InternalEmitter.Filters.size == 1 }
+            assertWaiter { statusManager.InternalEmitter.Filters.size == 1 }
 
             // set invalid room status
-            room.statusManager.setStatus(invalidStatus)
+            statusManager.setStatus(invalidStatus)
 
             // Check for exception when ensuring room ATTACHED
             val result = kotlin.runCatching { ensureAttachJob.await() }
@@ -164,10 +162,10 @@ class RoomEnsureAttachedTest {
             val exception = result.exceptionOrNull() as AblyException
             Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
             Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
-            val errMsg = "Can't perform operation; the room '$roomId' is in an invalid state: $invalidStatus"
+            val errMsg = "Can't perform operation; the room '${room.roomId}' is in an invalid state: $invalidStatus"
             Assert.assertEquals(errMsg, exception.errorInfo.message)
 
-            Assert.assertEquals(0, room.statusManager.InternalEmitter.Filters.size) // Emitted event processed
+            Assert.assertEquals(0, statusManager.InternalEmitter.Filters.size) // Emitted event processed
         }
     }
 }

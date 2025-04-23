@@ -2,7 +2,7 @@ package com.ably.chat
 
 import app.cash.turbine.test
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.google.gson.JsonObject
 import io.ably.lib.types.MessageExtras
 import io.mockk.every
@@ -22,7 +22,7 @@ class RoomReactionsTest {
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
-        room = createMockRoom("room1", "client1", realtimeClient = realtimeClient)
+        room = createTestRoom("room1", "client1", realtimeClient = realtimeClient)
         roomReactions = DefaultRoomReactions(room)
     }
 
@@ -34,7 +34,7 @@ class RoomReactionsTest {
         val roomReactions = DefaultRoomReactions(room)
 
         assertEquals(
-            "room1::\$chat::\$reactions",
+            "room1::\$chat",
             roomReactions.channel.name,
         )
     }

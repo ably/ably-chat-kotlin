@@ -144,7 +144,7 @@ internal fun ChatChannelOptions(init: (ChannelOptions.() -> Unit)? = null): Chan
  */
 internal fun Message.asEphemeralMessage(): Message {
     return apply {
-        val extras = extras ?: MessageExtras(JsonObject())
+        extras = extras ?: MessageExtras(JsonObject())
         extras.asJsonObject().addProperty("ephemeral", true)
     }
 }

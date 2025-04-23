@@ -4,7 +4,7 @@ import app.cash.turbine.test
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.google.gson.JsonObject
 import io.mockk.every
 import io.mockk.mockk
@@ -24,12 +24,16 @@ class OccupancyTest {
 
     @Before
     fun setUp() {
-        val channel = createMockRealtimeChannel("room1::\$chat::\$chatMessages")
+        val channel = createMockRealtimeChannel("room1::\$chat")
         every { channel.subscribe(any<String>(), capture(pubSubMessageListenerSlot)) } returns mockk(relaxUnitFun = true)
         val channels = realtimeClient.channels
-        every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
+        every { channels.get("room1::\$chat", any()) } returns channel
         val mockChatApi = createMockChatApi(realtimeClient)
-        val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi)
+        val room = createTestRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi) {
+            occupancy {
+                enableEvents = true
+            }
+        }
         occupancy = room.occupancy
     }
 

@@ -1,23 +1,20 @@
 package com.ably.chat.room.lifecycle
 
-import com.ably.chat.DefaultRoomStatusManager
-import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
 import com.ably.chat.assertWaiter
 import com.ably.chat.attachCoroutine
 import com.ably.chat.detachCoroutine
+import com.ably.chat.room.LifecycleManager
+import com.ably.chat.room.StatusManager
 import com.ably.chat.room.atomicCoroutineScope
-import com.ably.chat.room.createMockLogger
-import com.ably.chat.room.createMockRoom
 import com.ably.chat.room.createRoomFeatureMocks
+import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimeChannel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockkStatic
 import io.mockk.spyk
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -31,11 +28,6 @@ import org.junit.Test
  * Spec: CHA-RL7
  */
 class PrecedenceTest {
-    private val logger = createMockLogger()
-
-    private val roomScope = CoroutineScope(
-        Dispatchers.Default.limitedParallelism(1) + CoroutineName("roomId"),
-    )
 
     /**
      * 1. RELEASE (CHA-RL7a2) - External operation.
@@ -44,7 +36,10 @@ class PrecedenceTest {
     @Suppress("LongMethod")
     @Test
     fun `(CHA-RL7a) If multiple operations are scheduled to run, they run as per LifecycleOperationPrecedence`() = runTest {
-        val statusManager = spyk(DefaultRoomStatusManager(logger))
+        val room = createTestRoom()
+        val roomLifecycle = spyk(room.LifecycleManager, recordPrivateCalls = true)
+        val statusManager = room.StatusManager
+
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
         statusManager.onChange {
             roomStatusChanges.add(it)
@@ -52,11 +47,6 @@ class PrecedenceTest {
 
         val contributors = createRoomFeatureMocks("1234")
         Assert.assertEquals(5, contributors.size)
-
-        val roomLifecycle = spyk(
-            RoomLifecycleManager(createMockRoom(), roomScope, statusManager, contributors, logger),
-            recordPrivateCalls = true,
-        )
 
         // Attach operation
         mockkStatic(RealtimeChannel::attachCoroutine)

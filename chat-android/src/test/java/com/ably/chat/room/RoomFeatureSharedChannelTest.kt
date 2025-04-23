@@ -32,7 +32,7 @@ class RoomFeatureSharedChannelTest {
         }
 
         // Create room with all feature enabled,
-        val room = createMockRoom(realtimeClient = mockRealtimeClient)
+        val room = createTestRoom(realtimeClient = mockRealtimeClient)
 
         // All features use the same channel
         Assert.assertEquals(room.messages.channel, room.presence.channel)
@@ -64,7 +64,10 @@ class RoomFeatureSharedChannelTest {
         }
 
         // Create room with default roomOptions
-        createMockRoom(realtimeClient = mockRealtimeClient)
+        var room = createTestRoom(realtimeClient = mockRealtimeClient)
+        Assert.assertTrue(room.options.presence!!.enableEvents)
+        Assert.assertFalse(room.options.occupancy!!.enableEvents)
+
         Assert.assertEquals(1, capturedChannelOptions.size)
 
         // Check for empty presence modes
@@ -75,7 +78,7 @@ class RoomFeatureSharedChannelTest {
         capturedChannelOptions.clear()
 
         // Create new room with presence disabled and occupancy enabled
-        DefaultRoom(
+        room = DefaultRoom(
             "1234",
             buildRoomOptions {
                 presence { enableEvents = false }
@@ -86,6 +89,9 @@ class RoomFeatureSharedChannelTest {
             "clientId",
             createMockLogger(),
         )
+        Assert.assertFalse(room.options.presence!!.enableEvents)
+        Assert.assertTrue(room.options.occupancy!!.enableEvents)
+
         Assert.assertEquals(1, capturedChannelOptions.size)
 
         // Check for set presence modes, presence_subscribe flag doesn't exist

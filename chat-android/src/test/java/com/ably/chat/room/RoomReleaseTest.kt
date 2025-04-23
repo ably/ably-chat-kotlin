@@ -85,8 +85,8 @@ class RoomReleaseTest {
         coEvery {
             defaultRoom.release()
         } coAnswers {
-            defaultRoom.statusManager.setStatus(RoomStatus.Releasing)
-            defaultRoom.statusManager.setStatus(RoomStatus.Released)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Releasing)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Released)
         }
 
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
@@ -144,9 +144,9 @@ class RoomReleaseTest {
         coEvery {
             defaultRoom.release()
         } coAnswers {
-            defaultRoom.statusManager.setStatus(RoomStatus.Releasing)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Releasing)
             roomReleased.receive()
-            defaultRoom.statusManager.setStatus(RoomStatus.Released)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Released)
         }
 
         // Creates a room and adds to the room map
@@ -200,9 +200,9 @@ class RoomReleaseTest {
         coEvery {
             defaultRoom.release()
         } coAnswers {
-            defaultRoom.statusManager.setStatus(RoomStatus.Releasing)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Releasing)
             roomReleased.receive()
-            defaultRoom.statusManager.setStatus(RoomStatus.Released)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Released)
             roomReleased.close()
         }
 

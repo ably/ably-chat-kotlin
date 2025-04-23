@@ -7,7 +7,7 @@ import com.ably.chat.room.TypingStartEventPrunerJobs
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.processEvent
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.CompletionListener
@@ -56,7 +56,7 @@ class TypingTest {
         }
 
         val mockChatApi = createMockChatApi(realtimeClient)
-        room = spyk(createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi))
+        room = spyk(createTestRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi))
         typingLogger = room.logger
         every {
             typingLogger.withContext(any<String>())

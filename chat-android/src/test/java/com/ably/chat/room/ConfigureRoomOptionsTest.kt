@@ -3,8 +3,6 @@ package com.ably.chat.room
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
-import com.ably.chat.MutableRoomOptions
-import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
@@ -12,10 +10,7 @@ import com.ably.chat.occupancy
 import com.ably.chat.presence
 import com.ably.chat.typing
 import io.ably.lib.types.AblyException
-import io.mockk.coJustRun
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.spyk
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.test.runTest
@@ -31,14 +26,13 @@ import org.junit.Test
  */
 class ConfigureRoomOptionsTest {
 
-    private val clientId = "clientId"
+    private val clientId = DEFAULT_CLIENT_ID
     private val logger = createMockLogger()
+    private val mockRealtimeClient = createMockRealtimeClient()
+    private val chatApi = mockk<ChatApi>(relaxed = true)
 
     @Test
     fun `(CHA-RC2a) If a room is requested with a negative typing timeout, an ErrorInfo with code 40001 must be thrown`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
-        val chatApi = mockk<ChatApi>(relaxed = true)
-
         // Room success when positive typing timeout
         val room = DefaultRoom(
             "1234",
@@ -69,11 +63,8 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC5, CHA-RC2g) No feature should throw any exception on accessing it`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
-        val chatApi = mockk<ChatApi>(relaxed = true)
-
         // Room only supports messages feature, since by default other features are turned off
-        var room = DefaultRoom("1234", buildRoomOptions {}, mockRealtimeClient, chatApi, clientId, logger)
+        var room = DefaultRoom("1234", buildRoomOptions(), mockRealtimeClient, chatApi, clientId, logger)
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
@@ -111,46 +102,29 @@ class ConfigureRoomOptionsTest {
     }
 
     @Test
-    fun `(CHA-RC4a) When room options have not been provided, the client shall provide defaults`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
-        val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
-        val roomOptions = mutableListOf<RoomOptions>()
-        every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } answers {
-            roomOptions.add(secondArg())
-            createMockRoom()
-        }
-        rooms.get(DEFAULT_ROOM_ID)
+    fun `(CHA-RC4a) With no room options, the client shall provide defaults`() = runTest {
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
 
-        Assert.assertEquals(1, roomOptions.size)
-        val actualRoomOptions = roomOptions[0]
+        val room = rooms.get(DEFAULT_ROOM_ID)
+        val roomOptions = room.options
 
-        Assert.assertTrue("Expected presence.enableEvents to be true", actualRoomOptions.presence!!.enableEvents)
-        Assert.assertEquals("Expected typing.heartbeatThrottle to be 10.seconds", 10.seconds, actualRoomOptions.typing!!.heartbeatThrottle)
-        Assert.assertNotNull("Expected reactions to be non-null", actualRoomOptions.reactions)
-        Assert.assertFalse("Expected occupancy.enableEvents to be false", actualRoomOptions.occupancy!!.enableEvents)
+        Assert.assertTrue("Expected presence.enableEvents to be true", roomOptions.presence!!.enableEvents)
+        Assert.assertEquals("Expected typing.heartbeatThrottle to be 10.seconds", 10.seconds, roomOptions.typing!!.heartbeatThrottle)
+        Assert.assertNotNull("Expected reactions to be non-null", roomOptions.reactions)
+        Assert.assertFalse("Expected occupancy.enableEvents to be false", roomOptions.occupancy!!.enableEvents)
     }
 
     @Test
-    fun `(CHA-RC4b) When partial room options have been provided, client shall deep-merge the provided values with the defaults`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
-        val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
-        val roomOptions = mutableListOf<RoomOptions>()
-        every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } answers {
-            roomOptions.add(secondArg())
-            createMockRoom()
-        }
-        rooms.get(DEFAULT_ROOM_ID) {
+    fun `(CHA-RC4b) With partial room options, client shall deep-merge the provided values with the defaults`() = runTest {
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
+
+        val room = rooms.get(DEFAULT_ROOM_ID) {
             occupancy { enableEvents = true }
         }
-
-        Assert.assertEquals(1, roomOptions.size)
-        val actualRoomOptions = roomOptions[0]
-
-        Assert.assertTrue("Expected presence.enableEvents to be true", actualRoomOptions.presence!!.enableEvents)
-        Assert.assertEquals("Expected typing.heartbeatThrottle to be 10.seconds", 10.seconds, actualRoomOptions.typing!!.heartbeatThrottle)
-        Assert.assertNotNull("Expected reactions to be non-null", actualRoomOptions.reactions)
-        Assert.assertTrue("Expected occupancy.enableEvents to be true", actualRoomOptions.occupancy!!.enableEvents)
+        val roomOptions = room.options
+        Assert.assertTrue("Expected presence.enableEvents to be true", roomOptions.presence!!.enableEvents)
+        Assert.assertEquals("Expected typing.heartbeatThrottle to be 10.seconds", 10.seconds, roomOptions.typing!!.heartbeatThrottle)
+        Assert.assertNotNull("Expected reactions to be non-null", roomOptions.reactions)
+        Assert.assertTrue("Expected occupancy.enableEvents to be true", roomOptions.occupancy!!.enableEvents)
     }
 }

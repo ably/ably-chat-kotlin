@@ -157,9 +157,9 @@ class RoomGetTest {
         coEvery {
             defaultRoom.release()
         } coAnswers {
-            defaultRoom.statusManager.setStatus(RoomStatus.Releasing)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Releasing)
             roomReleased.receive()
-            defaultRoom.statusManager.setStatus(RoomStatus.Released)
+            defaultRoom.StatusManager.setStatus(RoomStatus.Released)
             roomReleased.close()
         }
 

@@ -27,6 +27,7 @@ import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
+import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
@@ -82,14 +83,15 @@ internal fun createMockChatApi(
 
 internal fun createMockLogger(): Logger = mockk<AndroidLogger>(relaxed = true)
 
-internal fun createMockRoom(
+internal fun createTestRoom(
     roomId: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
     realtimeClient: RealtimeClient = createMockRealtimeClient(),
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
+    roomOptions: (MutableRoomOptions.() -> Unit)? = null,
 ): DefaultRoom =
-    DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), realtimeClient, chatApi, clientId, logger)
+    DefaultRoom(roomId, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientId, logger)
 
 internal val RoomOptionsWithAllFeatures: MutableRoomOptions.() -> Unit
     get() = {
@@ -107,7 +109,9 @@ val Rooms.RoomGetDeferredMap get() = getPrivateField<MutableMap<String, Completa
 val Rooms.RoomReleaseDeferredMap get() = getPrivateField<MutableMap<String, CompletableDeferred<Unit>>>("roomReleaseDeferredMap")
 
 // Room mocks
-internal val Room.statusManager get() = getPrivateField<DefaultRoomStatusManager>("statusManager")
+internal var Room.StatusManager
+    get() = getPrivateField<DefaultRoomStatusManager>("statusManager")
+    set(value) = setPrivateField("statusManager", value)
 internal val Room.LifecycleManager get() = getPrivateField<RoomLifecycleManager>("lifecycleManager")
 
 // DefaultRoomLifecycle mocks
@@ -119,8 +123,11 @@ internal val EventEmitter<*, *>.Filters get() = getPrivateField<Map<Any, Any>>("
 
 // RoomLifeCycleManager Mocks
 internal fun RoomLifecycleManager.atomicCoroutineScope(): AtomicCoroutineScope = getPrivateField("atomicCoroutineScope")
-internal val RoomLifecycleManager.hasAttachedOnce: Boolean get() = getPrivateField("hasAttachedOnce")
-internal val RoomLifecycleManager.isExplicitlyDetached: Boolean get() = getPrivateField("isExplicitlyDetached")
+internal val RoomLifecycleManager.hasAttachedOnce get() = getPrivateField<Boolean>("hasAttachedOnce")
+internal val RoomLifecycleManager.isExplicitlyDetached get() = getPrivateField<Boolean>("isExplicitlyDetached")
+internal var RoomLifecycleManager.Contributors
+    get() = getPrivateField<List<ContributesToRoomLifecycle>>("contributors")
+    set(value) = setPrivateField("contributors", value)
 
 internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
     get() = getPrivateField("typingHeartbeatStarted")
@@ -138,7 +145,7 @@ internal fun createRoomFeatureMocks(
     val realtimeClient = createMockRealtimeClient()
     val chatApi = createMockChatApi()
     val logger = createMockLogger()
-    val room = createMockRoom(roomId, clientId, realtimeClient, chatApi, logger)
+    val room = createTestRoom(roomId, clientId, realtimeClient, chatApi, logger)
 
     val messagesContributor = spyk(room.messages, recordPrivateCalls = true) as ContributesToRoomLifecycle
     val presenceContributor = spyk(room.presence, recordPrivateCalls = true) as ContributesToRoomLifecycle
@@ -149,7 +156,19 @@ internal fun createRoomFeatureMocks(
     return listOf(messagesContributor, presenceContributor, typingContributor, reactionsContributor, occupancyContributor)
 }
 
-fun AblyRealtimeChannel.setState(state: ChannelState, errorInfo: ErrorInfo? = null) {
-    this.state = state
+fun AblyRealtimeChannel.setState(newState: ChannelState, errorInfo: ErrorInfo? = null) {
+    val previousState = this.state
+    this.state = newState
     this.reason = errorInfo
+
+    // Obtain the package‑private constructor via reflection.
+    val constructor = ChannelStateListener.ChannelStateChange::class.java
+        .getDeclaredConstructor(ChannelState::class.java, ChannelState::class.java, ErrorInfo::class.java, Boolean::class.javaPrimitiveType)
+    constructor.isAccessible = true
+    val stateChangeInstance = constructor.newInstance(newState, previousState, null, false)
+    // Emit state change event
+    emit(
+        newState,
+        stateChangeInstance,
+    )
 }

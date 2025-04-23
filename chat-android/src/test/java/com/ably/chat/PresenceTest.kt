@@ -4,7 +4,7 @@ import app.cash.turbine.test
 import com.ably.chat.room.DEFAULT_ROOM_ID
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
@@ -28,11 +28,11 @@ class PresenceTest {
 
     @Before
     fun setUp() {
-        val channel = createMockRealtimeChannel("$DEFAULT_ROOM_ID::\$chat::\$chatMessages")
+        val channel = createMockRealtimeChannel("$DEFAULT_ROOM_ID::\$chat")
         val channels = realtimeClient.channels
-        every { channels.get("$DEFAULT_ROOM_ID::\$chat::\$chatMessages", any()) } returns channel
+        every { channels.get("$DEFAULT_ROOM_ID::\$chat", any()) } returns channel
         pubSubPresence = channel.presence
-        presence = DefaultPresence(createMockRoom(realtimeClient = realtimeClient))
+        presence = DefaultPresence(createTestRoom(realtimeClient = realtimeClient))
     }
 
     /**
