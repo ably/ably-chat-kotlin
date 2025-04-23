@@ -44,6 +44,7 @@ public interface PresenceOptions {
      * Whether or not the client should receive presence events from the server. This setting
      * can be disabled if you are using presence in your Chat Room, but this particular client does not
      * need to receive the messages.
+     * Spec: CHA-PR9c
      *
      * @defaultValue true
      */
@@ -92,7 +93,7 @@ public class MutableRoomOptions : RoomOptions {
 
 @ChatDsl
 public class MutablePresenceOptions : PresenceOptions {
-    override var enableEvents: Boolean = true
+    override var enableEvents: Boolean = true // CHA-PR9c1
 }
 
 @ChatDsl
@@ -105,7 +106,7 @@ public class MutableRoomReactionsOptions : RoomReactionsOptions
 
 @ChatDsl
 public class MutableOccupancyOptions : OccupancyOptions {
-    override var enableEvents: Boolean = false
+    override var enableEvents: Boolean = false // CHA-O6c
 }
 
 internal fun buildRoomOptions(init: (MutableRoomOptions.() -> Unit)? = null): RoomOptions =
@@ -189,12 +190,12 @@ internal fun RoomOptions.validateRoomOptions(logger: Logger) {
 internal fun RoomOptions.channelOptions(): ChannelOptions {
     return ChatChannelOptions {
         presence?.let {
-            if (!it.enableEvents) {
+            if (!it.enableEvents) { // CHA-PR9c2
                 modes = arrayOf(ChannelMode.publish, ChannelMode.subscribe, ChannelMode.presence)
             }
         }
-        occupancy?.let {
-            if (it.enableEvents) {
+        occupancy?.let { // CHA-O6b
+            if (it.enableEvents) { // CHA-O6a
                 params = mapOf("occupancy" to "metrics")
             }
         }

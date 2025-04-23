@@ -94,13 +94,13 @@ class RoomFeatureSharedChannelTest {
 
         Assert.assertEquals(1, capturedChannelOptions.size)
 
-        // Check for set presence modes, presence_subscribe flag doesn't exist
+        // CHA-PR9c2 - Check for set presence modes, presence_subscribe flag doesn't exist
         Assert.assertEquals(3, capturedChannelOptions[0].modes.size)
         Assert.assertEquals(ChannelMode.publish, capturedChannelOptions[0].modes[0])
         Assert.assertEquals(ChannelMode.subscribe, capturedChannelOptions[0].modes[1])
         Assert.assertEquals(ChannelMode.presence, capturedChannelOptions[0].modes[2])
 
-        // Check if occupancy matrix is set
+        // CHA-O6a - Check if occupancy matrix is set
         Assert.assertEquals("metrics", capturedChannelOptions[0].params["occupancy"])
     }
 }

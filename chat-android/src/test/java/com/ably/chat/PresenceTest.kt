@@ -9,6 +9,7 @@ import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import io.ably.lib.realtime.Presence.PresenceListener
+import io.ably.lib.types.AblyException
 import io.ably.lib.types.PresenceMessage
 import io.mockk.every
 import io.mockk.mockk
@@ -17,6 +18,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
@@ -145,6 +147,24 @@ class PresenceTest {
             ),
             presenceEvent,
         )
+    }
+
+    @Test
+    fun `(CHA-PR7d) presence subscribe should throw error if presence events are disabled in room options`() = runTest {
+        val room = createTestRoom(realtimeClient = realtimeClient) {
+            presence {
+                enableEvents = false
+            }
+        }
+        val presence = DefaultPresence(room)
+
+        val exception = assertThrows(AblyException::class.java) {
+            presence.subscribe { }
+        }
+        val errorInfo = exception.errorInfo
+        assertEquals("could not subscribe to presence; presence events are not enabled in room options", errorInfo.message)
+        assertEquals(400, errorInfo.statusCode)
+        assertEquals(40_000, errorInfo.code)
     }
 
     @Test

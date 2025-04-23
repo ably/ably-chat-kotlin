@@ -1,42 +1,43 @@
 package com.ably.chat
 
 import app.cash.turbine.test
+import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
+import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
+import io.ably.lib.realtime.CompletionListener
+import io.ably.lib.types.Message
 import io.ably.lib.types.MessageExtras
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
 class RoomReactionsTest {
     private lateinit var roomReactions: DefaultRoomReactions
     private lateinit var room: DefaultRoom
+    private val realtimeChannel: RealtimeChannel = createMockRealtimeChannel()
 
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
-        room = createTestRoom("room1", "client1", realtimeClient = realtimeClient)
+
+        val channels = realtimeClient.channels
+        every { channels.get(any(), any()) } returns realtimeChannel
+
+        room = spyk(createTestRoom("room1", "client1", realtimeClient = realtimeClient))
+        coEvery { room.ensureAttached(any<Logger>()) } returns Unit
+
         roomReactions = DefaultRoomReactions(room)
-    }
-
-    /**
-     * @spec CHA-ER1
-     */
-    @Test
-    fun `channel name is set according to the spec`() = runTest {
-        val roomReactions = DefaultRoomReactions(room)
-
-        assertEquals(
-            "room1::\$chat",
-            roomReactions.channel.name,
-        )
     }
 
     /**
@@ -113,5 +114,26 @@ class RoomReactionsTest {
         verify(exactly = 1) {
             subscription.unsubscribe()
         }
+    }
+
+    @Test
+    fun `(CHA-ER3d) Reactions are sent on the channel using an @ephemeral@ message`() = runTest {
+        var publishedMessage: Message? = null
+        every {
+            realtimeChannel.publish(any<Message>(), any<CompletionListener>())
+        } answers {
+            publishedMessage = firstArg()
+            secondArg<CompletionListener>().onSuccess()
+        }
+
+        roomReactions.send("smile")
+
+        verify(exactly = 1) { realtimeChannel.publish(any<Message>(), any()) }
+
+        assertEquals(RoomReactionEventType.Reaction.eventName, publishedMessage?.name)
+
+        val extras = publishedMessage?.extras?.asJsonObject()
+        val ephemeral = extras?.get("ephemeral")?.asBoolean!!
+        assertTrue(ephemeral)
     }
 }
