@@ -125,7 +125,7 @@ internal class RoomLifecycleManager(
                     if (!channelStateChangeEvent.resumed && hasAttachedOnce && !isExplicitlyDetached) {
                         val errorInfo = channelStateChangeEvent.reason
                         errorInfo?.let {
-                            it.message = "discontinuity detected, ${it.message}"
+                            it.message = "Discontinuity detected, ${it.message}"
                             it.code = ErrorCode.RoomDiscontinuity.code
                         }
                         val errorContext = errorInfo?.toString() ?: "no error info"

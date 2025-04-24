@@ -2,6 +2,7 @@ package com.ably.chat.room.lifecycle
 
 import com.ably.annotations.InternalAPI
 import com.ably.chat.DefaultRoom
+import com.ably.chat.ErrorCode
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.attachCoroutine
@@ -14,16 +15,19 @@ import com.ably.chat.room.constructChannelStateChangeEvent
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
+import com.ably.chat.room.hasAttachedOnce
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.types.ChannelOptions
+import io.ably.lib.types.ErrorInfo
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -63,7 +67,7 @@ class MonitoringTest {
 
     @Test
     @Suppress("MaximumLineLength")
-    fun `(CHA-RL11a) If a room lifecycle operation is in progress and a channel state change is received, the operation is no-op`() = runTest {
+    fun `(CHA-RL11a, CHA-RL11b) If a room lifecycle operation is in progress and a channel state change is received, the operation is no-op`() = runTest {
         val roomLifecycle = spyk(room.LifecycleManager)
         val statusManager = room.StatusManager
         val stateChanges = mutableListOf<RoomStatus>()
@@ -145,5 +149,38 @@ class MonitoringTest {
         Assert.assertEquals(RoomStatus.Detaching, stateChanges[2])
         Assert.assertEquals(RoomStatus.Detached, stateChanges[3])
         Assert.assertEquals(RoomStatus.Released, stateChanges[4]) // CHA-RS3
+    }
+
+    @Test
+    fun `(CHA-RL12a, CHA-RL12b) If channel attach event with resume as false received, then discontinuity event is emitted`() = runTest {
+        val roomLifecycle = room.LifecycleManager
+        val discontinuityDeferred = CompletableDeferred<ErrorInfo>()
+
+        // Check Room.status to be Initialized
+        Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
+
+        mockkStatic(RealtimeChannel::attachCoroutine)
+        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {}
+
+        val attachResult = runCatching { roomLifecycle.attach() }
+        Assert.assertTrue(attachResult.isSuccess)
+        Assert.assertEquals(RoomStatus.Attached, room.status)
+        Assert.assertTrue(roomLifecycle.hasAttachedOnce)
+
+        // listen to discontinuity
+        room.onDiscontinuity {
+            discontinuityDeferred.complete(it)
+        }
+
+        val channelDiscontinuityEvent = constructChannelStateChangeEvent(
+            ChannelState.attached,
+            ChannelState.attached,
+            ErrorInfo("publish rate limit exceeded", ErrorCode.InternalError.code),
+        )
+        lifecycleListener.onChannelStateChanged(channelDiscontinuityEvent)
+
+        val discontinuity = discontinuityDeferred.await()
+        Assert.assertEquals(discontinuity.message, "Discontinuity detected, publish rate limit exceeded")
+        Assert.assertEquals(discontinuity.code, ErrorCode.RoomDiscontinuity.code)
     }
 }

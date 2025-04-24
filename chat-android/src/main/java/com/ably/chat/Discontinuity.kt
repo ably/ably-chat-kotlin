@@ -23,7 +23,7 @@ public interface Discontinuity {
          * A function that can be called when discontinuity happens.
          * @param reason reason for discontinuity
          */
-        public fun discontinuityEmitted(reason: ErrorInfo?)
+        public fun discontinuityEmitted(reason: ErrorInfo)
     }
 }
 
@@ -56,7 +56,7 @@ internal class DiscontinuityEmitter(logger: Logger) : EventEmitter<String, Disco
     override fun apply(listener: Discontinuity.Listener?, event: String?, vararg args: Any?) {
         try {
             val reason = args.firstOrNull() as? ErrorInfo?
-            listener?.discontinuityEmitted(reason)
+            listener?.discontinuityEmitted(reason ?: ErrorInfo("Discontinuity detected", ErrorCode.RoomDiscontinuity.code))
         } catch (t: Throwable) {
             logger.error("Unexpected exception calling Discontinuity Listener", t)
         }
