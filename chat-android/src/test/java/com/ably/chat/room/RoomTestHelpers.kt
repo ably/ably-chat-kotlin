@@ -3,6 +3,7 @@ package com.ably.chat.room
 import com.ably.annotations.InternalAPI
 import com.ably.chat.AndroidLogger
 import com.ably.chat.AtomicCoroutineScope
+import com.ably.chat.AwaitableSharedFlow
 import com.ably.chat.ChatApi
 import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoom
@@ -28,6 +29,7 @@ import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
+import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
 import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
@@ -51,7 +53,7 @@ fun createMockRealtimeClient(): RealtimeClient {
             every { get(any(), any()) } answers {
                 createMockRealtimeChannel(firstArg<String>())
             }
-            every { release(any()) } returns Unit
+            every { release(any<String>()) } returns Unit
         }
     }
     return realtimeClient
@@ -129,6 +131,8 @@ internal var RoomLifecycleManager.Contributors
     get() = getPrivateField<List<ContributesToRoomLifecycle>>("contributors")
     set(value) = setPrivateField("contributors", value)
 
+internal val RoomLifecycleManager.EventBus get() = getPrivateField<AwaitableSharedFlow<ChannelStateChange>>("channelEventBus")
+
 internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
     get() = getPrivateField("typingHeartbeatStarted")
     set(value) = setPrivateField("typingHeartbeatStarted", value)
@@ -160,15 +164,12 @@ fun AblyRealtimeChannel.setState(newState: ChannelState, errorInfo: ErrorInfo? =
     val previousState = this.state
     this.state = newState
     this.reason = errorInfo
+    emit(newState, constructChannelStateChangeEvent(newState, previousState, errorInfo))
+}
 
-    // Obtain the package‑private constructor via reflection.
+fun constructChannelStateChangeEvent(newState: ChannelState, prevState: ChannelState, errorInfo: ErrorInfo? = null): ChannelStateChange {
     val constructor = ChannelStateListener.ChannelStateChange::class.java
         .getDeclaredConstructor(ChannelState::class.java, ChannelState::class.java, ErrorInfo::class.java, Boolean::class.javaPrimitiveType)
     constructor.isAccessible = true
-    val stateChangeInstance = constructor.newInstance(newState, previousState, null, false)
-    // Emit state change event
-    emit(
-        newState,
-        stateChangeInstance,
-    )
+    return constructor.newInstance(newState, prevState, errorInfo, false)
 }

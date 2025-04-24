@@ -156,6 +156,7 @@ class AttachTest {
         val capturedChannels = mutableListOf<RealtimeChannel>()
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
             val channel = firstArg<RealtimeChannel>()
+            channel.javaChannel.setState(ChannelState.attaching)
             capturedChannels.add(channel)
             channel.javaChannel.setState(ChannelState.attached)
         }
@@ -179,7 +180,7 @@ class AttachTest {
         // RoomStatus is attached
         Assert.assertEquals(RoomStatus.Attached, statusManager.status)
 
-        assertWaiter { roomLifecycle.hasAttachedOnce }
+        Assert.assertTrue(roomLifecycle.hasAttachedOnce)
         Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
     }
 

@@ -8,7 +8,6 @@ import io.ably.lib.types.AblyException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -76,7 +75,7 @@ internal class RoomLifecycleManager(
     private val operationInProcess: Boolean
         get() = !atomicCoroutineScope.finishedProcessing
 
-    private val eventBus = MutableSharedFlow<ChannelStateChange>(extraBufferCapacity = Int.MAX_VALUE)
+    private val channelEventBus = AwaitableSharedFlow<ChannelStateChange>(logger)
 
     private var stateChangeEventHandler: Job
 
@@ -92,7 +91,7 @@ internal class RoomLifecycleManager(
 
     init {
         // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
-        channel.on { eventBus.tryEmit(it) }
+        channel.on { channelEventBus.tryEmit(it, operationInProcess) }
         stateChangeEventHandler = handleChannelStateChanges()
     }
 
@@ -110,7 +109,7 @@ internal class RoomLifecycleManager(
     private fun handleChannelStateChanges(): Job {
         logger.trace("handleChannelStateChanges();")
         return roomScope.launch {
-            eventBus.collect { channelStateChangeEvent ->
+            channelEventBus.collect { channelStateChangeEvent ->
                 // CHA-RL11a
                 logger.debug(
                     "handleChannelStateChanges(); RoomLifecycleManager.channel state changed",
@@ -133,8 +132,6 @@ internal class RoomLifecycleManager(
                         logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
                         room.discontinuityDetected(errorInfo)
                     }
-                    hasAttachedOnce = true
-                    isExplicitlyDetached = false
                 }
             }
         }
@@ -167,9 +164,15 @@ internal class RoomLifecycleManager(
                 statusManager.setStatus(RoomStatus.Attaching)
                 // CHA-RL1k
                 roomChannel.attachCoroutine()
+                // await on internal channel state changes to be processed
+                channelEventBus.await()
+                hasAttachedOnce = true
+                isExplicitlyDetached = false
+                // CHA-RL1f
                 statusManager.setStatus(RoomStatus.Attached)
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
+                channelEventBus.await() // await on internal channel state changes to be processed
                 val errorMessage = "failed to attach room: ${attachException.errorInfo.message}"
                 logger.error(errorMessage)
                 attachException.errorInfo?.let {
@@ -218,10 +221,13 @@ internal class RoomLifecycleManager(
                 statusManager.setStatus(RoomStatus.Detaching)
                 // CHA-RL2k
                 roomChannel.detachCoroutine()
+                // await on internal channel state changes to be processed
+                channelEventBus.await()
                 isExplicitlyDetached = true
                 statusManager.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {
+                channelEventBus.await() // await on internal channel state changes to be processed
                 val errorMessage = "failed to attach room: ${detachException.errorInfo.message}"
                 logger.error(errorMessage)
                 detachException.errorInfo?.let {
@@ -261,6 +267,8 @@ internal class RoomLifecycleManager(
             // CHA-RL3n
             logger.debug("release(); attempting channel detach before release", context = mapOf("state" to room.status.stateName))
             retryUntilChannelDetachedOrFailed()
+            // await on internal channel state changes to be processed
+            channelEventBus.await()
             logger.debug("release(); success, channel successfully detached")
             // CHA-RL3o, CHA-RL3h
             doRelease()
