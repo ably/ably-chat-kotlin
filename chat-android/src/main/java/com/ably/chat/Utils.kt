@@ -125,13 +125,6 @@ internal suspend fun RealtimePresence.leaveClientCoroutine(clientId: String, dat
         )
     }
 
-internal val RealtimeChannel.errorMessage: String
-    get() = if (reason == null) {
-        ""
-    } else {
-        ", ${reason?.message}"
-    }
-
 internal val List<String>.joinWithBrackets: String get() = joinToString(prefix = "[", postfix = "]") { it }
 
 @Suppress("FunctionName")
@@ -239,18 +232,15 @@ internal class LatestJobExecutor {
 
 /**
  * A custom implementation of a `MutableSharedFlow` that supports optional awaitable emissions.
- *
  * This class allows emitting values with an optional `CompletableDeferred` to track the completion
  * of processing for each emitted value. It is useful in scenarios where you need to ensure that
  * all consumers have processed the emitted values before proceeding.
- *
- * @param T The type of values emitted by the shared flow.
- * @property logger A logger instance used to log errors during collection.
+ * Note - Only one collector is allowed to process events.
  */
-@Suppress("OutdatedDocumentation")
 internal class AwaitableSharedFlow<T>(private val logger: Logger) {
     private val sharedFlow = MutableSharedFlow<Pair<T, CompletableDeferred<Unit>?>>(extraBufferCapacity = Channel.UNLIMITED)
     private val completionDeferredList = ConcurrentLinkedQueue<CompletableDeferred<Unit>>()
+    private var activeCollector = false
 
     /**
      * Emits a value into the shared flow. If `awaitable` is true, the emission is tracked
@@ -276,6 +266,10 @@ internal class AwaitableSharedFlow<T>(private val logger: Logger) {
      * @param block A suspendable function to process each emitted value.
      */
     suspend fun collect(block: suspend (T) -> Unit) {
+        if (activeCollector) {
+            throw clientError("only one collector is allowed to process events")
+        }
+        activeCollector = true
         sharedFlow.collect { (value, deferred) ->
             try {
                 block(value)
@@ -295,5 +289,9 @@ internal class AwaitableSharedFlow<T>(private val logger: Logger) {
         val deferredList = completionDeferredList.toSet()
         deferredList.awaitAll()
         completionDeferredList.removeAll(deferredList)
+    }
+
+    fun dispose() {
+        completionDeferredList.clear()
     }
 }

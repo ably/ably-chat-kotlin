@@ -309,6 +309,7 @@ internal class RoomLifecycleManager(
             it.release()
             logger.debug("doRelease(); resource cleanup for feature: ${it.featureName}")
         }
+        channelEventBus.dispose()
         stateChangeEventHandler.cancel()
         logger.debug("doRelease(); underlying resources released each room feature")
         statusManager.setStatus(RoomStatus.Released) // CHA-RL3g
