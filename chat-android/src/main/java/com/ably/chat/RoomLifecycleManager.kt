@@ -45,7 +45,8 @@ internal class RoomLifecycleManager(
     private val statusManager: DefaultRoomStatusManager,
     private val contributors: List<ContributesToRoomLifecycle>,
     roomLogger: Logger,
-) {
+) : DiscontinuityImpl(logger = roomLogger) {
+
     private val logger = roomLogger.withContext(
         "RoomLifecycleManager",
         dynamicContext = mapOf("scope" to { Thread.currentThread().name }),
@@ -130,7 +131,7 @@ internal class RoomLifecycleManager(
                         }
                         val errorContext = errorInfo?.toString() ?: "no error info"
                         logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
-                        room.discontinuityDetected(errorInfo)
+                        discontinuityDetected(errorInfo)
                     }
                 }
             }
@@ -311,6 +312,7 @@ internal class RoomLifecycleManager(
         }
         channelEventBus.dispose()
         stateChangeEventHandler.cancel()
+        offAllDiscontinuity()
         logger.debug("doRelease(); underlying resources released each room feature")
         statusManager.setStatus(RoomStatus.Released) // CHA-RL3g
         logger.debug("doRelease(); transitioned room to RELEASED state")

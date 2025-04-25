@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.chat.Discontinuity.Listener
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.types.ErrorInfo
@@ -136,7 +137,7 @@ internal class DefaultRoom(
     internal val chatApi: ChatApi,
     internal val clientId: String,
     logger: Logger,
-) : Room, DiscontinuityImpl(logger) {
+) : Room {
     internal val logger = logger.withContext("Room", mapOf("roomId" to roomId))
 
     override val channel: RealtimeChannel = realtimeClient.channels.get("$roomId::\$chat", options.channelOptions())
@@ -192,6 +193,11 @@ internal class DefaultRoom(
     override suspend fun detach() {
         logger.trace("detach();")
         lifecycleManager.detach()
+    }
+
+    override fun onDiscontinuity(listener: Listener): StatusSubscription {
+        logger.trace("onDiscontinuity();")
+        return lifecycleManager.onDiscontinuity(listener)
     }
 
     /**
