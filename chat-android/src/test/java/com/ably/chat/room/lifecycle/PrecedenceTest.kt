@@ -43,8 +43,8 @@ class PrecedenceTest {
             roomStatusChanges.add(it)
         }
 
-        val contributors = createRoomFeatureMocks("1234")
-        Assert.assertEquals(5, contributors.size)
+        val roomFeatures = createRoomFeatureMocks("1234")
+        Assert.assertEquals(5, roomFeatures.size)
 
         // Attach operation
         mockkStatic(RealtimeChannel::attachCoroutine)

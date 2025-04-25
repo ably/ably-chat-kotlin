@@ -5,12 +5,12 @@ import com.ably.chat.AndroidLogger
 import com.ably.chat.AtomicCoroutineScope
 import com.ably.chat.AwaitableSharedFlow
 import com.ably.chat.ChatApi
-import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.Logger
 import com.ably.chat.MutableRoomOptions
 import com.ably.chat.Room
+import com.ably.chat.RoomFeature
 import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
@@ -127,9 +127,9 @@ internal val EventEmitter<*, *>.Filters get() = getPrivateField<Map<Any, Any>>("
 internal fun RoomLifecycleManager.atomicCoroutineScope(): AtomicCoroutineScope = getPrivateField("atomicCoroutineScope")
 internal val RoomLifecycleManager.hasAttachedOnce get() = getPrivateField<Boolean>("hasAttachedOnce")
 internal val RoomLifecycleManager.isExplicitlyDetached get() = getPrivateField<Boolean>("isExplicitlyDetached")
-internal var RoomLifecycleManager.Contributors
-    get() = getPrivateField<List<ContributesToRoomLifecycle>>("contributors")
-    set(value) = setPrivateField("contributors", value)
+internal var RoomLifecycleManager.RoomFeatures
+    get() = getPrivateField<List<RoomFeature>>("roomFeatures")
+    set(value) = setPrivateField("roomFeatures", value)
 
 internal val RoomLifecycleManager.EventBus get() = getPrivateField<AwaitableSharedFlow<ChannelStateChange>>("channelEventBus")
 
@@ -145,19 +145,19 @@ internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
 internal fun createRoomFeatureMocks(
     roomId: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
-): List<ContributesToRoomLifecycle> {
+): List<RoomFeature> {
     val realtimeClient = createMockRealtimeClient()
     val chatApi = createMockChatApi()
     val logger = createMockLogger()
     val room = createTestRoom(roomId, clientId, realtimeClient, chatApi, logger)
 
-    val messagesContributor = spyk(room.messages, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val presenceContributor = spyk(room.presence, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val occupancyContributor = spyk(room.occupancy, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val typingContributor = spyk(room.typing, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val reactionsContributor = spyk(room.reactions, recordPrivateCalls = true) as ContributesToRoomLifecycle
+    val messages = spyk(room.messages, recordPrivateCalls = true) as RoomFeature
+    val presence = spyk(room.presence, recordPrivateCalls = true) as RoomFeature
+    val occupancy = spyk(room.occupancy, recordPrivateCalls = true) as RoomFeature
+    val typing = spyk(room.typing, recordPrivateCalls = true) as RoomFeature
+    val reactions = spyk(room.reactions, recordPrivateCalls = true) as RoomFeature
 
-    return listOf(messagesContributor, presenceContributor, typingContributor, reactionsContributor, occupancyContributor)
+    return listOf(messages, presence, typing, occupancy, reactions)
 }
 
 fun AblyRealtimeChannel.setState(newState: ChannelState, errorInfo: ErrorInfo? = null) {

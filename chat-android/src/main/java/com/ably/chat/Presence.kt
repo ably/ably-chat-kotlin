@@ -160,7 +160,7 @@ internal data class DefaultPresenceEvent(
 
 internal class DefaultPresence(
     private val room: DefaultRoom,
-) : Presence, ContributesToRoomLifecycle {
+) : Presence, RoomFeature {
 
     override val featureName = "presence"
 
@@ -228,7 +228,7 @@ internal class DefaultPresence(
         }
     }
 
-    override fun release() {
+    override fun dispose() {
         // No need to do anything, since it uses same channel as messages
     }
 }

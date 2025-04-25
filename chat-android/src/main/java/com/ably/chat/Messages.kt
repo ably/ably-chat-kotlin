@@ -343,7 +343,7 @@ internal class DefaultMessagesSubscription(
 
 internal class DefaultMessages(
     val room: DefaultRoom,
-) : Messages, ContributesToRoomLifecycle {
+) : Messages, RoomFeature {
 
     override val featureName: String = "messages"
 
@@ -505,7 +505,7 @@ internal class DefaultMessages(
             ?: throw clientError("Channel has been attached, but attachSerial is not defined")
     }
 
-    override fun release() {
+    override fun dispose() {
         logger.trace("release(); roomId=$roomId")
         @OptIn(InternalAPI::class)
         channelWrapper.javaChannel.off(channelStateListener)

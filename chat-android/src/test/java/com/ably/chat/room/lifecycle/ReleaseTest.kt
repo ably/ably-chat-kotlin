@@ -5,8 +5,8 @@ import com.ably.chat.RoomStatusChange
 import com.ably.chat.assertWaiter
 import com.ably.chat.attachCoroutine
 import com.ably.chat.detachCoroutine
-import com.ably.chat.room.Contributors
 import com.ably.chat.room.LifecycleManager
+import com.ably.chat.room.RoomFeatures
 import com.ably.chat.room.StatusManager
 import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createRoomFeatureMocks
@@ -193,8 +193,8 @@ class ReleaseTest {
                 capturedChannels.add(firstArg())
             }
 
-            val contributors = createRoomFeatureMocks()
-            Assert.assertEquals(5, contributors.size)
+            val roomFeatures = createRoomFeatureMocks()
+            Assert.assertEquals(5, roomFeatures.size)
 
             val result = kotlin.runCatching { roomLifecycle.release() }
             Assert.assertTrue(result.isSuccess)
@@ -222,8 +222,6 @@ class ReleaseTest {
             every { channel.state } returns ChannelState.failed
             error("failed to detach channel")
         }
-
-        val contributors = createRoomFeatureMocks("1234")
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
@@ -297,8 +295,8 @@ class ReleaseTest {
             capturedChannels.add(channel)
         }
 
-        val contributors = createRoomFeatureMocks()
-        Assert.assertEquals(5, contributors.size)
+        val roomFeatures = createRoomFeatureMocks()
+        Assert.assertEquals(5, roomFeatures.size)
 
         roomLifecycle.release()
         Assert.assertEquals(RoomStatus.Released, room.status)
@@ -330,13 +328,13 @@ class ReleaseTest {
                 every { channel.state } returns ChannelState.detached
             }
 
-            roomLifecycle.Contributors = roomLifecycle.Contributors.map { spyk(it) }
-            val contributors = roomLifecycle.Contributors
+            roomLifecycle.RoomFeatures = roomLifecycle.RoomFeatures.map { spyk(it) }
+            val roomFeatures = roomLifecycle.RoomFeatures
 
             val releasedFeatures = mutableListOf<String>()
-            for (contributor in contributors) {
-                every { contributor.release() } answers {
-                    releasedFeatures.add(contributor.featureName)
+            for (feature in roomFeatures) {
+                every { feature.dispose() } answers {
+                    releasedFeatures.add(feature.featureName)
                 }
             }
 
@@ -346,7 +344,7 @@ class ReleaseTest {
 
             Assert.assertEquals(5, releasedFeatures.size)
             repeat(5) {
-                Assert.assertEquals(contributors[it].featureName, releasedFeatures[it])
+                Assert.assertEquals(roomFeatures[it].featureName, releasedFeatures[it])
             }
             Assert.assertEquals("messages", releasedFeatures[0])
             Assert.assertEquals("presence", releasedFeatures[1])
@@ -356,9 +354,9 @@ class ReleaseTest {
 
             assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
-            for (contributor in contributors) {
+            for (feature in roomFeatures) {
                 verify(exactly = 1) {
-                    contributor.release()
+                    feature.dispose()
                 }
             }
         }

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 /**
  * An interface for features that contribute to the room.
  */
-internal interface ContributesToRoomLifecycle {
+internal interface RoomFeature {
     /**
      * Name of the feature
      */
@@ -23,7 +23,7 @@ internal interface ContributesToRoomLifecycle {
      * Implements code to free up underlying resources.
      * Spec: CHA-RL3h
      */
-    fun release()
+    fun dispose()
 }
 
 /**
@@ -43,7 +43,7 @@ internal class RoomLifecycleManager(
     private val room: DefaultRoom,
     private val roomScope: CoroutineScope,
     private val statusManager: DefaultRoomStatusManager,
-    private val contributors: List<ContributesToRoomLifecycle>,
+    private val roomFeatures: List<RoomFeature>,
     roomLogger: Logger,
 ) : DiscontinuityImpl(logger = roomLogger) {
 
@@ -78,7 +78,7 @@ internal class RoomLifecycleManager(
 
     private val channelEventBus = AwaitableSharedFlow<ChannelStateChange>(logger)
 
-    private var stateChangeEventHandler: Job
+    private var roomMonitoringJob: Job
 
     private val channelStateToRoomStatusMap = mapOf(
         ChannelState.initialized to RoomStatus.Initialized,
@@ -92,8 +92,8 @@ internal class RoomLifecycleManager(
 
     init {
         // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
-        channel.on { channelEventBus.tryEmit(it, operationInProcess) }
-        stateChangeEventHandler = handleChannelStateChanges()
+        channel.on { channelEventBus.tryEmit(it, awaitable = operationInProcess) }
+        roomMonitoringJob = handleChannelStateChanges()
     }
 
     /**
@@ -306,12 +306,12 @@ internal class RoomLifecycleManager(
         room.realtimeClient.channels.release(roomChannel.name)
         // CHA-RL3h
         logger.debug("doRelease(); releasing underlying resources from each room feature")
-        contributors.forEach {
-            it.release()
+        roomFeatures.forEach {
+            it.dispose()
             logger.debug("doRelease(); resource cleanup for feature: ${it.featureName}")
         }
         channelEventBus.dispose()
-        stateChangeEventHandler.cancel()
+        roomMonitoringJob.cancel()
         offAllDiscontinuity()
         logger.debug("doRelease(); underlying resources released each room feature")
         statusManager.setStatus(RoomStatus.Released) // CHA-RL3g

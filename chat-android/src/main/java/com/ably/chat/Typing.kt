@@ -148,7 +148,7 @@ internal data class DefaultTypingEventChange(
 internal class DefaultTyping(
     private val room: DefaultRoom,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : Typing, ContributesToRoomLifecycle {
+) : Typing, RoomFeature {
 
     override val featureName = "typing"
 
@@ -303,7 +303,7 @@ internal class DefaultTyping(
         }
     }
 
-    override fun release() {
+    override fun dispose() {
         typingEventPubSubSubscription.unsubscribe()
         typingScope.cancel()
     }

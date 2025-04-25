@@ -114,7 +114,7 @@ internal data class SendReactionParams(
 
 internal class DefaultRoomReactions(
     private val room: DefaultRoom,
-) : RoomReactions, ContributesToRoomLifecycle {
+) : RoomReactions, RoomFeature {
 
     override val featureName = "reactions"
 
@@ -167,7 +167,7 @@ internal class DefaultRoomReactions(
         return channelWrapper.subscribe(RoomReactionEventType.Reaction.eventName, messageListener).asChatSubscription()
     }
 
-    override fun release() {
+    override fun dispose() {
         // No need to do anything
     }
 }

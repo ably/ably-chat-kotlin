@@ -88,7 +88,7 @@ private const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
 
 internal class DefaultOccupancy(
     private val room: DefaultRoom,
-) : Occupancy, ContributesToRoomLifecycle {
+) : Occupancy, RoomFeature {
 
     override val featureName: String = "occupancy"
 
@@ -146,7 +146,7 @@ internal class DefaultOccupancy(
         return room.chatApi.getOccupancy(room.roomId)
     }
 
-    override fun release() {
+    override fun dispose() {
         occupancySubscription.unsubscribe()
         occupancyScope.cancel()
     }

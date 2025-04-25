@@ -180,8 +180,8 @@ class DetachTest {
             capturedChannels.add(firstArg())
         }
 
-        val contributors = createRoomFeatureMocks()
-        Assert.assertEquals(5, contributors.size)
+        val roomFeatures = createRoomFeatureMocks()
+        Assert.assertEquals(5, roomFeatures.size)
 
         Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
 
