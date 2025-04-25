@@ -12,10 +12,13 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
-private const val API_PROTOCOL_VERSION = 3
 private const val PROTOCOL_VERSION_PARAM_NAME = "v"
-private val apiProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, API_PROTOCOL_VERSION.toString())
-private const val ENDPOINT_VERSION = PROTOCOL_VERSION_PARAM_NAME + API_PROTOCOL_VERSION
+
+private const val PUB_SUB_PROTOCOL_VERSION = 3
+private val pubSubProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, PUB_SUB_PROTOCOL_VERSION.toString())
+
+private const val CHAT_PROTOCOL_VERSION = 3
+private const val CHAT_API_PROTOCOL_VERSION = PROTOCOL_VERSION_PARAM_NAME + CHAT_PROTOCOL_VERSION
 
 internal class ChatApi(
     private val realtimeClient: RealtimeClient,
@@ -37,7 +40,7 @@ internal class ChatApi(
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
-            url = "/chat/$ENDPOINT_VERSION/rooms/$roomId/messages",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages",
             method = HttpMethod.Get,
             params = params,
         ) {
@@ -71,7 +74,7 @@ internal class ChatApi(
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
-            "/chat/$ENDPOINT_VERSION/rooms/$roomId/messages",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages",
             HttpMethod.Post,
             body,
         )?.let {
@@ -103,7 +106,7 @@ internal class ChatApi(
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
-            "/chat/$ENDPOINT_VERSION/rooms/${message.roomId}/messages/${message.serial}",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${message.roomId}/messages/${message.serial}",
             HttpMethod.Put,
             body,
         )?.let {
@@ -135,7 +138,7 @@ internal class ChatApi(
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
-            "/chat/$ENDPOINT_VERSION/rooms/${message.roomId}/messages/${message.serial}/delete",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${message.roomId}/messages/${message.serial}/delete",
             HttpMethod.Post,
             body,
         )?.let {
@@ -164,7 +167,7 @@ internal class ChatApi(
      */
     suspend fun getOccupancy(roomId: String): OccupancyEvent {
         logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
-        return this.makeAuthorizedRequest("/chat/$ENDPOINT_VERSION/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
+        return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
             DefaultOccupancyEvent(
                 connections = it.requireInt("connections"),
@@ -182,7 +185,7 @@ internal class ChatApi(
         realtimeClient.requestAsync(
             path = url,
             method = method,
-            params = listOf(apiProtocolParam),
+            params = listOf(pubSubProtocolParam),
             body = requestBody,
             headers = listOf(),
             callback = object : AsyncHttpPaginatedResponse.Callback {
@@ -216,7 +219,7 @@ internal class ChatApi(
         realtimeClient.requestAsync(
             method = method,
             path = url,
-            params = params + apiProtocolParam,
+            params = params + pubSubProtocolParam,
             body = null,
             headers = listOf(),
             callback = object : AsyncHttpPaginatedResponse.Callback {
