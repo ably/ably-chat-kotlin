@@ -102,7 +102,7 @@ class DetachTest {
         val roomLifecycle = spyk(room.LifecycleManager)
         val statusManager = room.StatusManager
         // Set room status to INITIALIZED
-        Assert.assertEquals(RoomStatus.Initialized, statusManager.status) // CHA-RS3
+        Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
 
         val roomReleased = Channel<Boolean>()
         coEvery {
@@ -119,16 +119,16 @@ class DetachTest {
         launch { roomLifecycle.release() }
         assertWaiter { !roomLifecycle.atomicCoroutineScope().finishedProcessing }
         Assert.assertEquals(0, roomLifecycle.atomicCoroutineScope().pendingJobCount) // no queued jobs, one job running
-        assertWaiter { statusManager.status == RoomStatus.Releasing }
+        assertWaiter { room.status == RoomStatus.Releasing }
 
         // Detach op started from separate coroutine
         val roomDetachOpDeferred = async(SupervisorJob()) { roomLifecycle.detach() }
         assertWaiter { roomLifecycle.atomicCoroutineScope().pendingJobCount == 1 } // detach op queued
-        Assert.assertEquals(RoomStatus.Releasing, statusManager.status)
+        Assert.assertEquals(RoomStatus.Releasing, room.status)
 
         // Finish release op, so DETACH op can start
         roomReleased.send(true)
-        assertWaiter { statusManager.status == RoomStatus.Released }
+        assertWaiter { room.status == RoomStatus.Released }
 
         val result = kotlin.runCatching { roomDetachOpDeferred.await() }
         Assert.assertTrue(roomLifecycle.atomicCoroutineScope().finishedProcessing)
@@ -156,7 +156,7 @@ class DetachTest {
         coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {}
 
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             roomStatusChanges.add(it)
         }
         roomLifecycle.detach()
@@ -194,7 +194,7 @@ class DetachTest {
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         // Channel is detached
-        Assert.assertEquals(RoomStatus.Detached, statusManager.status)
+        Assert.assertEquals(RoomStatus.Detached, room.status)
         Assert.assertTrue(roomLifecycle.isExplicitlyDetached)
     }
 
@@ -223,7 +223,7 @@ class DetachTest {
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
-        Assert.assertEquals(RoomStatus.Suspended, statusManager.status)
+        Assert.assertEquals(RoomStatus.Suspended, room.status)
 
         val exception = result.exceptionOrNull() as AblyException
         Assert.assertEquals("failed to attach room: error detaching channel 1234::\$chat", exception.errorInfo.message)
@@ -255,7 +255,7 @@ class DetachTest {
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
-        Assert.assertEquals(RoomStatus.Failed, statusManager.status)
+        Assert.assertEquals(RoomStatus.Failed, room.status)
 
         val exception = result.exceptionOrNull() as AblyException
         Assert.assertEquals("failed to attach room: error detaching channel 1234::\$chat", exception.errorInfo.message)

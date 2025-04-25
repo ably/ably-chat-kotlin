@@ -6,7 +6,6 @@ import com.ably.chat.assertWaiter
 import com.ably.chat.attachCoroutine
 import com.ably.chat.detachCoroutine
 import com.ably.chat.room.LifecycleManager
-import com.ably.chat.room.StatusManager
 import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createRoomFeatureMocks
 import com.ably.chat.room.createTestRoom
@@ -38,10 +37,9 @@ class PrecedenceTest {
     fun `(CHA-RL7a) If multiple operations are scheduled to run, they run as per LifecycleOperationPrecedence`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = spyk(room.LifecycleManager, recordPrivateCalls = true)
-        val statusManager = room.StatusManager
 
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             roomStatusChanges.add(it)
         }
 

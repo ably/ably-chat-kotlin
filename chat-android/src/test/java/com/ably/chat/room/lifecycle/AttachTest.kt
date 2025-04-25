@@ -49,8 +49,10 @@ class AttachTest {
     fun `(CHA-RL1a) Attach success when room is already in attached state`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
+        val statusManager = room.StatusManager
+
         // Set RoomStatus to Attached
-        room.StatusManager.setStatus(RoomStatus.Attached)
+        statusManager.setStatus(RoomStatus.Attached)
 
         val result = kotlin.runCatching { roomLifecycle.attach() }
         Assert.assertTrue(result.isSuccess)
@@ -62,8 +64,10 @@ class AttachTest {
     fun `(CHA-RL1c) Attach throws exception when room in released state`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
+        val statusManager = room.StatusManager
+
         // Set RoomStatus to Released
-        room.StatusManager.setStatus(RoomStatus.Released)
+        statusManager.setStatus(RoomStatus.Released)
 
         val exception = Assert.assertThrows(AblyException::class.java) {
             runBlocking {
@@ -83,7 +87,7 @@ class AttachTest {
         val statusManager = room.StatusManager
 
         // Check Room.status to be Initialized
-        Assert.assertEquals(RoomStatus.Initialized, statusManager.status) // CHA-RS3
+        Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
 
         val roomReleased = Channel<Boolean>()
         coEvery {
@@ -100,16 +104,16 @@ class AttachTest {
         launch { roomLifecycle.release() }
         assertWaiter { !roomLifecycle.atomicCoroutineScope().finishedProcessing }
         Assert.assertEquals(0, roomLifecycle.atomicCoroutineScope().pendingJobCount) // no queued jobs, one job running
-        assertWaiter { statusManager.status == RoomStatus.Releasing }
+        assertWaiter { room.status == RoomStatus.Releasing }
 
         // Attach op started from separate coroutine
         val roomAttachOpDeferred = async(SupervisorJob()) { roomLifecycle.attach() }
         assertWaiter { roomLifecycle.atomicCoroutineScope().pendingJobCount == 1 } // attach op queued
-        Assert.assertEquals(RoomStatus.Releasing, statusManager.status)
+        Assert.assertEquals(RoomStatus.Releasing, room.status)
 
         // Finish release op, so ATTACH op can start
         roomReleased.send(true)
-        assertWaiter { statusManager.status == RoomStatus.Released }
+        assertWaiter { room.status == RoomStatus.Released }
 
         val result = kotlin.runCatching { roomAttachOpDeferred.await() }
         Assert.assertTrue(roomLifecycle.atomicCoroutineScope().finishedProcessing)
@@ -129,13 +133,12 @@ class AttachTest {
     fun `(CHA-RL1e) Attach op should transition room into ATTACHING state`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
-        val statusManager = room.StatusManager
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers { }
 
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             roomStatusChanges.add(it)
         }
         roomLifecycle.attach()
@@ -150,7 +153,6 @@ class AttachTest {
     fun `(CHA-RL1k, CHA-RL1k1) When attach op is a success, room enters attached state`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
-        val statusManager = room.StatusManager
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         val capturedChannels = mutableListOf<RealtimeChannel>()
@@ -178,7 +180,7 @@ class AttachTest {
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         // RoomStatus is attached
-        Assert.assertEquals(RoomStatus.Attached, statusManager.status)
+        Assert.assertEquals(RoomStatus.Attached, room.status)
 
         Assert.assertTrue(roomLifecycle.hasAttachedOnce)
         Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
@@ -189,7 +191,6 @@ class AttachTest {
     fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel suspended), room enters suspended state and op returns error`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
-        val statusManager = room.StatusManager
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
@@ -210,7 +211,7 @@ class AttachTest {
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
-        Assert.assertEquals(RoomStatus.Suspended, statusManager.status)
+        Assert.assertEquals(RoomStatus.Suspended, room.status)
 
         val exception = result.exceptionOrNull() as AblyException
         Assert.assertEquals("failed to attach room: error attaching channel 1234::\$chat", exception.errorInfo.message)
@@ -222,7 +223,6 @@ class AttachTest {
     fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel failed), room status becomes failed and returns error`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
-        val statusManager = room.StatusManager
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
@@ -243,7 +243,7 @@ class AttachTest {
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
-        Assert.assertEquals(RoomStatus.Failed, statusManager.status)
+        Assert.assertEquals(RoomStatus.Failed, room.status)
 
         val exception = result.exceptionOrNull() as AblyException
         Assert.assertEquals("failed to attach room: error attaching channel 1234::\$chat", exception.errorInfo.message)

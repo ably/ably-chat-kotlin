@@ -61,7 +61,7 @@ class ReleaseTest {
         statusManager.setStatus(RoomStatus.Detached)
 
         val states = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             states.add(it)
         }
         val result = kotlin.runCatching { roomLifecycle.release() }
@@ -77,12 +77,12 @@ class ReleaseTest {
     fun `(CHA-RL3j) If room is in initialized state, room is immediately transitioned to released`() = runTest {
         val room = createTestRoom()
         val roomLifecycle = room.LifecycleManager
-        val statusManager = room.StatusManager
+
         // Set status to be initialized
-        statusManager.setStatus(RoomStatus.Initialized)
+        Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         val states = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             states.add(it)
         }
 
@@ -104,7 +104,7 @@ class ReleaseTest {
 
         val roomEvents = mutableListOf<RoomStatusChange>()
 
-        statusManager.onChange {
+        room.onStatusChange {
             roomEvents.add(it)
         }
 
@@ -129,19 +129,19 @@ class ReleaseTest {
         launch { roomLifecycle.attach() }
         assertWaiter { !roomLifecycle.atomicCoroutineScope().finishedProcessing }
         Assert.assertEquals(0, roomLifecycle.atomicCoroutineScope().pendingJobCount) // no queued jobs, one job running
-        assertWaiter { statusManager.status == RoomStatus.Attaching }
+        assertWaiter { room.status == RoomStatus.Attaching }
 
         // Release op started from separate coroutine
         val roomReleaseOpDeferred = async { roomLifecycle.release() }
         assertWaiter { roomLifecycle.atomicCoroutineScope().pendingJobCount == 1 } // release op queued
-        Assert.assertEquals(RoomStatus.Attaching, statusManager.status)
+        Assert.assertEquals(RoomStatus.Attaching, room.status)
 
         // Finish room ATTACH
         roomAttached.send(true)
 
         val result = kotlin.runCatching { roomReleaseOpDeferred.await() }
         Assert.assertTrue(result.isSuccess)
-        Assert.assertEquals(RoomStatus.Released, statusManager.status)
+        Assert.assertEquals(RoomStatus.Released, room.status)
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
@@ -166,7 +166,7 @@ class ReleaseTest {
         coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {}
 
         val roomStatusChanges = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             roomStatusChanges.add(it)
         }
 
@@ -198,7 +198,7 @@ class ReleaseTest {
 
             val result = kotlin.runCatching { roomLifecycle.release() }
             Assert.assertTrue(result.isSuccess)
-            Assert.assertEquals(RoomStatus.Released, statusManager.status)
+            Assert.assertEquals(RoomStatus.Released, room.status)
 
             Assert.assertEquals(1, capturedChannels.size)
             Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
@@ -227,7 +227,7 @@ class ReleaseTest {
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
-        Assert.assertEquals(RoomStatus.Released, statusManager.status)
+        Assert.assertEquals(RoomStatus.Released, room.status)
 
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
@@ -245,7 +245,7 @@ class ReleaseTest {
         statusManager.setStatus(RoomStatus.Attached)
 
         val roomEvents = mutableListOf<RoomStatusChange>()
-        statusManager.onChange {
+        room.onStatusChange {
             roomEvents.add(it)
         }
 
@@ -262,7 +262,7 @@ class ReleaseTest {
 
         val result = kotlin.runCatching { roomLifecycle.release() }
         Assert.assertTrue(result.isSuccess)
-        Assert.assertEquals(RoomStatus.Released, statusManager.status)
+        Assert.assertEquals(RoomStatus.Released, room.status)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         Assert.assertEquals(2, roomEvents.size)
@@ -301,7 +301,7 @@ class ReleaseTest {
         Assert.assertEquals(5, contributors.size)
 
         roomLifecycle.release()
-        Assert.assertEquals(RoomStatus.Released, statusManager.status)
+        Assert.assertEquals(RoomStatus.Released, room.status)
 
         Assert.assertEquals(1, capturedChannels.size)
         Assert.assertEquals("1234::\$chat", capturedChannels[0].name)
@@ -342,7 +342,7 @@ class ReleaseTest {
 
             val result = kotlin.runCatching { roomLifecycle.release() }
             Assert.assertTrue(result.isSuccess)
-            Assert.assertEquals(RoomStatus.Released, statusManager.status)
+            Assert.assertEquals(RoomStatus.Released, room.status)
 
             Assert.assertEquals(5, releasedFeatures.size)
             repeat(5) {

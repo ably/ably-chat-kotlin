@@ -71,12 +71,12 @@ class MonitoringTest {
         val roomLifecycle = spyk(room.LifecycleManager)
         val statusManager = room.StatusManager
         val stateChanges = mutableListOf<RoomStatus>()
-        statusManager.onChange {
+        room.onStatusChange {
             stateChanges.add(it.current)
         }
 
         // Check Room.status to be Initialized
-        Assert.assertEquals(RoomStatus.Initialized, statusManager.status) // CHA-RS3
+        Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
 
         val roomReleased = Channel<Boolean>()
         coEvery {
@@ -94,7 +94,7 @@ class MonitoringTest {
         launch { roomLifecycle.attach() }
         assertWaiter { !roomLifecycle.atomicCoroutineScope().finishedProcessing }
         Assert.assertEquals(0, roomLifecycle.atomicCoroutineScope().pendingJobCount) // no queued jobs, one job running
-        assertWaiter { statusManager.status == RoomStatus.Attaching }
+        assertWaiter { room.status == RoomStatus.Attaching }
 
         // Emit state change event
         lifecycleListener.onChannelStateChanged(constructChannelStateChangeEvent(ChannelState.detaching, ChannelState.attaching))
@@ -102,7 +102,7 @@ class MonitoringTest {
 
         // Complete ongoing lifecycle op
         roomReleased.send(true)
-        assertWaiter { statusManager.status == RoomStatus.Attached }
+        assertWaiter { room.status == RoomStatus.Attached }
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         Assert.assertEquals(2, stateChanges.size)
@@ -114,13 +114,12 @@ class MonitoringTest {
     @Suppress("MaximumLineLength")
     fun `(CHA-RL11c) If a room lifecycle operation is not in progress, then room status is set in accordance with channel state`() = runTest {
         val roomLifecycle = spyk(room.LifecycleManager)
-        val statusManager = room.StatusManager
         val stateChanges = mutableListOf<RoomStatus>()
-        statusManager.onChange {
+        room.onStatusChange {
             stateChanges.add(it.current)
         }
         // Check Room.status to be Initialized
-        Assert.assertEquals(RoomStatus.Initialized, statusManager.status) // CHA-RS3
+        Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
 
         mockkStatic(RealtimeChannel::attachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {}
@@ -128,7 +127,7 @@ class MonitoringTest {
 
         val attachResult = runCatching { roomLifecycle.attach() }
         Assert.assertTrue(attachResult.isSuccess)
-        Assert.assertEquals(RoomStatus.Attached, statusManager.status) // CHA-RS3
+        Assert.assertEquals(RoomStatus.Attached, room.status) // CHA-RS3
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 
         // Emit state change event
