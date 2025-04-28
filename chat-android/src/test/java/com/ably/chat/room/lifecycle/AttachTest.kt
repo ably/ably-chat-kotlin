@@ -186,38 +186,38 @@ class AttachTest {
         Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
     }
 
-    @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel suspended), room enters suspended state and op returns error`() = runTest {
-        val room = createTestRoom()
-        val roomLifecycle = room.LifecycleManager
+    fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel suspended), room enters suspended state and op returns error`() =
+        runTest {
+            val room = createTestRoom()
+            val roomLifecycle = room.LifecycleManager
 
-        mockkStatic(RealtimeChannel::attachCoroutine)
-        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
-            // Throw error for channel attach
-            val channel = firstArg<RealtimeChannel>()
-            every { channel.state } returns ChannelState.suspended
-            throw serverError("error attaching channel ${channel.name}")
+            mockkStatic(RealtimeChannel::attachCoroutine)
+            coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
+                // Throw error for channel attach
+                val channel = firstArg<RealtimeChannel>()
+                every { channel.state } returns ChannelState.suspended
+                throw serverError("error attaching channel ${channel.name}")
+            }
+
+            Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+            Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+            val result = kotlin.runCatching { roomLifecycle.attach() }
+
+            Assert.assertTrue(result.isFailure)
+            Assert.assertFalse(roomLifecycle.hasAttachedOnce)
+            Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
+
+            assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
+
+            Assert.assertEquals(RoomStatus.Suspended, room.status)
+
+            val exception = result.exceptionOrNull() as AblyException
+            Assert.assertEquals("failed to attach room: error attaching channel 1234::\$chat", exception.errorInfo.message)
+            Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
+            Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
         }
-
-        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
-        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
-
-        val result = kotlin.runCatching { roomLifecycle.attach() }
-
-        Assert.assertTrue(result.isFailure)
-        Assert.assertFalse(roomLifecycle.hasAttachedOnce)
-        Assert.assertFalse(roomLifecycle.isExplicitlyDetached)
-
-        assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
-
-        Assert.assertEquals(RoomStatus.Suspended, room.status)
-
-        val exception = result.exceptionOrNull() as AblyException
-        Assert.assertEquals("failed to attach room: error attaching channel 1234::\$chat", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
-        Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
-    }
 
     @Test
     fun `(CHA-RL1k2, CHA-RL1k3) When attach op is a failure (channel failed), room status becomes failed and returns error`() = runTest {

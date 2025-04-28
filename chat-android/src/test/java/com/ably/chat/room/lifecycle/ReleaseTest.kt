@@ -331,10 +331,10 @@ class ReleaseTest {
             roomLifecycle.RoomFeatures = roomLifecycle.RoomFeatures.map { spyk(it) }
             val roomFeatures = roomLifecycle.RoomFeatures
 
-            val releasedFeatures = mutableListOf<String>()
+            val disposedFeatures = mutableListOf<String>()
             for (feature in roomFeatures) {
                 every { feature.dispose() } answers {
-                    releasedFeatures.add(feature.featureName)
+                    disposedFeatures.add(feature.featureName)
                 }
             }
 
@@ -342,15 +342,15 @@ class ReleaseTest {
             Assert.assertTrue(result.isSuccess)
             Assert.assertEquals(RoomStatus.Released, room.status)
 
-            Assert.assertEquals(5, releasedFeatures.size)
+            Assert.assertEquals(5, disposedFeatures.size)
             repeat(5) {
-                Assert.assertEquals(roomFeatures[it].featureName, releasedFeatures[it])
+                Assert.assertEquals(roomFeatures[it].featureName, disposedFeatures[it])
             }
-            Assert.assertEquals("messages", releasedFeatures[0])
-            Assert.assertEquals("presence", releasedFeatures[1])
-            Assert.assertEquals("typing", releasedFeatures[2])
-            Assert.assertEquals("reactions", releasedFeatures[3])
-            Assert.assertEquals("occupancy", releasedFeatures[4])
+            Assert.assertEquals("messages", disposedFeatures[0])
+            Assert.assertEquals("presence", disposedFeatures[1])
+            Assert.assertEquals("typing", disposedFeatures[2])
+            Assert.assertEquals("reactions", disposedFeatures[3])
+            Assert.assertEquals("occupancy", disposedFeatures[4])
 
             assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 

@@ -5,6 +5,7 @@ import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
 import io.ably.lib.types.AblyException
+import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -124,14 +125,17 @@ internal class RoomLifecycleManager(
                 // CHA-RL12a, CHA-RL12b
                 if (channelStateChangeEvent.current == ChannelState.attached) {
                     if (!channelStateChangeEvent.resumed && hasAttachedOnce && !isExplicitlyDetached) {
-                        val errorInfo = channelStateChangeEvent.reason
-                        errorInfo?.let {
-                            it.message = "Discontinuity detected, ${it.message}"
-                            it.code = ErrorCode.RoomDiscontinuity.code
+                        val updatedErrorInfo = channelStateChangeEvent.reason?.let { originalErrorInfo ->
+                            ErrorInfo().apply {
+                                message = "Discontinuity detected, ${originalErrorInfo.message}"
+                                code = ErrorCode.RoomDiscontinuity.code
+                                statusCode = originalErrorInfo.statusCode
+                                href = originalErrorInfo.href
+                            }
                         }
-                        val errorContext = errorInfo?.toString() ?: "no error info"
+                        val errorContext = updatedErrorInfo?.toString() ?: "no error info"
                         logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
-                        discontinuityDetected(errorInfo)
+                        discontinuityDetected(updatedErrorInfo)
                     }
                 }
             }
@@ -229,7 +233,7 @@ internal class RoomLifecycleManager(
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {
                 channelEventBus.await() // await on internal channel state changes to be processed
-                val errorMessage = "failed to attach room: ${detachException.errorInfo.message}"
+                val errorMessage = "failed to detach room: ${detachException.errorInfo.message}"
                 logger.error(errorMessage)
                 detachException.errorInfo?.let {
                     it.message = errorMessage
@@ -298,7 +302,7 @@ internal class RoomLifecycleManager(
 
     /**
      * Performs the release operation on the room channel.
-     * Underlying resources are released each room feature.
+     * Underlying resources are released for each room feature.
      * Spec: CHA-RL3d, CHA-RL3g
      */
     private fun doRelease() {

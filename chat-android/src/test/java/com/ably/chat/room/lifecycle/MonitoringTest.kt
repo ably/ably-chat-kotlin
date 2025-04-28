@@ -62,7 +62,7 @@ class MonitoringTest {
 
     @After
     fun tearDown() {
-        unmockkStatic(RealtimeChannel::attachCoroutine)
+        unmockkStatic(RealtimeChannel::attachCoroutine, RealtimeChannel::detachCoroutine)
     }
 
     @Test
@@ -121,7 +121,7 @@ class MonitoringTest {
         // Check Room.status to be Initialized
         Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
 
-        mockkStatic(RealtimeChannel::attachCoroutine)
+        mockkStatic(RealtimeChannel::attachCoroutine, RealtimeChannel::detachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {}
         coEvery { any<RealtimeChannel>().detachCoroutine() } coAnswers {}
 

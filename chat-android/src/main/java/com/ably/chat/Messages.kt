@@ -355,7 +355,7 @@ internal class DefaultMessages(
 
     private val chatApi = room.chatApi
 
-    val channelWrapper: RealtimeChannel = room.channel
+    internal val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f

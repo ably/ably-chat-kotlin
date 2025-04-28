@@ -47,7 +47,7 @@ class PrecedenceTest {
         Assert.assertEquals(5, roomFeatures.size)
 
         // Attach operation
-        mockkStatic(RealtimeChannel::attachCoroutine)
+        mockkStatic(RealtimeChannel::attachCoroutine, RealtimeChannel::detachCoroutine)
         coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {
             delay(500)
         }
