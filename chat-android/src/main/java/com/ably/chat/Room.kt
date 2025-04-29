@@ -195,7 +195,7 @@ internal class DefaultRoom(
         lifecycleManager.detach()
     }
 
-    override fun onDiscontinuity(listener: Listener): StatusSubscription {
+    override fun onDiscontinuity(listener: Listener): Subscription {
         logger.trace("onDiscontinuity();")
         return lifecycleManager.onDiscontinuity(listener)
     }

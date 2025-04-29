@@ -77,7 +77,7 @@ internal class RoomLifecycleManager(
     private val operationInProcess: Boolean
         get() = !atomicCoroutineScope.finishedProcessing
 
-    private val channelEventBus = AwaitableSharedFlow<ChannelStateChange>(logger)
+    private val channelEventBus = AwaitableChannel<ChannelStateChange>(logger)
 
     private var roomMonitoringJob: Job
 
@@ -93,7 +93,7 @@ internal class RoomLifecycleManager(
 
     init {
         // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
-        channel.on { channelEventBus.tryEmit(it, awaitable = operationInProcess) }
+        channel.on { channelEventBus.trySend(it) }
         roomMonitoringJob = handleChannelStateChanges()
     }
 
@@ -101,7 +101,7 @@ internal class RoomLifecycleManager(
      * Maps a channel state to a room status.
      */
     private fun mapChannelStateToRoomStatus(channelState: ChannelState): RoomStatus =
-        channelStateToRoomStatusMap[channelState] ?: error("Unknown ChannelState: $channelState")
+        channelStateToRoomStatusMap.getValue(channelState)
 
     /**
      * Sets up monitoring of channel state changes to keep room status in sync.
@@ -122,21 +122,21 @@ internal class RoomLifecycleManager(
                     val newStatus = mapChannelStateToRoomStatus(channelStateChangeEvent.current)
                     statusManager.setStatus(newStatus, channelStateChangeEvent.reason)
                 }
+                val attached = channelStateChangeEvent.current == ChannelState.attached
+                val notResumed = !channelStateChangeEvent.resumed
                 // CHA-RL12a, CHA-RL12b
-                if (channelStateChangeEvent.current == ChannelState.attached) {
-                    if (!channelStateChangeEvent.resumed && hasAttachedOnce && !isExplicitlyDetached) {
-                        val updatedErrorInfo = channelStateChangeEvent.reason?.let { originalErrorInfo ->
-                            ErrorInfo().apply {
-                                message = "Discontinuity detected, ${originalErrorInfo.message}"
-                                code = ErrorCode.RoomDiscontinuity.code
-                                statusCode = originalErrorInfo.statusCode
-                                href = originalErrorInfo.href
-                            }
+                if (attached && notResumed && hasAttachedOnce && !isExplicitlyDetached) {
+                    val updatedErrorInfo = channelStateChangeEvent.reason?.let { originalErrorInfo ->
+                        ErrorInfo().apply {
+                            message = "Discontinuity detected, ${originalErrorInfo.message}"
+                            code = ErrorCode.RoomDiscontinuity.code
+                            statusCode = originalErrorInfo.statusCode
+                            href = originalErrorInfo.href
                         }
-                        val errorContext = updatedErrorInfo?.toString() ?: "no error info"
-                        logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
-                        discontinuityDetected(updatedErrorInfo)
                     }
+                    val errorContext = updatedErrorInfo?.toString() ?: "no error info"
+                    logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
+                    discontinuityDetected(updatedErrorInfo)
                 }
             }
         }

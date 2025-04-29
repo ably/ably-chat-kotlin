@@ -13,15 +13,12 @@ import io.ably.lib.types.Message
 import io.ably.lib.types.MessageExtras
 import io.ably.lib.types.PresenceMessage
 import java.util.UUID
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -231,67 +228,58 @@ internal class LatestJobExecutor {
 }
 
 /**
- * A custom implementation of a `MutableSharedFlow` that supports optional awaitable emissions.
- * This class allows emitting values with an optional `CompletableDeferred` to track the completion
- * of processing for each emitted value. It is useful in scenarios where you need to ensure that
- * all consumers have processed the emitted values before proceeding.
- * Note - Only one collector is allowed to process events.
+ * A custom implementation using Channel that supports optional awaitable emissions.
+ * This class allows emitting values with optional completion tracking.
  */
-internal class AwaitableSharedFlow<T>(private val logger: Logger) {
-    private val sharedFlow = MutableSharedFlow<Pair<T, CompletableDeferred<Unit>?>>(extraBufferCapacity = Channel.UNLIMITED)
-    private val completionDeferredList = ConcurrentLinkedQueue<CompletableDeferred<Unit>>()
+internal class AwaitableChannel<T>(private val logger: Logger) {
+    private val channel = Channel<Pair<T, CompletableDeferred<Unit>>>(Channel.UNLIMITED)
+    private val completionDeferred = AtomicReference<CompletableDeferred<Unit>?>(null)
     private var activeCollector = false
 
     /**
-     * Emits a value into the shared flow. If `awaitable` is true, the emission is tracked
-     * using a `CompletableDeferred` to allow awaiting its completion.
+     * Sends a value to the channel. If `awaitable` is true, the emission is tracked
+     * using a CompletableDeferred to allow awaiting its completion.
      *
-     * @param value The value to emit.
-     * @param awaitable Whether the emission should be tracked for completion.
+     * @param value The value to send.
      */
-    fun tryEmit(value: T, awaitable: Boolean = false) {
-        if (awaitable) {
-            val deferred = CompletableDeferred<Unit>()
-            completionDeferredList.add(deferred)
-            sharedFlow.tryEmit(value to deferred)
-        } else {
-            sharedFlow.tryEmit(value to null)
-        }
+    fun trySend(value: T) {
+        val deferred = CompletableDeferred<Unit>()
+        completionDeferred.set(deferred)
+        channel.trySend(value to deferred)
     }
 
     /**
-     * Collects values from the shared flow and processes them using the provided block.
+     * Collects values from the channel and processes them using the provided block.
      * Logs any exceptions that occur during processing.
      *
-     * @param block A suspendable function to process each emitted value.
+     * @param block A suspendable function to process each received value.
      */
     suspend fun collect(block: suspend (T) -> Unit) {
         if (activeCollector) {
             throw clientError("only one collector is allowed to process events")
         }
         activeCollector = true
-        sharedFlow.collect { (value, deferred) ->
+
+        for ((value, deferred) in channel) {
             try {
                 block(value)
             } catch (e: Exception) {
                 logger.error("Exception caught during collection: ${e.message}", e)
             } finally {
-                deferred?.complete(Unit)
+                deferred.complete(Unit)
             }
         }
     }
 
     /**
-     * Awaits the completion of all tracked emissions. This ensures that all consumers
-     * have processed the emitted values before proceeding.
+     * Awaits the completion of latest emission.
      */
     suspend fun await() {
-        val deferredList = completionDeferredList.toSet()
-        deferredList.awaitAll()
-        completionDeferredList.removeAll(deferredList)
+        completionDeferred.get()?.await()
     }
 
     fun dispose() {
-        completionDeferredList.clear()
+        channel.close()
+        completionDeferred.set(null)
     }
 }

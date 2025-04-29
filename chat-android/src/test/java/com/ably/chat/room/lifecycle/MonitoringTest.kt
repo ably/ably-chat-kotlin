@@ -11,6 +11,7 @@ import com.ably.chat.room.EventBus
 import com.ably.chat.room.LifecycleManager
 import com.ably.chat.room.StatusManager
 import com.ably.chat.room.atomicCoroutineScope
+import com.ably.chat.room.channelStateToRoomStatus
 import com.ably.chat.room.constructChannelStateChangeEvent
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
@@ -181,5 +182,24 @@ class MonitoringTest {
         val discontinuity = discontinuityDeferred.await()
         Assert.assertEquals(discontinuity.message, "Discontinuity detected, publish rate limit exceeded")
         Assert.assertEquals(discontinuity.code, ErrorCode.RoomDiscontinuity.code)
+    }
+
+    @Test
+    fun `All channel states should be mapped to room status`() = runTest {
+        val roomLifecycle = room.LifecycleManager
+        ChannelState.entries.forEach { channelState ->
+            val roomStatus = roomLifecycle.channelStateToRoomStatus(channelState)
+            val expectedRoomStatus = when (channelState) {
+                ChannelState.initialized -> RoomStatus.Initialized
+                ChannelState.attaching -> RoomStatus.Attaching
+                ChannelState.attached -> RoomStatus.Attached
+                ChannelState.detaching -> RoomStatus.Detaching
+                ChannelState.detached -> RoomStatus.Detached
+                ChannelState.failed -> RoomStatus.Failed
+                ChannelState.suspended -> RoomStatus.Suspended
+                else -> null
+            }
+            Assert.assertEquals(expectedRoomStatus, roomStatus)
+        }
     }
 }

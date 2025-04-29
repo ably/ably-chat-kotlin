@@ -3,7 +3,7 @@ package com.ably.chat.room
 import com.ably.annotations.InternalAPI
 import com.ably.chat.AndroidLogger
 import com.ably.chat.AtomicCoroutineScope
-import com.ably.chat.AwaitableSharedFlow
+import com.ably.chat.AwaitableChannel
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomStatusManager
@@ -12,6 +12,7 @@ import com.ably.chat.MutableRoomOptions
 import com.ably.chat.Room
 import com.ably.chat.RoomFeature
 import com.ably.chat.RoomLifecycleManager
+import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
 import com.ably.chat.Typing
@@ -131,7 +132,9 @@ internal var RoomLifecycleManager.RoomFeatures
     get() = getPrivateField<List<RoomFeature>>("roomFeatures")
     set(value) = setPrivateField("roomFeatures", value)
 
-internal val RoomLifecycleManager.EventBus get() = getPrivateField<AwaitableSharedFlow<ChannelStateChange>>("channelEventBus")
+internal val RoomLifecycleManager.EventBus get() = getPrivateField<AwaitableChannel<ChannelStateChange>>("channelEventBus")
+internal fun RoomLifecycleManager.channelStateToRoomStatus(channelState: ChannelState) =
+    invokePrivateMethod<RoomStatus>("mapChannelStateToRoomStatus", channelState)
 
 internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
     get() = getPrivateField("typingHeartbeatStarted")
