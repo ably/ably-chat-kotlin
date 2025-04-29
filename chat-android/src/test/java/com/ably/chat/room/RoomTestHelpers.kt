@@ -3,7 +3,6 @@ package com.ably.chat.room
 import com.ably.annotations.InternalAPI
 import com.ably.chat.AndroidLogger
 import com.ably.chat.AtomicCoroutineScope
-import com.ably.chat.AwaitableChannel
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomStatusManager
@@ -37,6 +36,7 @@ import io.ably.lib.util.EventEmitter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -132,7 +132,9 @@ internal var RoomLifecycleManager.RoomFeatures
     get() = getPrivateField<List<RoomFeature>>("roomFeatures")
     set(value) = setPrivateField("roomFeatures", value)
 
-internal val RoomLifecycleManager.EventBus get() = getPrivateField<AwaitableChannel<ChannelStateChange>>("channelEventBus")
+internal val RoomLifecycleManager.EventCompletionDeferred
+    get() = getPrivateField<AtomicReference<CompletableDeferred<Unit>>>("eventCompletionDeferred")
+
 internal fun RoomLifecycleManager.channelStateToRoomStatus(channelState: ChannelState) =
     invokePrivateMethod<RoomStatus>("mapChannelStateToRoomStatus", channelState)
 

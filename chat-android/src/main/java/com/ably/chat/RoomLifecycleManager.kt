@@ -6,6 +6,8 @@ import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -78,6 +80,7 @@ internal class RoomLifecycleManager(
         get() = !atomicCoroutineScope.finishedProcessing
 
     private val channelEventBus = AwaitableChannel<ChannelStateChange>(logger)
+    private val eventCompletionDeferred: AtomicReference<CompletableDeferred<Unit>?> = AtomicReference(null)
 
     private var roomMonitoringJob: Job
 
@@ -93,8 +96,15 @@ internal class RoomLifecycleManager(
 
     init {
         // CHA-RL11, CHA-RL12 - Start monitoring channel state changes
-        channel.on { channelEventBus.trySend(it) }
+        channel.on {
+            val deferred = channelEventBus.sendWithCompletion(it)
+            eventCompletionDeferred.set(deferred)
+        }
         roomMonitoringJob = handleChannelStateChanges()
+    }
+
+    private suspend fun awaitInternalChannelEventsCompletion() {
+        eventCompletionDeferred.get()?.await()
     }
 
     /**
@@ -170,14 +180,14 @@ internal class RoomLifecycleManager(
                 // CHA-RL1k
                 roomChannel.attachCoroutine()
                 // await on internal channel state changes to be processed
-                channelEventBus.await()
+                awaitInternalChannelEventsCompletion()
                 hasAttachedOnce = true
                 isExplicitlyDetached = false
                 // CHA-RL1f
                 statusManager.setStatus(RoomStatus.Attached)
                 logger.debug("attach(): room attached successfully")
             } catch (attachException: AblyException) {
-                channelEventBus.await() // await on internal channel state changes to be processed
+                awaitInternalChannelEventsCompletion() // await on internal channel state changes to be processed
                 val errorMessage = "failed to attach room: ${attachException.errorInfo.message}"
                 logger.error(errorMessage)
                 attachException.errorInfo?.let {
@@ -227,12 +237,12 @@ internal class RoomLifecycleManager(
                 // CHA-RL2k
                 roomChannel.detachCoroutine()
                 // await on internal channel state changes to be processed
-                channelEventBus.await()
+                awaitInternalChannelEventsCompletion()
                 isExplicitlyDetached = true
                 statusManager.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
             } catch (detachException: AblyException) {
-                channelEventBus.await() // await on internal channel state changes to be processed
+                awaitInternalChannelEventsCompletion() // await on internal channel state changes to be processed
                 val errorMessage = "failed to detach room: ${detachException.errorInfo.message}"
                 logger.error(errorMessage)
                 detachException.errorInfo?.let {
@@ -273,7 +283,7 @@ internal class RoomLifecycleManager(
             logger.debug("release(); attempting channel detach before release", context = mapOf("state" to room.status.stateName))
             retryUntilChannelDetachedOrFailed()
             // await on internal channel state changes to be processed
-            channelEventBus.await()
+            awaitInternalChannelEventsCompletion()
             logger.debug("release(); success, channel successfully detached")
             // CHA-RL3o, CHA-RL3h
             doRelease()
@@ -315,6 +325,7 @@ internal class RoomLifecycleManager(
             logger.debug("doRelease(); resource cleanup for feature: ${it.featureName}")
         }
         channelEventBus.dispose()
+        eventCompletionDeferred.set(null)
         roomMonitoringJob.cancel()
         offAllDiscontinuity()
         logger.debug("doRelease(); underlying resources released each room feature")

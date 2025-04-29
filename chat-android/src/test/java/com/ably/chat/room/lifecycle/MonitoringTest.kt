@@ -7,7 +7,7 @@ import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.attachCoroutine
 import com.ably.chat.detachCoroutine
-import com.ably.chat.room.EventBus
+import com.ably.chat.room.EventCompletionDeferred
 import com.ably.chat.room.LifecycleManager
 import com.ably.chat.room.StatusManager
 import com.ably.chat.room.atomicCoroutineScope
@@ -86,7 +86,7 @@ class MonitoringTest {
             roomLifecycle.atomicCoroutineScope().async {
                 statusManager.setStatus(RoomStatus.Attaching)
                 roomReleased.receive()
-                roomLifecycle.EventBus.await()
+                roomLifecycle.EventCompletionDeferred.get().await()
                 statusManager.setStatus(RoomStatus.Attached)
             }
         }

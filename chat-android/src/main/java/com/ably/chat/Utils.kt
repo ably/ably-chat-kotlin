@@ -13,6 +13,7 @@ import io.ably.lib.types.Message
 import io.ably.lib.types.MessageExtras
 import io.ably.lib.types.PresenceMessage
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -228,38 +229,43 @@ internal class LatestJobExecutor {
 }
 
 /**
- * A custom implementation using Channel that supports optional awaitable emissions.
- * This class allows emitting values with optional completion tracking.
+ * A custom Channel implementation that provides completion tracking for emitted values.
+ * It ensures there is only one active collector processing the events at a time.
+ *
+ * This implementation is useful when you need to:
+ * - Track when values are processed by the collector
+ * - Ensure single consumer pattern
+ * - Handle exceptions gracefully with logging
  */
 internal class AwaitableChannel<T>(private val logger: Logger) {
     private val channel = Channel<Pair<T, CompletableDeferred<Unit>>>(Channel.UNLIMITED)
-    private val completionDeferred = AtomicReference<CompletableDeferred<Unit>?>(null)
-    private var activeCollector = false
+    private val activeCollector = AtomicBoolean(false)
 
     /**
-     * Sends a value to the channel. If `awaitable` is true, the emission is tracked
-     * using a CompletableDeferred to allow awaiting its completion.
+     * Sends a value to the channel with completion tracking.
+     * Returns a [CompletableDeferred] that completes when the value is processed by the collector.
      *
-     * @param value The value to send.
+     * @param value The value to send through the channel
+     * @return [CompletableDeferred] that completes when the value is processed
      */
-    fun trySend(value: T) {
+    fun sendWithCompletion(value: T): CompletableDeferred<Unit> {
         val deferred = CompletableDeferred<Unit>()
-        completionDeferred.set(deferred)
         channel.trySend(value to deferred)
+        return deferred
     }
 
     /**
-     * Collects values from the channel and processes them using the provided block.
-     * Logs any exceptions that occur during processing.
+     * Collects and processes values from the channel.
+     * Only one collector can be active at a time.
+     * Automatically completes the deferred for each processed value.
      *
-     * @param block A suspendable function to process each received value.
+     * @param block The processing function to execute for each value
+     * @throws AblyException if multiple collectors attempt to collect simultaneously
      */
     suspend fun collect(block: suspend (T) -> Unit) {
-        if (activeCollector) {
+        if (!activeCollector.compareAndSet(false, true)) {
             throw clientError("only one collector is allowed to process events")
         }
-        activeCollector = true
-
         for ((value, deferred) in channel) {
             try {
                 block(value)
@@ -272,14 +278,10 @@ internal class AwaitableChannel<T>(private val logger: Logger) {
     }
 
     /**
-     * Awaits the completion of latest emission.
+     * Closes the channel and releases resources.
+     * After disposal, no new values can be sent.
      */
-    suspend fun await() {
-        completionDeferred.get()?.await()
-    }
-
     fun dispose() {
         channel.close()
-        completionDeferred.set(null)
     }
 }
