@@ -1,5 +1,7 @@
 package com.ably.chat
 
+import com.ably.chat.Discontinuity.Listener
+import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CompletableDeferred
@@ -13,7 +15,13 @@ import kotlinx.coroutines.launch
 /**
  * Represents a chat room.
  */
-public interface Room {
+public interface Room : Discontinuity {
+    /**
+     * Get the underlying Ably realtime channel used for the room.
+     * @returns The realtime channel.
+     */
+    public val channel: RealtimeChannel
+
     /**
      * The unique identifier of the room.
      * @returns The room identifier.
@@ -87,6 +95,17 @@ public interface Room {
     public fun onStatusChange(listener: Listener): Subscription
 
     /**
+     * An interface for listening to changes for the room status
+     */
+    public fun interface Listener {
+        /**
+         * A function that can be called when the room status changes.
+         * @param change The change in status.
+         */
+        public fun roomStatusChanged(change: RoomStatusChange)
+    }
+
+    /**
      * Attaches to the room to receive events in realtime.
      *
      * If a room fails to attach, it will enter either the [RoomStatus.Suspended] or [RoomStatus.Failed] state.
@@ -102,17 +121,6 @@ public interface Room {
      * Detaches from the room to stop receiving events in realtime.
      */
     public suspend fun detach()
-
-    /**
-     * An interface for listening to changes for the room status
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the room status changes.
-         * @param change The change in status.
-         */
-        public fun roomStatusChanged(change: RoomStatusChange)
-    }
 }
 
 /**
@@ -132,6 +140,8 @@ internal class DefaultRoom(
 ) : Room {
     internal val logger = logger.withContext("Room", mapOf("roomId" to roomId))
 
+    override val channel: RealtimeChannel = realtimeClient.channels.get("$roomId::\$chat", options.channelOptions())
+
     /**
      * RoomScope is a crucial part of the Room lifecycle. It manages sequential and atomic operations.
      * Parallelism is intentionally limited to 1 to ensure that only one coroutine runs at a time,
@@ -142,95 +152,38 @@ internal class DefaultRoom(
 
     override val messages = DefaultMessages(room = this)
 
-    private var _presence: Presence? = null
-    override val presence: Presence
-        get() {
-            if (_presence == null) { // CHA-RC2b
-                logger.error("Presence access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Presence is not enabled for this room")
-            }
-            return _presence as Presence
-        }
+    override val presence = DefaultPresence(room = this)
 
-    private var _reactions: RoomReactions? = null
-    override val reactions: RoomReactions
-        get() {
-            if (_reactions == null) { // CHA-RC2b
-                logger.error("Reactions access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Reactions are not enabled for this room")
-            }
-            return _reactions as RoomReactions
-        }
+    override val reactions = DefaultRoomReactions(room = this)
 
-    private var _typing: Typing? = null
-    override val typing: Typing
-        get() {
-            if (_typing == null) { // CHA-RC2b
-                logger.error("Typing access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Typing is not enabled for this room")
-            }
-            return _typing as Typing
-        }
+    override val typing = DefaultTyping(room = this)
 
-    private var _occupancy: Occupancy? = null
-    override val occupancy: Occupancy
-        get() {
-            if (_occupancy == null) { // CHA-RC2b
-                logger.error("Occupancy access failed, not enabled in provided RoomOptions: $options")
-                throw clientError("Occupancy is not enabled for this room")
-            }
-            return _occupancy as Occupancy
-        }
+    override val occupancy = DefaultOccupancy(room = this)
 
-    private val statusLifecycle = DefaultRoomLifecycle(this.logger)
+    private val statusManager = DefaultRoomStatusManager(this.logger)
 
     override val status: RoomStatus
-        get() = statusLifecycle.status
+        get() = statusManager.status
 
     override val error: ErrorInfo?
-        get() = statusLifecycle.error
+        get() = statusManager.error
 
-    private var lifecycleManager: RoomLifecycleManager
+    private val lifecycleManager: RoomLifecycleManager
 
     init {
         this.logger.debug("Initializing based on provided RoomOptions: $options")
 
         options.validateRoomOptions(this.logger) // CHA-RC2a
 
-        // CHA-RC2e - Add contributors/features as per the order of precedence
-        val roomFeatures = mutableListOf<ContributesToRoomLifecycle>(messages)
+        val roomFeatures = mutableListOf(messages, presence, typing, reactions, occupancy)
 
-        options.presence?.let {
-            val presenceContributor = DefaultPresence(room = this)
-            roomFeatures.add(presenceContributor)
-            _presence = presenceContributor
-        }
-
-        options.typing?.let {
-            val typingContributor = DefaultTyping(room = this)
-            roomFeatures.add(typingContributor)
-            _typing = typingContributor
-        }
-
-        options.reactions?.let {
-            val reactionsContributor = DefaultRoomReactions(room = this)
-            roomFeatures.add(reactionsContributor)
-            _reactions = reactionsContributor
-        }
-
-        options.occupancy?.let {
-            val occupancyContributor = DefaultOccupancy(room = this)
-            roomFeatures.add(occupancyContributor)
-            _occupancy = occupancyContributor
-        }
-
-        lifecycleManager = RoomLifecycleManager(roomScope, statusLifecycle, roomFeatures, this.logger)
+        lifecycleManager = RoomLifecycleManager(this, roomScope, statusManager, roomFeatures, this.logger)
 
         this.logger.debug("Initialized with features: ${roomFeatures.map { it.featureName }.joinWithBrackets}")
     }
 
     override fun onStatusChange(listener: Room.Listener): Subscription =
-        statusLifecycle.onChange(listener)
+        statusManager.onChange(listener)
 
     override suspend fun attach() {
         logger.trace("attach();")
@@ -240,6 +193,11 @@ internal class DefaultRoom(
     override suspend fun detach() {
         logger.trace("detach();")
         lifecycleManager.detach()
+    }
+
+    override fun onDiscontinuity(listener: Listener): Subscription {
+        logger.trace("onDiscontinuity();")
+        return lifecycleManager.onDiscontinuity(listener)
     }
 
     /**
@@ -260,7 +218,7 @@ internal class DefaultRoom(
     internal suspend fun ensureAttached(featureLogger: Logger) {
         featureLogger.trace("ensureAttached();")
         // CHA-PR3e, CHA-PR10e, CHA-PR4d, CHA-PR6d, CHA-T2d, CHA-T4a1, CHA-T5e
-        when (val currentRoomStatus = statusLifecycle.status) {
+        when (val currentRoomStatus = statusManager.status) {
             RoomStatus.Attached -> {
                 featureLogger.debug("ensureAttached(); Room is already attached")
                 return
@@ -270,29 +228,29 @@ internal class DefaultRoom(
                 featureLogger.debug("ensureAttached(); Room is in attaching state, waiting for attach to complete")
                 val attachDeferred = CompletableDeferred<Unit>()
                 roomScope.launch {
-                    when (statusLifecycle.status) {
-                        RoomStatus.Attached -> {
+                    when (statusManager.status) {
+                        RoomStatus.Attached -> { // CHA-RL9d
                             featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
                             attachDeferred.complete(Unit)
                         }
 
-                        RoomStatus.Attaching -> statusLifecycle.onChangeOnce {
+                        RoomStatus.Attaching -> statusManager.onChangeOnce {
                             if (it.current == RoomStatus.Attached) {
                                 featureLogger.debug("ensureAttached(); waiting complete, room is now ATTACHED")
                                 attachDeferred.complete(Unit)
                             } else {
                                 featureLogger.error("ensureAttached(); waiting complete, room ATTACHING failed with error: ${it.error}")
                                 val exception =
-                                    roomInvalidStateException(roomId, statusLifecycle.status, HttpStatusCode.InternalServerError)
+                                    roomInvalidStateException(roomId, statusManager.status, HttpStatusCode.InternalServerError)
                                 attachDeferred.completeExceptionally(exception)
                             }
                         }
 
                         else -> {
                             featureLogger.error(
-                                "ensureAttached(); waiting complete, room ATTACHING failed with error: ${statusLifecycle.error}",
+                                "ensureAttached(); waiting complete, room ATTACHING failed with error: ${statusManager.error}",
                             )
-                            val exception = roomInvalidStateException(roomId, statusLifecycle.status, HttpStatusCode.InternalServerError)
+                            val exception = roomInvalidStateException(roomId, statusManager.status, HttpStatusCode.InternalServerError)
                             attachDeferred.completeExceptionally(exception)
                         }
                     }
@@ -302,7 +260,7 @@ internal class DefaultRoom(
             }
             // CHA-PR3h, CHA-PR10h, CHA-PR4c, CHA-PR6h, CHA-T2g, CHA-T4a4, CHA-T5d
             else -> {
-                featureLogger.error("ensureAttached(); Room is in invalid state: $currentRoomStatus, error: ${statusLifecycle.error}")
+                featureLogger.error("ensureAttached(); Room is in invalid state: $currentRoomStatus, error: ${statusManager.error}")
                 throw roomInvalidStateException(roomId, currentRoomStatus, HttpStatusCode.BadRequest)
             }
         }

@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
  *
  * Get an instance via [Room.occupancy].
  */
-public interface Occupancy : EmitsDiscontinuities {
+public interface Occupancy {
     /**
      * Get underlying Ably channel for occupancy events.
      *
@@ -87,19 +88,16 @@ private const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
 
 internal class DefaultOccupancy(
     private val room: DefaultRoom,
-) : Occupancy, ContributesToRoomLifecycleImpl(room.logger) {
+) : Occupancy, RoomFeature {
 
     override val featureName: String = "occupancy"
 
-    override val attachmentErrorCode: ErrorCode = ErrorCode.OccupancyAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.OccupancyDetachmentFailed
-
     private val logger = room.logger.withContext(tag = "Occupancy")
 
-    override val channel: Channel = room.messages.channel
+    val channelWrapper: RealtimeChannel = room.channel
 
-    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel
 
     private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
 
@@ -130,8 +128,11 @@ internal class DefaultOccupancy(
     // (CHA-O4)
     override fun subscribe(listener: Occupancy.Listener): Subscription {
         logger.trace("Occupancy.subscribe()")
-        listeners.add(listener)
+        if (room.options.occupancy?.enableEvents == false) {
+            throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")
+        }
 
+        listeners.add(listener)
         return Subscription {
             logger.trace("Occupancy.unsubscribe()")
             // (CHA-04b)
@@ -145,7 +146,7 @@ internal class DefaultOccupancy(
         return room.chatApi.getOccupancy(room.roomId)
     }
 
-    override fun release() {
+    override fun dispose() {
         occupancySubscription.unsubscribe()
         occupancyScope.cancel()
     }

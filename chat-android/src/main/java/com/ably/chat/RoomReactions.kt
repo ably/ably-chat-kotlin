@@ -14,7 +14,7 @@ import io.ably.lib.realtime.Channel as AblyRealtimeChannel
  *
  * Get an instance via [Room.reactions].
  */
-public interface RoomReactions : EmitsDiscontinuities {
+public interface RoomReactions {
     /**
      * Returns an instance of the Ably realtime channel used for room-level reactions.
      * Avoid using this directly unless special features that cannot otherwise be implemented are needed.
@@ -114,20 +114,14 @@ internal data class SendReactionParams(
 
 internal class DefaultRoomReactions(
     private val room: DefaultRoom,
-) : RoomReactions, ContributesToRoomLifecycleImpl(room.logger) {
+) : RoomReactions, RoomFeature {
 
     override val featureName = "reactions"
 
-    private val roomReactionsChannelName = "${room.roomId}::\$chat::\$reactions"
-
-    override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(roomReactionsChannelName, ChatChannelOptions())
+    val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
     override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC2f
-
-    override val attachmentErrorCode: ErrorCode = ErrorCode.ReactionsAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.ReactionsDetachmentFailed
 
     private val logger = room.logger.withContext(tag = "Reactions")
 
@@ -149,7 +143,7 @@ internal class DefaultRoomReactions(
             }
         }
         room.ensureAttached(logger) // TODO - This check might be removed in the future due to core spec change
-        channelWrapper.publishCoroutine(pubSubMessage)
+        channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage())
     }
 
     override fun subscribe(listener: RoomReactions.Listener): Subscription {
@@ -173,7 +167,7 @@ internal class DefaultRoomReactions(
         return channelWrapper.subscribe(RoomReactionEventType.Reaction.eventName, messageListener).asChatSubscription()
     }
 
-    override fun release() {
-        room.realtimeClient.channels.release(channelWrapper.name)
+    override fun dispose() {
+        // No need to do anything
     }
 }
