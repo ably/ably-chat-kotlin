@@ -5,7 +5,7 @@ import com.ably.annotations.InternalAPI
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
@@ -36,12 +36,12 @@ class MessagesTest {
     @OptIn(InternalAPI::class)
     @Before
     fun setUp() {
-        val channel = createMockRealtimeChannel("room1::\$chat::\$chatMessages")
+        val channel = createMockRealtimeChannel("room1::\$chat")
         every { channel.javaChannel.on(capture(channelStateListenerSlot)) } returns mockk()
         val channels = realtimeClient.channels
-        every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
+        every { channels.get("room1::\$chat", any()) } returns channel
         val chatApi = createMockChatApi(realtimeClient)
-        val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = chatApi)
+        val room = createTestRoom("room1", realtimeClient = realtimeClient, chatApi = chatApi)
 
         messages = DefaultMessages(room)
     }
@@ -194,6 +194,7 @@ class MessagesTest {
             channelSerial = "channel-serial-2"
             attachSerial = "attach-serial-2"
         }
+
         channelStateListenerSlot.captured.onChannelStateChanged(
             buildChannelStateChange(
                 current = ChannelState.attached,

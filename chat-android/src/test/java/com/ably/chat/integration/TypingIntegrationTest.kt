@@ -3,7 +3,6 @@ package com.ably.chat.integration
 import com.ably.chat.TypingEvent
 import com.ably.chat.TypingEventType
 import com.ably.chat.assertWaiter
-import com.ably.chat.buildRoomOptions
 import com.ably.chat.typing
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
@@ -23,10 +22,10 @@ class TypingIntegrationTest {
         val chatClient1 = sandbox.createSandboxChatClient("client1")
         val chatClient2 = sandbox.createSandboxChatClient("client2")
         val roomId = UUID.randomUUID().toString()
-        val roomOptions = buildRoomOptions { typing { heartbeatThrottle = 10.seconds } }
-        val chatClient1Room = chatClient1.rooms.get(roomId, roomOptions)
+
+        val chatClient1Room = chatClient1.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
         chatClient1Room.attach()
-        val chatClient2Room = chatClient2.rooms.get(roomId, roomOptions)
+        val chatClient2Room = chatClient2.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
         chatClient2Room.attach()
 
         assertEquals(emptySet<String>(), chatClient1Room.typing.get())
@@ -57,12 +56,11 @@ class TypingIntegrationTest {
         val chatClient2 = sandbox.createSandboxChatClient("client2")
         val chatClient3 = sandbox.createSandboxChatClient("client3")
         val roomId = UUID.randomUUID().toString()
-        val roomOptions = buildRoomOptions { typing { heartbeatThrottle = 10.seconds } }
-        val chatClient1Room = chatClient1.rooms.get(roomId, roomOptions)
+        val chatClient1Room = chatClient1.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
         chatClient1Room.attach()
-        val chatClient2Room = chatClient2.rooms.get(roomId, roomOptions)
+        val chatClient2Room = chatClient2.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
         chatClient2Room.attach()
-        val chatClient3Room = chatClient3.rooms.get(roomId, roomOptions)
+        val chatClient3Room = chatClient3.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
         chatClient3Room.attach()
 
         // Client 1, Client 2 starts typing
