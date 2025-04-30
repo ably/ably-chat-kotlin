@@ -48,7 +48,6 @@ import com.ably.chat.LogLevel
 import com.ably.chat.Message
 import com.ably.chat.Reaction
 import com.ably.chat.Room
-import com.ably.chat.RoomOptions
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.asFlow
 import com.ably.chat.copy
@@ -96,7 +95,6 @@ fun App(chatClient: ChatClient) {
     LaunchedEffect(Unit) {
         val chatRoom = chatClient.rooms.get(
             Settings.ROOM_ID,
-            RoomOptions.AllFeaturesEnabled,
         )
         chatRoom.attach()
         room = chatRoom

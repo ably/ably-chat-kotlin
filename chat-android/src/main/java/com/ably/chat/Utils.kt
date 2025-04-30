@@ -227,3 +227,61 @@ internal class LatestJobExecutor {
         }
     }
 }
+
+/**
+ * A custom Channel implementation that provides completion tracking for emitted values.
+ * It ensures there is only one active collector processing the events at a time.
+ *
+ * This implementation is useful when you need to:
+ * - Track when values are processed by the collector
+ * - Ensure single consumer pattern
+ * - Handle exceptions gracefully with logging
+ */
+internal class AwaitableChannel<T>(private val logger: Logger) {
+    private val channel = Channel<Pair<T, CompletableDeferred<Unit>>>(Channel.UNLIMITED)
+    private val activeCollector = AtomicBoolean(false)
+
+    /**
+     * Sends a value to the channel with completion tracking.
+     * Returns a [CompletableDeferred] that completes when the value is processed by the collector.
+     *
+     * @param value The value to send through the channel
+     * @return [CompletableDeferred] that completes when the value is processed
+     */
+    fun sendWithCompletion(value: T): CompletableDeferred<Unit> {
+        val deferred = CompletableDeferred<Unit>()
+        channel.trySend(value to deferred)
+        return deferred
+    }
+
+    /**
+     * Collects and processes values from the channel.
+     * Only one collector can be active at a time.
+     * Automatically completes the deferred for each processed value.
+     *
+     * @param block The processing function to execute for each value
+     * @throws AblyException if multiple collectors attempt to collect simultaneously
+     */
+    suspend fun collect(block: suspend (T) -> Unit) {
+        if (!activeCollector.compareAndSet(false, true)) {
+            throw clientError("only one collector is allowed to process events")
+        }
+        for ((value, deferred) in channel) {
+            try {
+                block(value)
+            } catch (e: Exception) {
+                logger.error("Exception caught during collection: ${e.message}", e)
+            } finally {
+                deferred.complete(Unit)
+            }
+        }
+    }
+
+    /**
+     * Closes the channel and releases resources.
+     * After disposal, no new values can be sent.
+     */
+    fun dispose() {
+        channel.close()
+    }
+}
