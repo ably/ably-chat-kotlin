@@ -65,7 +65,7 @@ public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSiz
     }
 
     LaunchedEffect(this) {
-        messages.discontinuityAsFlow().collect {
+        discontinuityAsFlow().collect {
             loaded.clear()
             lastReceivedPaginatedResult = null
         }

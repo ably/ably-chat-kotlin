@@ -136,15 +136,21 @@ suspend fun getStartedWithChat() {
         println("Connection status changed: ${statusChange.current}")
     }
 
-    // Get our chat room and subscribe to status changes
-    val room = chatClient.rooms.get("readme-getting-started", RoomOptions.default)
+    // Get our chat room, by default all room options are enabled except for occupancy events
+    val room = chatClient.rooms.get("readme-getting-started")
+    // Subscribe to room status changes
     val roomSubscription = room.onStatusChange {statusChange: RoomStatusChange ->
         println("Room status changed: ${statusChange.current}")
     }
 
+    // Subscribe to room discontinuity, represents possible loss of messages after reconnection
+    val discontinuitySubscription = room.onDiscontinuity { error ->
+        println("Room discontinuity: ${error.message}")
+    }
+
     // Subscribe to incoming messages
-    val messageSubscription = room.messages.subscribe { event ->
-        println("Message received: ${event.message.text}")
+    val messageSubscription = room.messages.subscribe { msgEvent ->
+        println("Message received: ${msgEvent.message.text}")
     }
 
     // Attach the room - meaning we'll start receiving events from the server

@@ -35,7 +35,7 @@ public interface Rooms {
      * @param options The options for the room.
      * @throws [io.ably.lib.types.ErrorInfo] if a room with the same ID but different options already exists.
      * @returns Room A new or existing Room object.
-     * Spec: CHA-RC1f
+     * Spec: CHA-RC1f, CHA-RC4
      */
     public suspend fun get(roomId: String, options: RoomOptions = buildRoomOptions()): Room
 
@@ -55,6 +55,9 @@ public interface Rooms {
     public suspend fun release(roomId: String)
 }
 
+/**
+ * Spec: CHA-RC4
+ */
 public suspend fun Rooms.get(roomId: String, initOptions: MutableRoomOptions.() -> Unit): Room = get(roomId, buildRoomOptions(initOptions))
 
 /**

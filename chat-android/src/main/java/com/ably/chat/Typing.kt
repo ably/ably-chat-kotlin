@@ -2,12 +2,10 @@ package com.ably.chat
 
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
-import io.ably.lib.types.MessageExtras
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -29,7 +27,7 @@ import kotlinx.coroutines.launch
  *
  * Get an instance via [Room.typing].
  */
-public interface Typing : EmitsDiscontinuities {
+public interface Typing {
 
     /**
      * Get the Ably realtime channel underpinning typing events.
@@ -99,21 +97,26 @@ public interface Typing : EmitsDiscontinuities {
          * A function that can be called when the new typing event happens.
          * @param event The event that happened.
          */
-        public fun onEvent(event: TypingEvent)
+        public fun onEvent(event: TypingSetEvent)
     }
 }
 
 /**
- * @return [TypingEvent] events as a [Flow]
+ * @return [TypingSetEvent] events as a [Flow]
  */
-public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
+public fun Typing.asFlow(): Flow<TypingSetEvent> = transformCallbackAsFlow {
     subscribe(it)
 }
 
 /**
  * Represents a typing event.
  */
-public interface TypingEvent {
+public interface TypingSetEvent {
+    /**
+     * The type of the event.
+     */
+    public val type: TypingSetEventType
+
     /**
      * The set of user clientIds that are currently typing.
      */
@@ -140,24 +143,20 @@ public interface TypingEvent {
 internal data class DefaultTypingEvent(
     override val currentlyTyping: Set<String>,
     override val change: DefaultTypingEventChange,
-) : TypingEvent
+    override val type: TypingSetEventType = TypingSetEventType.SetChanged,
+) : TypingSetEvent
 
 internal data class DefaultTypingEventChange(
     override val type: TypingEventType,
     override val clientId: String,
-) : TypingEvent.Change
+) : TypingSetEvent.Change
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : Typing, ContributesToRoomLifecycleImpl(room.logger) {
-    private val typingIndicatorsChannelName = "${room.roomId}::\$chat::\$typingIndicators"
+) : Typing, RoomFeature {
 
     override val featureName = "typing"
-
-    override val attachmentErrorCode: ErrorCode = ErrorCode.TypingAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.TypingDetachmentFailed
 
     private val logger = room.logger.withContext(tag = "Typing")
 
@@ -165,10 +164,10 @@ internal class DefaultTyping(
 
     private var typingHeartbeatStarted: ValueTimeMark? = null
 
-    override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(typingIndicatorsChannelName, ChatChannelOptions())
+    private val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
+    override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
     private val listeners: MutableList<Typing.Listener> = CopyOnWriteArrayList()
 
@@ -300,22 +299,19 @@ internal class DefaultTyping(
 
     private suspend fun sendTyping(eventType: TypingEventType) {
         logger.trace("DefaultTyping.sendTyping()")
-        val msgExtras = JsonObject().apply {
-            addProperty("ephemeral", true)
-        }
+        val message = Message(eventType.eventName, "").asEphemeralMessage()
         try {
             logger.debug("DefaultTyping.sendTyping(); sending typing event $eventType")
-            channelWrapper.publishCoroutine(Message(eventType.eventName, "", MessageExtras(msgExtras)))
+            channelWrapper.publishCoroutine(message)
         } catch (e: Exception) {
             logger.error("DefaultTyping.sendTyping(); failed to publish typing event", e)
             throw e
         }
     }
 
-    override fun release() {
+    override fun dispose() {
         typingEventPubSubSubscription.unsubscribe()
         typingScope.cancel()
-        room.realtimeClient.channels.release(channelWrapper.name)
     }
 
     /**

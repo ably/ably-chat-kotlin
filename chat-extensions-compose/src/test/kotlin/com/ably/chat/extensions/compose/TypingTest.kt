@@ -6,8 +6,9 @@ import app.cash.turbine.test
 import com.ably.chat.Room
 import com.ably.chat.Subscription
 import com.ably.chat.Typing
-import com.ably.chat.TypingEvent
 import com.ably.chat.TypingEventType
+import com.ably.chat.TypingSetEvent
+import com.ably.chat.TypingSetEventType
 import com.ably.chat.annotations.ExperimentalChatApi
 import io.mockk.every
 import io.mockk.mockk
@@ -29,20 +30,22 @@ class TypingTest {
             room.collectAsCurrentlyTyping()
         }.test {
             assertEquals(emptySet<String>(), awaitItem())
-            val change = object : TypingEvent.Change {
+            val change = object : TypingSetEvent.Change {
                 override val type: TypingEventType = TypingEventType.Started
                 override val clientId: String = "client_1"
             }
-            val typingEvent1 = object : TypingEvent {
+            val typingEvent1 = object : TypingSetEvent {
                 override val currentlyTyping: Set<String> = setOf("client_1", "client_2")
-                override val change: TypingEvent.Change = change
+                override val change: TypingSetEvent.Change = change
+                override val type: TypingSetEventType = TypingSetEventType.SetChanged
             }
             typing.emit(typingEvent1)
             assertEquals(setOf("client_1", "client_2"), awaitItem())
 
-            val typingEvent2 = object : TypingEvent {
+            val typingEvent2 = object : TypingSetEvent {
                 override val currentlyTyping: Set<String> = setOf("client_3")
-                override val change: TypingEvent.Change = change
+                override val change: TypingSetEvent.Change = change
+                override val type: TypingSetEventType = TypingSetEventType.SetChanged
             }
             typing.emit(typingEvent2)
             assertEquals(setOf("client_3"), awaitItem())
@@ -61,7 +64,7 @@ class EmittingTyping(mock: Typing) : Typing by mock {
         return Subscription { listeners.remove(listener) }
     }
 
-    fun emit(event: TypingEvent) {
+    fun emit(event: TypingSetEvent) {
         listeners.forEach {
             it.onEvent(event)
         }

@@ -34,18 +34,6 @@ public interface RoomOptions {
      * `rooms.get("ROOM_NAME") { occupancy() }` to enable occupancy with default options.
      */
     public val occupancy: OccupancyOptions?
-
-    public companion object {
-        /**
-         * Supports all room options with default values
-         */
-        public val AllFeaturesEnabled: RoomOptions = buildRoomOptions {
-            typing()
-            presence()
-            reactions()
-            occupancy()
-        }
-    }
 }
 
 /**
@@ -53,20 +41,14 @@ public interface RoomOptions {
  */
 public interface PresenceOptions {
     /**
-     * Whether the underlying Realtime channel should use the presence enter mode, allowing entry into presence.
-     * This property does not affect the presence lifecycle, and users must still call [Presence.enter]
-     * in order to enter presence.
+     * Whether or not the client should receive presence events from the server. This setting
+     * can be disabled if you are using presence in your Chat Room, but this particular client does not
+     * need to receive the messages.
+     * Spec: CHA-PR9c
+     *
      * @defaultValue true
      */
-    public val enter: Boolean
-
-    /**
-     * Whether the underlying Realtime channel should use the presence subscribe mode, allowing subscription to presence.
-     * This property does not affect the presence lifecycle, and users must still call [Presence.subscribe]
-     * in order to subscribe to presence.
-     * @defaultValue true
-     */
-    public val subscribe: Boolean
+    public val enableEvents: Boolean
 }
 
 /**
@@ -94,20 +76,24 @@ public interface RoomReactionsOptions
  * Note: This class is currently empty but allows for future extensions
  * while maintaining backward compatibility.
  */
-public interface OccupancyOptions
+public interface OccupancyOptions {
+    /**
+     * Whether to enable inbound occupancy events.
+     */
+    public val enableEvents: Boolean
+}
 
 @ChatDsl
 public class MutableRoomOptions : RoomOptions {
-    override var presence: MutablePresenceOptions? = null
-    override var typing: MutableTypingOptions? = null
-    override var reactions: MutableRoomReactionsOptions? = null
-    override var occupancy: MutableOccupancyOptions? = null
+    override var presence: MutablePresenceOptions = MutablePresenceOptions()
+    override var typing: MutableTypingOptions = MutableTypingOptions()
+    override var reactions: MutableRoomReactionsOptions = MutableRoomReactionsOptions()
+    override var occupancy: MutableOccupancyOptions = MutableOccupancyOptions()
 }
 
 @ChatDsl
 public class MutablePresenceOptions : PresenceOptions {
-    override var enter: Boolean = true
-    override var subscribe: Boolean = true
+    override var enableEvents: Boolean = true // CHA-PR9c1
 }
 
 @ChatDsl
@@ -119,10 +105,12 @@ public class MutableTypingOptions : TypingOptions {
 public class MutableRoomReactionsOptions : RoomReactionsOptions
 
 @ChatDsl
-public class MutableOccupancyOptions : OccupancyOptions
+public class MutableOccupancyOptions : OccupancyOptions {
+    override var enableEvents: Boolean = false // CHA-O6c
+}
 
-public fun buildRoomOptions(init: MutableRoomOptions.() -> Unit = {}): RoomOptions =
-    MutableRoomOptions().apply(init).asEquatable()
+internal fun buildRoomOptions(init: (MutableRoomOptions.() -> Unit)? = null): RoomOptions =
+    MutableRoomOptions().apply(init ?: {}).asEquatable()
 
 public fun MutableRoomOptions.presence(init: MutablePresenceOptions.() -> Unit = {}) {
     this.presence = MutablePresenceOptions().apply(init)
@@ -148,31 +136,36 @@ internal data class EquatableRoomOptions(
 ) : RoomOptions
 
 internal data class EquatablePresenceOptions(
-    override val enter: Boolean,
-    override val subscribe: Boolean,
+    override val enableEvents: Boolean,
 ) : PresenceOptions
 
 internal data class EquatableTypingOptions(
     override val heartbeatThrottle: Duration,
 ) : TypingOptions
 
+internal data class EquatableOccupancyOptions(
+    override val enableEvents: Boolean,
+) : OccupancyOptions
+
 internal data object EquatableRoomReactionsOptions : RoomReactionsOptions
-internal data object EquatableOccupancyOptions : OccupancyOptions
 
 internal fun MutableRoomOptions.asEquatable() = EquatableRoomOptions(
-    presence = presence?.asEquatable(),
-    typing = typing?.asEquatable(),
-    reactions = reactions?.let { EquatableRoomReactionsOptions },
-    occupancy = occupancy?.let { EquatableOccupancyOptions },
+    presence = presence.asEquatable(),
+    typing = typing.asEquatable(),
+    reactions = EquatableRoomReactionsOptions,
+    occupancy = occupancy.asEquatable(),
 )
 
 internal fun MutablePresenceOptions.asEquatable() = EquatablePresenceOptions(
-    enter = enter,
-    subscribe = subscribe,
+    enableEvents = enableEvents,
 )
 
 internal fun MutableTypingOptions.asEquatable() = EquatableTypingOptions(
     heartbeatThrottle = heartbeatThrottle,
+)
+
+internal fun MutableOccupancyOptions.asEquatable() = EquatableOccupancyOptions(
+    enableEvents = enableEvents,
 )
 
 /**
@@ -192,30 +185,19 @@ internal fun RoomOptions.validateRoomOptions(logger: Logger) {
  * Merges channel options/modes from presence and occupancy to be used for shared channel.
  * This channel is shared by Room messages, presence and occupancy feature.
  * @return channelOptions for shared channel with options/modes from presence and occupancy.
- * Spec: CHA-RC3
+ * Spec: CHA-RC3a
  */
-internal fun RoomOptions.messagesChannelOptions(): ChannelOptions {
+internal fun RoomOptions.channelOptions(): ChannelOptions {
     return ChatChannelOptions {
-        presence?.let { presence ->
-            val channelModes = buildList {
-                // We should have this modes for regular messages
-                add(ChannelMode.publish)
-                add(ChannelMode.subscribe)
-
-                if (presence.enter) {
-                    add(ChannelMode.presence)
-                }
-                if (presence.subscribe) {
-                    add(ChannelMode.presence_subscribe)
-                }
+        presence?.let {
+            if (!it.enableEvents) { // CHA-PR9c2
+                modes = arrayOf(ChannelMode.publish, ChannelMode.subscribe, ChannelMode.presence)
             }
-
-            modes = channelModes.toTypedArray()
         }
-        occupancy?.let {
-            params = mapOf(
-                "occupancy" to "metrics",
-            )
+        occupancy?.let { // CHA-O6b
+            if (it.enableEvents) { // CHA-O6a
+                params = mapOf("occupancy" to "metrics")
+            }
         }
     }
 }

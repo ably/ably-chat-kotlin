@@ -4,8 +4,9 @@ import app.cash.turbine.test
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.google.gson.JsonObject
+import io.ably.lib.types.AblyException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -13,6 +14,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
@@ -24,13 +26,17 @@ class OccupancyTest {
 
     @Before
     fun setUp() {
-        val channel = createMockRealtimeChannel("room1::\$chat::\$chatMessages")
+        val channel = createMockRealtimeChannel("room1::\$chat")
         every { channel.subscribe(any<String>(), capture(pubSubMessageListenerSlot)) } returns mockk(relaxUnitFun = true)
         val channels = realtimeClient.channels
-        every { channels.get("room1::\$chat::\$chatMessages", any()) } returns channel
+        every { channels.get("room1::\$chat", any()) } returns channel
         val mockChatApi = createMockChatApi(realtimeClient)
-        val room = createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi)
-        occupancy = room.occupancy as DefaultOccupancy
+        val room = createTestRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi) {
+            occupancy {
+                enableEvents = true
+            }
+        }
+        occupancy = room.occupancy
     }
 
     /**
@@ -151,6 +157,24 @@ class OccupancyTest {
         verify(exactly = 1) {
             occupancy.channelWrapper.subscribe("[meta]occupancy", any())
         }
+    }
+
+    @Test
+    fun `(CHA-O4e) occupancy subscribe should throw error if occupancy events are disabled in room options`() = runTest {
+        val room = createTestRoom(realtimeClient = realtimeClient) {
+            occupancy {
+                enableEvents = false
+            }
+        }
+        val occupancy = DefaultOccupancy(room)
+
+        val exception = assertThrows(AblyException::class.java) {
+            occupancy.subscribe { }
+        }
+        val errorInfo = exception.errorInfo
+        assertEquals("cannot subscribe to occupancy; occupancy events are not enabled in room options", errorInfo.message)
+        assertEquals(400, errorInfo.statusCode)
+        assertEquals(40_000, errorInfo.code)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonElement
@@ -17,7 +18,7 @@ public typealias PresenceData = JsonElement
  *
  * Get an instance via [Room.presence].
  */
-public interface Presence : EmitsDiscontinuities {
+public interface Presence {
     /**
      * Get the underlying Ably realtime channel used for presence in this chat room.
      * @returns The realtime channel.
@@ -159,17 +160,14 @@ internal data class DefaultPresenceEvent(
 
 internal class DefaultPresence(
     private val room: DefaultRoom,
-) : Presence, ContributesToRoomLifecycleImpl(room.logger) {
+) : Presence, RoomFeature {
 
     override val featureName = "presence"
 
-    override val attachmentErrorCode: ErrorCode = ErrorCode.PresenceAttachmentFailed
+    private val channelWrapper: RealtimeChannel = room.channel
 
-    override val detachmentErrorCode: ErrorCode = ErrorCode.PresenceDetachmentFailed
-
-    override val channel: Channel = room.messages.channel
-
-    override val channelWrapper: RealtimeChannel = room.messages.channelWrapper
+    @OptIn(InternalAPI::class)
+    override val channel: Channel = channelWrapper.javaChannel
 
     private val logger = room.logger.withContext(tag = "Presence")
 
@@ -205,6 +203,12 @@ internal class DefaultPresence(
     }
 
     override fun subscribe(listener: Presence.Listener): Subscription {
+        logger.trace("Presence.subscribe()")
+        // CHA-PR7d - Check if presence events are enabled
+        if (room.options.presence?.enableEvents == false) {
+            throw clientError("could not subscribe to presence; presence events are not enabled in room options")
+        }
+
         val presenceListener = PubSubPresenceListener {
             val presenceEvent = DefaultPresenceEvent(
                 action = it.action,
@@ -224,7 +228,7 @@ internal class DefaultPresence(
         }
     }
 
-    override fun release() {
+    override fun dispose() {
         // No need to do anything, since it uses same channel as messages
     }
 }

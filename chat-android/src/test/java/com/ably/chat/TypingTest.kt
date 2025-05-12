@@ -7,7 +7,7 @@ import com.ably.chat.room.TypingStartEventPrunerJobs
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
-import com.ably.chat.room.createMockRoom
+import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.processEvent
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.CompletionListener
@@ -37,7 +37,7 @@ import org.junit.Test
 class TypingTest {
 
     private lateinit var room: DefaultRoom
-    private val typingChannel: RealtimeChannel = createMockRealtimeChannel()
+    private val realtimeChannel: RealtimeChannel = createMockRealtimeChannel()
     private var pubSubTypingListener: PubSubMessageListener? = null
     private lateinit var typingLogger: Logger
 
@@ -46,9 +46,9 @@ class TypingTest {
         val realtimeClient = createMockRealtimeClient()
 
         val channels = realtimeClient.channels
-        every { channels.get(any(), any()) } returns typingChannel
+        every { channels.get(any(), any()) } returns realtimeChannel
 
-        every { typingChannel.subscribe(any<List<String>>(), any<PubSubMessageListener>()) } answers {
+        every { realtimeChannel.subscribe(any<List<String>>(), any<PubSubMessageListener>()) } answers {
             pubSubTypingListener = secondArg()
             com.ably.Subscription {
                 pubSubTypingListener = null
@@ -56,7 +56,7 @@ class TypingTest {
         }
 
         val mockChatApi = createMockChatApi(realtimeClient)
-        room = spyk(createMockRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi))
+        room = spyk(createTestRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi))
         typingLogger = room.logger
         every {
             typingLogger.withContext(any<String>())
@@ -73,7 +73,7 @@ class TypingTest {
         val typing = DefaultTyping(room)
         var publishedMessage: Message? = null
         every {
-            typingChannel.publish(any<Message>(), any<CompletionListener>())
+            realtimeChannel.publish(any<Message>(), any<CompletionListener>())
         } answers {
             publishedMessage = firstArg()
             secondArg<CompletionListener>().onSuccess()
@@ -81,7 +81,7 @@ class TypingTest {
         assertNull(typing.TypingHeartbeatStarted)
         typing.keystroke()
         assertNotNull(typing.TypingHeartbeatStarted)
-        verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 1) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
         val extras = publishedMessage?.extras?.asJsonObject()
         val ephemeral = extras?.get("ephemeral")?.asBoolean!!
@@ -97,7 +97,7 @@ class TypingTest {
         var publishedMessage: Message? = null
 
         every {
-            typingChannel.publish(any<Message>(), any<CompletionListener>())
+            realtimeChannel.publish(any<Message>(), any<CompletionListener>())
         } answers {
             publishedMessage = firstArg()
             secondArg<CompletionListener>().onSuccess()
@@ -108,14 +108,14 @@ class TypingTest {
         typing.keystroke()
         assertNotNull(typing.TypingHeartbeatStarted)
 
-        verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 1) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
 
         assertTrue(typing.TypingHeartbeatStarted!!.elapsedNow() < 10.seconds) // timer not expired
         repeat(5) {
             typing.keystroke() // no typing event is sent
         }
-        verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 1) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
 
         // Advance heartbeatThrottle by 10 seconds, make it expired
@@ -126,7 +126,7 @@ class TypingTest {
         typing.keystroke()
         assertNotNull(typing.TypingHeartbeatStarted) // New timer set
 
-        verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 2) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
 
         assertTrue(typing.TypingHeartbeatStarted!!.elapsedNow() < 10.seconds) // timer not expired
@@ -134,7 +134,7 @@ class TypingTest {
             typing.keystroke() // no typing event is sent
         }
 
-        verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 2) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
     }
 
@@ -147,7 +147,7 @@ class TypingTest {
 
         var publishedMessage: Message? = null
         every {
-            typingChannel.publish(any<Message>(), any<CompletionListener>())
+            realtimeChannel.publish(any<Message>(), any<CompletionListener>())
         } answers {
             publishedMessage = firstArg()
             secondArg<CompletionListener>().onSuccess()
@@ -157,13 +157,13 @@ class TypingTest {
         val firstKeystrokeTime = TimeSource.Monotonic.markNow()
         typing.keystroke()
         assertNotNull(typing.TypingHeartbeatStarted)
-        verify(exactly = 1) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 1) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Started.eventName, publishedMessage?.name)
 
         // CHA-T5d, CHA-T5e - Typing stop event is published, heartbeatThrottle timer is cancelled
         typing.stop()
         assertNull(typing.TypingHeartbeatStarted)
-        verify(exactly = 2) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 2) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Stopped.eventName, publishedMessage?.name)
         val extras = publishedMessage?.extras?.asJsonObject()
         val ephemeral = extras?.get("ephemeral")?.asBoolean!!
@@ -172,20 +172,20 @@ class TypingTest {
         // typing.TypingHeartbeatStarted set as active, so stop message should be published
         typing.TypingHeartbeatStarted = firstKeystrokeTime
         typing.stop()
-        verify(exactly = 3) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 3) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Stopped.eventName, publishedMessage?.name)
 
         // CHA-T5a, typing.TypingHeartbeatStarted set to expired, so no stop message should be published
         typing.TypingHeartbeatStarted = firstKeystrokeTime - 10.seconds
         assertFalse(typing.TypingHeartbeatStarted!!.elapsedNow() < 10.seconds) // expired
         typing.stop()
-        verify(exactly = 3) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 3) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Stopped.eventName, publishedMessage?.name)
 
         // CHA-T5a, typing.TypingHeartbeatStarted is null, so no stop message should be published
         typing.TypingHeartbeatStarted = null
         typing.stop()
-        verify(exactly = 3) { typingChannel.publish(any<Message>(), any()) }
+        verify(exactly = 3) { realtimeChannel.publish(any<Message>(), any()) }
         assertEquals(TypingEventType.Stopped.eventName, publishedMessage?.name)
     }
 
@@ -203,7 +203,7 @@ class TypingTest {
     fun `on typing event received, if event is malformed, ignore the event`() = runTest {
         val typing = spyk(DefaultTyping(room))
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -254,7 +254,7 @@ class TypingTest {
     fun `Each start typing event should reset the inactivity timeout and set new one`() = runTest {
         val typing = DefaultTyping(room)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -295,7 +295,7 @@ class TypingTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val typing = DefaultTyping(room, dispatcher)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -304,6 +304,7 @@ class TypingTest {
 
         assertEquals(1, typingEvents.size)
         assertEquals(setOf(DEFAULT_CLIENT_ID), typingEvents[0].currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, typingEvents[0].type)
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
@@ -321,6 +322,7 @@ class TypingTest {
 
         assertEquals(2, typingEvents.size)
         assertEquals(emptySet<String>(), typingEvents[1].currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, typingEvents[1].type)
         assertEquals(TypingEventType.Stopped, typingEvents[1].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[1].change.clientId)
 
@@ -335,7 +337,7 @@ class TypingTest {
     fun `Each stop typing event should remove inactivity timeout and emit stop event`() = runTest {
         val typing = DefaultTyping(room)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -383,7 +385,7 @@ class TypingTest {
     fun `On typingStop event is received for client not present in typing set, then event is not emitted`() = runTest {
         val typing = DefaultTyping(room)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -392,6 +394,7 @@ class TypingTest {
 
         assertWaiter { typingEvents.size == 1 }
         assertEquals(setOf(DEFAULT_CLIENT_ID), typingEvents[0].currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, typingEvents[0].type)
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
@@ -497,7 +500,7 @@ class TypingTest {
         }
 
         typing.asFlow().test {
-            val event = mockk<TypingEvent>()
+            val event = mockk<TypingSetEvent>()
             callback.onEvent(event)
             assertEquals(event, awaitItem())
             cancel()

@@ -4,32 +4,40 @@ import com.ably.annotations.InternalAPI
 import com.ably.chat.AndroidLogger
 import com.ably.chat.AtomicCoroutineScope
 import com.ably.chat.ChatApi
-import com.ably.chat.ContributesToRoomLifecycle
 import com.ably.chat.DefaultRoom
-import com.ably.chat.DefaultRoomLifecycle
-import com.ably.chat.LifecycleOperationPrecedence
+import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.Logger
+import com.ably.chat.MutableRoomOptions
 import com.ably.chat.Room
+import com.ably.chat.RoomFeature
 import com.ably.chat.RoomLifecycleManager
 import com.ably.chat.RoomOptions
+import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
 import com.ably.chat.Typing
 import com.ably.chat.TypingEventType
+import com.ably.chat.buildRoomOptions
 import com.ably.chat.getPrivateField
 import com.ably.chat.invokePrivateMethod
-import com.ably.chat.invokePrivateSuspendMethod
+import com.ably.chat.occupancy
+import com.ably.chat.presence
+import com.ably.chat.reactions
 import com.ably.chat.setPrivateField
+import com.ably.chat.typing
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
+import io.ably.lib.realtime.ChannelStateListener
+import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
 import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -47,7 +55,7 @@ fun createMockRealtimeClient(): RealtimeClient {
             every { get(any(), any()) } answers {
                 createMockRealtimeChannel(firstArg<String>())
             }
-            every { release(any()) } returns Unit
+            every { release(any<String>()) } returns Unit
         }
     }
     return realtimeClient
@@ -79,14 +87,25 @@ internal fun createMockChatApi(
 
 internal fun createMockLogger(): Logger = mockk<AndroidLogger>(relaxed = true)
 
-internal fun createMockRoom(
+internal fun createTestRoom(
     roomId: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
     realtimeClient: RealtimeClient = createMockRealtimeClient(),
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
+    roomOptions: (MutableRoomOptions.() -> Unit)? = null,
 ): DefaultRoom =
-    DefaultRoom(roomId, RoomOptions.AllFeaturesEnabled, realtimeClient, chatApi, clientId, logger)
+    DefaultRoom(roomId, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientId, logger)
+
+internal val RoomOptionsWithAllFeatures: RoomOptions
+    get() = buildRoomOptions {
+        typing()
+        presence()
+        reactions()
+        occupancy {
+            enableEvents = true
+        }
+    }
 
 // Rooms mocks
 val Rooms.RoomIdToRoom get() = getPrivateField<MutableMap<String, Room>>("roomIdToRoom")
@@ -94,11 +113,13 @@ val Rooms.RoomGetDeferredMap get() = getPrivateField<MutableMap<String, Completa
 val Rooms.RoomReleaseDeferredMap get() = getPrivateField<MutableMap<String, CompletableDeferred<Unit>>>("roomReleaseDeferredMap")
 
 // Room mocks
-internal val Room.StatusLifecycle get() = getPrivateField<DefaultRoomLifecycle>("statusLifecycle")
+internal var Room.StatusManager
+    get() = getPrivateField<DefaultRoomStatusManager>("statusManager")
+    set(value) = setPrivateField("statusManager", value)
 internal val Room.LifecycleManager get() = getPrivateField<RoomLifecycleManager>("lifecycleManager")
 
 // DefaultRoomLifecycle mocks
-internal val DefaultRoomLifecycle.InternalEmitter get() = getPrivateField<RoomStatusEventEmitter>("internalEmitter")
+internal val DefaultRoomStatusManager.InternalEmitter get() = getPrivateField<RoomStatusEventEmitter>("internalEmitter")
 
 // EventEmitter mocks
 internal val EventEmitter<*, *>.Listeners get() = getPrivateField<List<Any>>("listeners")
@@ -106,9 +127,17 @@ internal val EventEmitter<*, *>.Filters get() = getPrivateField<Map<Any, Any>>("
 
 // RoomLifeCycleManager Mocks
 internal fun RoomLifecycleManager.atomicCoroutineScope(): AtomicCoroutineScope = getPrivateField("atomicCoroutineScope")
+internal val RoomLifecycleManager.hasAttachedOnce get() = getPrivateField<Boolean>("hasAttachedOnce")
+internal val RoomLifecycleManager.isExplicitlyDetached get() = getPrivateField<Boolean>("isExplicitlyDetached")
+internal var RoomLifecycleManager.RoomFeatures
+    get() = getPrivateField<List<RoomFeature>>("roomFeatures")
+    set(value) = setPrivateField("roomFeatures", value)
 
-internal suspend fun RoomLifecycleManager.retry(exceptContributor: ContributesToRoomLifecycle) =
-    invokePrivateSuspendMethod<Unit>("doRetry", exceptContributor)
+internal val RoomLifecycleManager.EventCompletionDeferred
+    get() = getPrivateField<AtomicReference<CompletableDeferred<Unit>>>("eventCompletionDeferred")
+
+internal fun RoomLifecycleManager.channelStateToRoomStatus(channelState: ChannelState) =
+    invokePrivateMethod<RoomStatus>("mapChannelStateToRoomStatus", channelState)
 
 internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
     get() = getPrivateField("typingHeartbeatStarted")
@@ -119,32 +148,34 @@ internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<Strin
 internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
     invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
 
-internal suspend fun RoomLifecycleManager.atomicRetry(exceptContributor: ContributesToRoomLifecycle) {
-    atomicCoroutineScope().async(LifecycleOperationPrecedence.Internal.priority) {
-        retry(exceptContributor)
-    }.await()
-}
-
 internal fun createRoomFeatureMocks(
     roomId: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
-): List<ContributesToRoomLifecycle> {
+): List<RoomFeature> {
     val realtimeClient = createMockRealtimeClient()
     val chatApi = createMockChatApi()
     val logger = createMockLogger()
-    val room = createMockRoom(roomId, clientId, realtimeClient, chatApi, logger)
+    val room = createTestRoom(roomId, clientId, realtimeClient, chatApi, logger)
 
-    val messagesContributor = spyk(room.messages, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val presenceContributor = spyk(room.presence, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val occupancyContributor = spyk(room.occupancy, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val typingContributor = spyk(room.typing, recordPrivateCalls = true) as ContributesToRoomLifecycle
-    val reactionsContributor = spyk(room.reactions, recordPrivateCalls = true) as ContributesToRoomLifecycle
+    val messages = spyk(room.messages, recordPrivateCalls = true) as RoomFeature
+    val presence = spyk(room.presence, recordPrivateCalls = true) as RoomFeature
+    val occupancy = spyk(room.occupancy, recordPrivateCalls = true) as RoomFeature
+    val typing = spyk(room.typing, recordPrivateCalls = true) as RoomFeature
+    val reactions = spyk(room.reactions, recordPrivateCalls = true) as RoomFeature
 
-    // CHA-RC2e - Add contributors/features as per the order of precedence
-    return listOf(messagesContributor, presenceContributor, typingContributor, reactionsContributor, occupancyContributor)
+    return listOf(messages, presence, typing, occupancy, reactions)
 }
 
-fun AblyRealtimeChannel.setState(state: ChannelState, errorInfo: ErrorInfo? = null) {
-    this.state = state
+fun AblyRealtimeChannel.setState(newState: ChannelState, errorInfo: ErrorInfo? = null) {
+    val previousState = this.state
+    this.state = newState
     this.reason = errorInfo
+    emit(newState, constructChannelStateChangeEvent(newState, previousState, errorInfo))
+}
+
+fun constructChannelStateChangeEvent(newState: ChannelState, prevState: ChannelState, errorInfo: ErrorInfo? = null): ChannelStateChange {
+    val constructor = ChannelStateListener.ChannelStateChange::class.java
+        .getDeclaredConstructor(ChannelState::class.java, ChannelState::class.java, ErrorInfo::class.java, Boolean::class.javaPrimitiveType)
+    constructor.isAccessible = true
+    return constructor.newInstance(newState, prevState, errorInfo, false)
 }

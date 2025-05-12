@@ -14,7 +14,7 @@ import io.ably.lib.realtime.Channel as AblyRealtimeChannel
  *
  * Get an instance via [Room.reactions].
  */
-public interface RoomReactions : EmitsDiscontinuities {
+public interface RoomReactions {
     /**
      * Returns an instance of the Ably realtime channel used for room-level reactions.
      * Avoid using this directly unless special features that cannot otherwise be implemented are needed.
@@ -114,25 +114,18 @@ internal data class SendReactionParams(
 
 internal class DefaultRoomReactions(
     private val room: DefaultRoom,
-) : RoomReactions, ContributesToRoomLifecycleImpl(room.logger) {
+) : RoomReactions, RoomFeature {
 
     override val featureName = "reactions"
 
-    private val roomReactionsChannelName = "${room.roomId}::\$chat::\$reactions"
-
-    override val channelWrapper: RealtimeChannel = room.realtimeClient.channels.get(roomReactionsChannelName, ChatChannelOptions())
+    val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC2f
-
-    override val attachmentErrorCode: ErrorCode = ErrorCode.ReactionsAttachmentFailed
-
-    override val detachmentErrorCode: ErrorCode = ErrorCode.ReactionsDetachmentFailed
+    override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC3
 
     private val logger = room.logger.withContext(tag = "Reactions")
 
     // (CHA-ER3) Ephemeral room reactions are sent to Ably via the Realtime connection via a send method.
-    // (CHA-ER3a) Reactions are sent on the channel using a message in a particular format - see spec for format.
     override suspend fun send(type: String, metadata: ReactionMetadata?, headers: ReactionHeaders?) {
         val pubSubMessage = PubSubMessage().apply {
             name = RoomReactionEventType.Reaction.eventName
@@ -149,7 +142,7 @@ internal class DefaultRoomReactions(
             }
         }
         room.ensureAttached(logger) // TODO - This check might be removed in the future due to core spec change
-        channelWrapper.publishCoroutine(pubSubMessage)
+        channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage()) // CHA-ER3d
     }
 
     override fun subscribe(listener: RoomReactions.Listener): Subscription {
@@ -173,7 +166,7 @@ internal class DefaultRoomReactions(
         return channelWrapper.subscribe(RoomReactionEventType.Reaction.eventName, messageListener).asChatSubscription()
     }
 
-    override fun release() {
-        room.realtimeClient.channels.release(channelWrapper.name)
+    override fun dispose() {
+        // No need to do anything
     }
 }
