@@ -4,6 +4,7 @@ import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.RoomStatus
+import com.ably.chat.Rooms
 import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
@@ -34,9 +35,10 @@ class ConfigureRoomOptionsTest {
     @Test
     fun `(CHA-RC2a) If a room is requested with a negative typing timeout, an ErrorInfo with code 40001 must be thrown`() = runTest {
         // Room success when positive typing timeout
+        var roomOpts = buildRoomOptions { typing { heartbeatThrottle = 100.milliseconds } }
         val room = DefaultRoom(
             "1234",
-            buildRoomOptions { typing { heartbeatThrottle = 100.milliseconds } },
+            roomOpts,
             mockRealtimeClient,
             chatApi,
             clientId,
@@ -46,10 +48,11 @@ class ConfigureRoomOptionsTest {
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
         // Room failure when negative timeout
+        roomOpts = buildRoomOptions { typing { heartbeatThrottle = 1.seconds.unaryMinus() } }
         val exception = assertThrows(AblyException::class.java) {
             DefaultRoom(
                 "1234",
-                buildRoomOptions { typing { heartbeatThrottle = 1.seconds.unaryMinus() } },
+                roomOpts,
                 mockRealtimeClient,
                 chatApi,
                 clientId,
@@ -116,11 +119,12 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4b) With partial room options, client shall deep-merge the provided values with the defaults`() = runTest {
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
+        val rooms: Rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
 
-        val room = rooms.get(DEFAULT_ROOM_ID) {
+        val roomOpts = buildRoomOptions {
             occupancy { enableEvents = true }
         }
+        val room = rooms.get(DEFAULT_ROOM_ID, roomOpts)
         val roomOptions = room.options
         Assert.assertTrue("Expected presence.enableEvents to be true", roomOptions.presence!!.enableEvents)
         Assert.assertEquals("Expected typing.heartbeatThrottle to be 10.seconds", 10.seconds, roomOptions.typing!!.heartbeatThrottle)

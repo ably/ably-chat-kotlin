@@ -32,6 +32,7 @@ internal interface RoomFeature {
 /**
  * The order of precedence for lifecycle operations, passed to PriorityQueueExecutor which
  * allows us to ensure that certain operations are completed before others.
+ * Spec: CHA-RL7
  */
 internal enum class LifecycleOperationPrecedence(val priority: Int) {
     Release(1),
@@ -70,10 +71,16 @@ internal class RoomLifecycleManager(
     val roomChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    val channel: Channel = roomChannel.javaChannel // CHA-RC2f
+    val channel: Channel = roomChannel.javaChannel // CHA-RC3
 
+    /**
+     * Spec: CHA-RL13
+     */
     private var hasAttachedOnce: Boolean = false
 
+    /**
+     * Spec: CHA-RL14
+     */
     private var isExplicitlyDetached: Boolean = false
 
     private val operationInProcess: Boolean
@@ -183,10 +190,10 @@ internal class RoomLifecycleManager(
                 awaitInternalChannelEventsCompletion()
                 hasAttachedOnce = true
                 isExplicitlyDetached = false
-                // CHA-RL1f
+                // CHA-RL1k1
                 statusManager.setStatus(RoomStatus.Attached)
                 logger.debug("attach(): room attached successfully")
-            } catch (attachException: AblyException) {
+            } catch (attachException: AblyException) { // CHA-RL1k2, CHA-RL1k3
                 awaitInternalChannelEventsCompletion() // await on internal channel state changes to be processed
                 val errorMessage = "failed to attach room: ${attachException.errorInfo.message}"
                 logger.error(errorMessage)
@@ -238,10 +245,11 @@ internal class RoomLifecycleManager(
                 roomChannel.detachCoroutine()
                 // await on internal channel state changes to be processed
                 awaitInternalChannelEventsCompletion()
+                // CHA-RL2k1
                 isExplicitlyDetached = true
                 statusManager.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
-            } catch (detachException: AblyException) {
+            } catch (detachException: AblyException) { // CHA-RL2k2, CHA-RL2k3
                 awaitInternalChannelEventsCompletion() // await on internal channel state changes to be processed
                 val errorMessage = "failed to detach room: ${detachException.errorInfo.message}"
                 logger.error(errorMessage)
@@ -294,17 +302,17 @@ internal class RoomLifecycleManager(
     /**
      *  Releases the room by detaching all channels. If the release operation fails, we wait
      *  a short period and then try again.
-     *  Spec: CHA-RL3f, CHA-RL3d
+     *  Spec: CHA-RL3n
      */
     private suspend fun retryUntilChannelDetachedOrFailed() {
         logger.trace("retryUntilChannelDetachedOrFailed();")
         var channelDetached = kotlin.runCatching { roomChannel.detachCoroutine() }
-        while (channelDetached.isFailure) {
-            if (roomChannel.state == ChannelState.failed) {
+        while (channelDetached.isFailure) { // CHA-RL3n2
+            if (roomChannel.state == ChannelState.failed) { // CHA-RL3n1, CHA-RL3n3
                 logger.debug("retryUntilChannelDetachedOrFailed(); channel state is failed, skipping detach")
                 return
             }
-            // Wait a short period and then try again
+            // CHA-RL3n4 - Wait a short period and then try again
             delay(retryDurationInMs)
             channelDetached = kotlin.runCatching { roomChannel.detachCoroutine() }
         }
@@ -313,12 +321,11 @@ internal class RoomLifecycleManager(
     /**
      * Performs the release operation on the room channel.
      * Underlying resources are released for each room feature.
-     * Spec: CHA-RL3d, CHA-RL3g
+     * Spec: CHA-RL3h
      */
     private fun doRelease() {
         logger.trace("doRelease();")
         room.realtimeClient.channels.release(roomChannel.name)
-        // CHA-RL3h
         logger.debug("doRelease(); releasing underlying resources from each room feature")
         roomFeatures.forEach {
             it.dispose()
@@ -329,7 +336,7 @@ internal class RoomLifecycleManager(
         roomMonitoringJob.cancel()
         offAllDiscontinuity()
         logger.debug("doRelease(); underlying resources released each room feature")
-        statusManager.setStatus(RoomStatus.Released) // CHA-RL3g
+        statusManager.setStatus(RoomStatus.Released) // CHA-RL3o
         logger.debug("doRelease(); transitioned room to RELEASED state")
     }
 }

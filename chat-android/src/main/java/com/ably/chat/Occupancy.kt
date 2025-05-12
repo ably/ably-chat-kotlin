@@ -125,10 +125,10 @@ internal class DefaultOccupancy(
         occupancySubscription = channelWrapper.subscribe(META_OCCUPANCY_EVENT_NAME, occupancyListener).asChatSubscription()
     }
 
-    // (CHA-O4)
+    // Spec: CHA-O4
     override fun subscribe(listener: Occupancy.Listener): Subscription {
         logger.trace("Occupancy.subscribe()")
-        if (room.options.occupancy?.enableEvents == false) {
+        if (room.options.occupancy?.enableEvents == false) { // CHA-O4e
             throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")
         }
 

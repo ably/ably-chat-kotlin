@@ -32,12 +32,12 @@ public interface Rooms {
      * throw an exception
      *
      * @param roomId The ID of the room.
-     * @param initOptions The options for the room.
+     * @param options The options for the room.
      * @throws [io.ably.lib.types.ErrorInfo] if a room with the same ID but different options already exists.
      * @returns Room A new or existing Room object.
-     * Spec: CHA-RC1f
+     * Spec: CHA-RC1f, CHA-RC4
      */
-    public suspend fun get(roomId: String, initOptions: (MutableRoomOptions.() -> Unit)? = null): Room
+    public suspend fun get(roomId: String, options: RoomOptions = buildRoomOptions()): Room
 
     /**
      * Release the Room object if it exists. This method only releases the reference
@@ -54,6 +54,11 @@ public interface Rooms {
      */
     public suspend fun release(roomId: String)
 }
+
+/**
+ * Spec: CHA-RC4
+ */
+public suspend fun Rooms.get(roomId: String, initOptions: MutableRoomOptions.() -> Unit): Room = get(roomId, buildRoomOptions(initOptions))
 
 /**
  * Manages the chat rooms.
@@ -77,8 +82,7 @@ internal class DefaultRooms(
     private val roomGetDeferredMap: MutableMap<String, CompletableDeferred<Unit>> = mutableMapOf()
     private val roomReleaseDeferredMap: MutableMap<String, CompletableDeferred<Unit>> = mutableMapOf()
 
-    override suspend fun get(roomId: String, initOptions: (MutableRoomOptions.() -> Unit)?): Room {
-        val options = buildRoomOptions(initOptions)
+    override suspend fun get(roomId: String, options: RoomOptions): Room {
         logger.trace("get(); roomId=$roomId, options=$options")
         return sequentialScope.async {
             val existingRoom = getReleasedOrExistingRoom(roomId)

@@ -204,7 +204,7 @@ internal class DefaultPresence(
 
     override fun subscribe(listener: Presence.Listener): Subscription {
         logger.trace("Presence.subscribe()")
-        // Check if presence events are enabled
+        // CHA-PR7d - Check if presence events are enabled
         if (room.options.presence?.enableEvents == false) {
             throw clientError("could not subscribe to presence; presence events are not enabled in room options")
         }

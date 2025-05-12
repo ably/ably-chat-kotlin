@@ -140,6 +140,9 @@ internal class DefaultRoom(
 ) : Room {
     internal val logger = logger.withContext("Room", mapOf("roomId" to roomId))
 
+    /**
+     * Spec: CHA-RC3a, CHA-RC3c
+     */
     override val channel: RealtimeChannel = realtimeClient.channels.get("$roomId::\$chat", options.channelOptions())
 
     /**

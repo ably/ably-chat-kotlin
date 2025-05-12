@@ -3,6 +3,7 @@ package com.ably.chat.integration
 import com.ably.chat.TypingEvent
 import com.ably.chat.TypingEventType
 import com.ably.chat.assertWaiter
+import com.ably.chat.get
 import com.ably.chat.typing
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds

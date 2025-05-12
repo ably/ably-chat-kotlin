@@ -358,7 +358,7 @@ internal class DefaultMessages(
     internal val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
+    override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
     private val channelSerialMap = ConcurrentHashMap<PubSubMessageListener, CompletableDeferred<String>>()
 

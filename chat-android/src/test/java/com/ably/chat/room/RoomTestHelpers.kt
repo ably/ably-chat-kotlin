@@ -11,6 +11,7 @@ import com.ably.chat.MutableRoomOptions
 import com.ably.chat.Room
 import com.ably.chat.RoomFeature
 import com.ably.chat.RoomLifecycleManager
+import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
@@ -96,8 +97,8 @@ internal fun createTestRoom(
 ): DefaultRoom =
     DefaultRoom(roomId, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientId, logger)
 
-internal val RoomOptionsWithAllFeatures: MutableRoomOptions.() -> Unit
-    get() = {
+internal val RoomOptionsWithAllFeatures: RoomOptions
+    get() = buildRoomOptions {
         typing()
         presence()
         reactions()

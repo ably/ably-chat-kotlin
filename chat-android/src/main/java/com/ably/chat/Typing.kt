@@ -161,7 +161,7 @@ internal class DefaultTyping(
     private val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel // CHA-RC2f
+    override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
     private val listeners: MutableList<Typing.Listener> = CopyOnWriteArrayList()
 

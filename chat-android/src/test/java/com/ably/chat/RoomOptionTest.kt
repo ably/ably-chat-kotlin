@@ -28,7 +28,7 @@ class RoomOptionTest {
     @Test
     fun `all features room options should be equal`() {
         assertEquals(
-            buildRoomOptions(RoomOptionsWithAllFeatures),
+            RoomOptionsWithAllFeatures,
             buildRoomOptions {
                 typing()
                 presence()

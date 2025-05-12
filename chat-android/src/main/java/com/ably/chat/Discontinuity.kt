@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * An interface to be implemented by objects that can emit discontinuities to listeners.
+ * Spec: CHA-RL15
  */
 public interface Discontinuity {
     /**
@@ -68,7 +69,7 @@ internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity, Handl
 /**
  * @return [ConnectionStatusChange] events as a [Flow]
  */
-public fun Discontinuity.discontinuityAsFlow(): Flow<ErrorInfo?> = transformCallbackAsFlow {
+public fun Discontinuity.discontinuityAsFlow(): Flow<ErrorInfo> = transformCallbackAsFlow {
     onDiscontinuity(it)
 }
 

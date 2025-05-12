@@ -121,12 +121,11 @@ internal class DefaultRoomReactions(
     val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC2f
+    override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC3
 
     private val logger = room.logger.withContext(tag = "Reactions")
 
     // (CHA-ER3) Ephemeral room reactions are sent to Ably via the Realtime connection via a send method.
-    // (CHA-ER3a) Reactions are sent on the channel using a message in a particular format - see spec for format.
     override suspend fun send(type: String, metadata: ReactionMetadata?, headers: ReactionHeaders?) {
         val pubSubMessage = PubSubMessage().apply {
             name = RoomReactionEventType.Reaction.eventName
@@ -143,7 +142,7 @@ internal class DefaultRoomReactions(
             }
         }
         room.ensureAttached(logger) // TODO - This check might be removed in the future due to core spec change
-        channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage())
+        channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage()) // CHA-ER3d
     }
 
     override fun subscribe(listener: RoomReactions.Listener): Subscription {

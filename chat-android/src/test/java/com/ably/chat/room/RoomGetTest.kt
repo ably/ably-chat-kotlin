@@ -5,9 +5,11 @@ import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
+import com.ably.chat.Rooms
 import com.ably.chat.assertWaiter
 import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
+import com.ably.chat.get
 import com.ably.chat.occupancy
 import com.ably.chat.presence
 import com.ably.chat.typing
@@ -51,7 +53,10 @@ class RoomGetTest {
     fun `(CHA-RC1f1) If the room id already exists, and newly requested with different options, then ErrorInfo with code 40000 is thrown`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms: Rooms = spyk(
+            DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger),
+            recordPrivateCalls = true,
+        )
 
         // Create room with id "1234"
         val room = rooms.get("1234")
@@ -149,7 +154,7 @@ class RoomGetTest {
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -168,7 +173,7 @@ class RoomGetTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomId, buildRoomOptions(RoomOptionsWithAllFeatures), mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger)
             }
             room
         }

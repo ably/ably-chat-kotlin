@@ -152,37 +152,38 @@ class MonitoringTest {
     }
 
     @Test
-    fun `(CHA-RL12a, CHA-RL12b) If channel attach event with resume as false received, then discontinuity event is emitted`() = runTest {
-        val roomLifecycle = room.LifecycleManager
-        val discontinuityDeferred = CompletableDeferred<ErrorInfo>()
+    fun `(CHA-RL15, CHA-RL12a, CHA-RL12b) If channel attach event with resume as false received, then discontinuity event is emitted`() =
+        runTest {
+            val roomLifecycle = room.LifecycleManager
+            val discontinuityDeferred = CompletableDeferred<ErrorInfo>()
 
-        // Check Room.status to be Initialized
-        Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
+            // Check Room.status to be Initialized
+            Assert.assertEquals(RoomStatus.Initialized, room.status) // CHA-RS3
 
-        mockkStatic(RealtimeChannel::attachCoroutine)
-        coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {}
+            mockkStatic(RealtimeChannel::attachCoroutine)
+            coEvery { any<RealtimeChannel>().attachCoroutine() } coAnswers {}
 
-        val attachResult = runCatching { roomLifecycle.attach() }
-        Assert.assertTrue(attachResult.isSuccess)
-        Assert.assertEquals(RoomStatus.Attached, room.status)
-        Assert.assertTrue(roomLifecycle.hasAttachedOnce)
+            val attachResult = runCatching { roomLifecycle.attach() }
+            Assert.assertTrue(attachResult.isSuccess)
+            Assert.assertEquals(RoomStatus.Attached, room.status)
+            Assert.assertTrue(roomLifecycle.hasAttachedOnce)
 
-        // listen to discontinuity
-        room.onDiscontinuity {
-            discontinuityDeferred.complete(it)
+            // listen to discontinuity
+            room.onDiscontinuity {
+                discontinuityDeferred.complete(it)
+            }
+
+            val channelDiscontinuityEvent = constructChannelStateChangeEvent(
+                ChannelState.attached,
+                ChannelState.attached,
+                ErrorInfo("publish rate limit exceeded", ErrorCode.InternalError.code),
+            )
+            lifecycleListener.onChannelStateChanged(channelDiscontinuityEvent)
+
+            val discontinuity = discontinuityDeferred.await()
+            Assert.assertEquals(discontinuity.message, "Discontinuity detected, publish rate limit exceeded")
+            Assert.assertEquals(discontinuity.code, ErrorCode.RoomDiscontinuity.code)
         }
-
-        val channelDiscontinuityEvent = constructChannelStateChangeEvent(
-            ChannelState.attached,
-            ChannelState.attached,
-            ErrorInfo("publish rate limit exceeded", ErrorCode.InternalError.code),
-        )
-        lifecycleListener.onChannelStateChanged(channelDiscontinuityEvent)
-
-        val discontinuity = discontinuityDeferred.await()
-        Assert.assertEquals(discontinuity.message, "Discontinuity detected, publish rate limit exceeded")
-        Assert.assertEquals(discontinuity.code, ErrorCode.RoomDiscontinuity.code)
-    }
 
     @Test
     fun `All channel states should be mapped to room status`() = runTest {

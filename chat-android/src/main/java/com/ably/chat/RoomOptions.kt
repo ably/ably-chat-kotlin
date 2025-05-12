@@ -185,7 +185,7 @@ internal fun RoomOptions.validateRoomOptions(logger: Logger) {
  * Merges channel options/modes from presence and occupancy to be used for shared channel.
  * This channel is shared by Room messages, presence and occupancy feature.
  * @return channelOptions for shared channel with options/modes from presence and occupancy.
- * Spec: CHA-RC3
+ * Spec: CHA-RC3a
  */
 internal fun RoomOptions.channelOptions(): ChannelOptions {
     return ChatChannelOptions {
