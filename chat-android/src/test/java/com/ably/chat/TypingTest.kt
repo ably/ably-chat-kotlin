@@ -203,7 +203,7 @@ class TypingTest {
     fun `on typing event received, if event is malformed, ignore the event`() = runTest {
         val typing = spyk(DefaultTyping(room))
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -254,7 +254,7 @@ class TypingTest {
     fun `Each start typing event should reset the inactivity timeout and set new one`() = runTest {
         val typing = DefaultTyping(room)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -295,7 +295,7 @@ class TypingTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val typing = DefaultTyping(room, dispatcher)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -304,6 +304,7 @@ class TypingTest {
 
         assertEquals(1, typingEvents.size)
         assertEquals(setOf(DEFAULT_CLIENT_ID), typingEvents[0].currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, typingEvents[0].type)
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
@@ -321,6 +322,7 @@ class TypingTest {
 
         assertEquals(2, typingEvents.size)
         assertEquals(emptySet<String>(), typingEvents[1].currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, typingEvents[1].type)
         assertEquals(TypingEventType.Stopped, typingEvents[1].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[1].change.clientId)
 
@@ -335,7 +337,7 @@ class TypingTest {
     fun `Each stop typing event should remove inactivity timeout and emit stop event`() = runTest {
         val typing = DefaultTyping(room)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -383,7 +385,7 @@ class TypingTest {
     fun `On typingStop event is received for client not present in typing set, then event is not emitted`() = runTest {
         val typing = DefaultTyping(room)
 
-        val typingEvents = mutableListOf<TypingEvent>()
+        val typingEvents = mutableListOf<TypingSetEvent>()
         typing.subscribe {
             typingEvents.add(it)
         }
@@ -392,6 +394,7 @@ class TypingTest {
 
         assertWaiter { typingEvents.size == 1 }
         assertEquals(setOf(DEFAULT_CLIENT_ID), typingEvents[0].currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, typingEvents[0].type)
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
@@ -497,7 +500,7 @@ class TypingTest {
         }
 
         typing.asFlow().test {
-            val event = mockk<TypingEvent>()
+            val event = mockk<TypingSetEvent>()
             callback.onEvent(event)
             assertEquals(event, awaitItem())
             cancel()

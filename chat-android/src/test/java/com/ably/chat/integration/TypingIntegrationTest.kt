@@ -1,7 +1,8 @@
 package com.ably.chat.integration
 
-import com.ably.chat.TypingEvent
 import com.ably.chat.TypingEventType
+import com.ably.chat.TypingSetEvent
+import com.ably.chat.TypingSetEventType
 import com.ably.chat.assertWaiter
 import com.ably.chat.get
 import com.ably.chat.typing
@@ -32,7 +33,7 @@ class TypingIntegrationTest {
         assertEquals(emptySet<String>(), chatClient1Room.typing.get())
         assertEquals(emptySet<String>(), chatClient2Room.typing.get())
 
-        val startTypingEventDeferred = CompletableDeferred<TypingEvent>()
+        val startTypingEventDeferred = CompletableDeferred<TypingSetEvent>()
         chatClient2Room.typing.subscribe {
             startTypingEventDeferred.complete(it)
         }
@@ -40,6 +41,7 @@ class TypingIntegrationTest {
         val startTypingEvent = startTypingEventDeferred.await()
 
         assertEquals(setOf("client1"), startTypingEvent.currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, startTypingEvent.type)
         assertEquals("client1", startTypingEvent.change.clientId)
         assertEquals(TypingEventType.Started, startTypingEvent.change.type)
 
@@ -65,7 +67,7 @@ class TypingIntegrationTest {
         chatClient3Room.attach()
 
         // Client 1, Client 2 starts typing
-        val startTypingEvents = mutableListOf<TypingEvent>()
+        val startTypingEvents = mutableListOf<TypingSetEvent>()
         chatClient2Room.typing.subscribe {
             startTypingEvents.add(it)
         }
@@ -77,11 +79,13 @@ class TypingIntegrationTest {
 
         val startTypingEvent1 = startTypingEvents[0]
         assertEquals(setOf("client1"), startTypingEvent1.currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, startTypingEvent1.type)
         assertEquals("client1", startTypingEvent1.change.clientId)
         assertEquals(TypingEventType.Started, startTypingEvent1.change.type)
 
         val startTypingEvent2 = startTypingEvents[1]
         assertEquals(setOf("client1", "client2"), startTypingEvent2.currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, startTypingEvent2.type)
         assertEquals("client2", startTypingEvent2.change.clientId)
         assertEquals(TypingEventType.Started, startTypingEvent2.change.type)
 
@@ -90,7 +94,7 @@ class TypingIntegrationTest {
         assertWaiter { chatClient3Room.typing.get() == setOf("client1", "client2") }
 
         // Client 1 stops typing
-        val stopTypingEventDeferred1 = CompletableDeferred<TypingEvent>()
+        val stopTypingEventDeferred1 = CompletableDeferred<TypingSetEvent>()
         chatClient2Room.typing.subscribe {
             stopTypingEventDeferred1.complete(it)
         }
@@ -98,6 +102,7 @@ class TypingIntegrationTest {
 
         val stopTypingEvent1 = stopTypingEventDeferred1.await()
         assertEquals(setOf("client2"), stopTypingEvent1.currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, stopTypingEvent1.type)
         assertEquals("client1", stopTypingEvent1.change.clientId)
         assertEquals(TypingEventType.Stopped, stopTypingEvent1.change.type)
 
@@ -106,7 +111,7 @@ class TypingIntegrationTest {
         assertWaiter { chatClient3Room.typing.get() == setOf("client2") }
 
         // Client 2 stops typing
-        val stopTypingEventDeferred2 = CompletableDeferred<TypingEvent>()
+        val stopTypingEventDeferred2 = CompletableDeferred<TypingSetEvent>()
         chatClient2Room.typing.subscribe {
             stopTypingEventDeferred2.complete(it)
         }
@@ -114,6 +119,7 @@ class TypingIntegrationTest {
 
         val stopTypingEvent2 = stopTypingEventDeferred2.await()
         assertEquals(emptySet<String>(), stopTypingEvent2.currentlyTyping)
+        assertEquals(TypingSetEventType.SetChanged, stopTypingEvent2.type)
         assertEquals("client2", stopTypingEvent2.change.clientId)
         assertEquals(TypingEventType.Stopped, stopTypingEvent2.change.type)
 

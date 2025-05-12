@@ -89,6 +89,16 @@ public enum class TypingEventType(public val eventName: String) {
 }
 
 /**
+ * Enum representing the typing set event types.
+ */
+public enum class TypingSetEventType(public val eventName: String) {
+    /**
+     * Event triggered when a change occurs in the set of typers.
+     */
+    SetChanged("typing.set.changed"),
+}
+
+/**
  * Room reaction events. This is used for the realtime system since room reactions
  * have only one event: "roomReaction".
  */

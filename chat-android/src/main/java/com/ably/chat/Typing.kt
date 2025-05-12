@@ -97,21 +97,26 @@ public interface Typing {
          * A function that can be called when the new typing event happens.
          * @param event The event that happened.
          */
-        public fun onEvent(event: TypingEvent)
+        public fun onEvent(event: TypingSetEvent)
     }
 }
 
 /**
- * @return [TypingEvent] events as a [Flow]
+ * @return [TypingSetEvent] events as a [Flow]
  */
-public fun Typing.asFlow(): Flow<TypingEvent> = transformCallbackAsFlow {
+public fun Typing.asFlow(): Flow<TypingSetEvent> = transformCallbackAsFlow {
     subscribe(it)
 }
 
 /**
  * Represents a typing event.
  */
-public interface TypingEvent {
+public interface TypingSetEvent {
+    /**
+     * The type of the event.
+     */
+    public val type: TypingSetEventType
+
     /**
      * The set of user clientIds that are currently typing.
      */
@@ -138,12 +143,13 @@ public interface TypingEvent {
 internal data class DefaultTypingEvent(
     override val currentlyTyping: Set<String>,
     override val change: DefaultTypingEventChange,
-) : TypingEvent
+    override val type: TypingSetEventType = TypingSetEventType.SetChanged,
+) : TypingSetEvent
 
 internal data class DefaultTypingEventChange(
     override val type: TypingEventType,
     override val clientId: String,
-) : TypingEvent.Change
+) : TypingSetEvent.Change
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
