@@ -1,5 +1,24 @@
 # Change Log
 
+## [0.3.0](https://github.com/ably/ably-chat-kotlin/tree/v0.3.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.2.1...v0.3.0)
+
+**Closed issues:**
+
+- Update to new Occupancy and Presence RoomOptions [\#129](https://github.com/ably/ably-chat-kotlin/issues/129)
+- Implement/migrate to single channel [\#121](https://github.com/ably/ably-chat-kotlin/issues/121)
+
+**Merged pull requests:**
+
+- Added type to TypingEvent [\#131](https://github.com/ably/ably-chat-kotlin/pull/131) ([sacOO7](https://github.com/sacOO7))
+- Feature/single channel integration [\#130](https://github.com/ably/ably-chat-kotlin/pull/130) ([sacOO7](https://github.com/sacOO7))
+- docs: update release process [\#125](https://github.com/ably/ably-chat-kotlin/pull/125) ([ttypic](https://github.com/ttypic))
+- \[ECO-5242\]\[CHADR-093\] Implement ephemeral typing [\#122](https://github.com/ably/ably-chat-kotlin/pull/122) ([sacOO7](https://github.com/sacOO7))
+- \[ECO-5256\] refactor: getting rid of data classes from public API [\#119](https://github.com/ably/ably-chat-kotlin/pull/119) ([ttypic](https://github.com/ttypic))
+- chore: turn on `explicitApi` for kotlin [\#114](https://github.com/ably/ably-chat-kotlin/pull/114) ([ttypic](https://github.com/ttypic))
+- \[ECO-5231\] Renamed ClientOptions to ChatClientOptions [\#113](https://github.com/ably/ably-chat-kotlin/pull/113) ([sacOO7](https://github.com/sacOO7))
+
 ## [0.2.1](https://github.com/ably/ably-chat-kotlin/tree/v0.2.1)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.2.0...v0.2.1)
