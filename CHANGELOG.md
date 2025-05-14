@@ -4,6 +4,14 @@
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.2.1...v0.3.0)
 
+## What's Changed
+
+- All Chat features now use a single underlying channel. This greatly simplifies the SDK whilst improving performance.
+
+The following features have also been added in this release:
+
+- Ephemeral typing indicators
+
 **Closed issues:**
 
 - Update to new Occupancy and Presence RoomOptions [\#129](https://github.com/ably/ably-chat-kotlin/issues/129)
@@ -13,7 +21,6 @@
 
 - Added type to TypingEvent [\#131](https://github.com/ably/ably-chat-kotlin/pull/131) ([sacOO7](https://github.com/sacOO7))
 - Feature/single channel integration [\#130](https://github.com/ably/ably-chat-kotlin/pull/130) ([sacOO7](https://github.com/sacOO7))
-- docs: update release process [\#125](https://github.com/ably/ably-chat-kotlin/pull/125) ([ttypic](https://github.com/ttypic))
 - \[ECO-5242\]\[CHADR-093\] Implement ephemeral typing [\#122](https://github.com/ably/ably-chat-kotlin/pull/122) ([sacOO7](https://github.com/sacOO7))
 - \[ECO-5256\] refactor: getting rid of data classes from public API [\#119](https://github.com/ably/ably-chat-kotlin/pull/119) ([ttypic](https://github.com/ttypic))
 - chore: turn on `explicitApi` for kotlin [\#114](https://github.com/ably/ably-chat-kotlin/pull/114) ([ttypic](https://github.com/ttypic))
