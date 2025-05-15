@@ -155,7 +155,8 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
     - Also ensure that the "Full Changelog" link points to the new version tag instead of the `HEAD`.
 
 4. Commit [CHANGELOG](./CHANGELOG.md)
-5. Create a PR on the [website docs](https://github.com/ably/docs) that updates that SDK version in the setup/installation guide.
+5. Create a PR on the [website docs](https://github.com/ably/docs), [website snippets](https://github.com/ably/website) and
+[voltaire snippets](https://github.com/ably/voltaire/) that updates that SDK version in the setup/installation guide.
 6. Make a PR against `main`
 7. Once the PR is approved, merge it into `main`
 8. Create the release and the release tag on Github including populating the release notes
