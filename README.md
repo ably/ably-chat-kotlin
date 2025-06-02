@@ -36,153 +36,20 @@ This SDK supports the following platforms:
 > Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
 The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
 
-## Installation
+---
 
-The Ably Chat SDK is available on the Maven Central Repository. To include the dependency in your project, add the following to your `build.gradle` file:
+## Releases
 
-For Groovy:
+The [CHANGELOG.md](/ably/ably-chat-kotlin/blob/main/CHANGELOG.md) contains details of the latest releases for this SDK. You can also view all Ably releases on [changelog.ably.com](https://changelog.ably.com).
 
-```groovy
-implementation 'com.ably.chat:chat-android:0.3.0'
-```
+---
 
-For Kotlin Script (`build.gradle.kts`):
+## Contribute
 
-```kotlin
-implementation("com.ably.chat:chat-android:0.3.0")
-```
+Read the [CONTRIBUTING.md](./CONTRIBUTING.md) guidelines to contribute to Ably or [Share feedback or request](https://forms.gle/mBw9M53NYuCBLFpMA) a new feature.
 
-### Dependency on ably-android
+---
 
-Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
-The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
+## Support, Feedback, and Troubleshooting
 
-
-## Instantiation and authentication
-
-To instantiate the Chat SDK, create an [Ably client](https://ably.com/docs/getting-started/setup) and pass it into the
-Chat constructor:
-
-```kotlin
-import com.ably.chat.ChatClient
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.types.ClientOptions
-
-val realtimeClient = AblyRealtime(
-    ClientOptions().apply {
-        key = "<api-key>"
-        clientId = "<client-id>"
-    },
-)
-
-val chatClient = ChatClient(realtimeClient)
-```
-
-You can use [basic authentication](https://ably.com/docs/auth/basic) i.e. the API Key directly for testing purposes,
-however it is strongly recommended that you use [token authentication](https://ably.com/docs/auth/token) in production
-environments.
-
-To use Chat you must also set a [`clientId`](https://ably.com/docs/auth/identified-clients) so that clients are
-identifiable. If you are prototyping, you can use `java.util.UUID` to generate an ID.
-
-In most cases, `clientId` can be set to `userId`, the user’s application-specific identifier, provided that `userId`
-is unique within the context of your application.
-
-## Getting Started
-
-At the end of this tutorial, you will have initialized the Ably Chat client and sent your first message.
-
-Start by creating a new Android project and installing the Chat SDK using the instructions described above. Then add the code in the following snippet
-to your app and call it in your code. This simple script initializes the Chat client, creates a chat room and sends a message, printing it to logcat when it is received over the websocket connection.
-
-```kotlin
-import kotlinx.coroutines.delay
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.types.ClientOptions
-import com.ably.chat.ChatClient
-import com.ably.chat.ConnectionStatusChange
-import com.ably.chat.RoomOptions
-import com.ably.chat.RoomStatusChange
-
-suspend fun getStartedWithChat() {
-    // Create an Ably Realtime client that will be passed to the chat client
-    val realtimeClient = AblyRealtime(
-        ClientOptions().apply {
-            key = "<API_KEY>"
-            clientId = "ably-chat"
-        },
-    )
-
-    // Create the chat client
-    // The two clients can be re-used for the duration of your application.
-    val chatClient = ChatClient(realtimeClient)
-
-    // Subscribe to connection state changes
-    val connectionSubscription = chatClient.connection.onStatusChange { statusChange: ConnectionStatusChange ->
-        println("Connection status changed: ${statusChange.current}")
-    }
-
-    // Get our chat room, by default all room options are enabled except for occupancy events
-    val room = chatClient.rooms.get("readme-getting-started")
-    // Subscribe to room status changes
-    val roomSubscription = room.onStatusChange {statusChange: RoomStatusChange ->
-        println("Room status changed: ${statusChange.current}")
-    }
-
-    // Subscribe to room discontinuity, represents possible loss of messages after reconnection
-    val discontinuitySubscription = room.onDiscontinuity { error ->
-        println("Room discontinuity: ${error.message}")
-    }
-
-    // Subscribe to incoming messages
-    val messageSubscription = room.messages.subscribe { msgEvent ->
-        println("Message received: ${msgEvent.message.text}")
-    }
-
-    // Attach the room - meaning we'll start receiving events from the server
-    room.attach()
-
-    // Send a message
-    room.messages.send(text = "Hello, World! This is my first message with Ably Chat!")
-
-    // Wait for 5 seconds to make sure the message has time to be received.
-    delay(5000)
-
-    // Now release the room and close the connection
-    chatClient.rooms.release("readme-getting-started")
-    realtimeClient.close()
-}
-```
-
-All being well, you should see lines in logcat resembling the following:
-
-```
-Connection status changed: Connected
-Room status changed: Attaching
-Room status changed: Attached
-Message received: Hello, World! This is my first message with Ably Chat!
-Room status changed: Releasing
-Room status changed: Released
-```
-
-Congratulations! You have sent your first message using the Ably Chat SDK!
-
-## Documentation
-
-Click [📚 here](https://ably.com/docs/products/chat) to view the complete documentation for the Ably Chat SDKs.
-
-## Contributing
-
-For guidance on how to contribute to this project, see the [contributing guidelines](CONTRIBUTING.md).
-
-## Support, feedback and troubleshooting
-
-Please visit http://support.ably.com/ for access to our knowledge base and to ask for any assistance. You can also view
-the [community reported Github issues](https://github.com/ably/ably-chat-kotlin/issues) or raise one yourself.
-
-To see what has changed in recent versions, see the [changelog](CHANGELOG.md).
-
-## Further reading
-
-- See a [simple chat example](/example/) in this repo.
-- [Share feedback or request](https://forms.gle/mBw9M53NYuCBLFpMA) a new feature.
+For help or technical support, visit Ably's [support page](https://ably.com/support). You can also view the [community reported Github issues](https://github.com/ably/ably-chat-kotlin/issues) or raise one yourself.
