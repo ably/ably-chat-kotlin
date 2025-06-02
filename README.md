@@ -20,20 +20,18 @@ Everything you need to get started with Ably:
 
 ## Supported Platforms
 
-This SDK works on Android 7.0+ (API level 24+) and Java 8+.
+Ably aims to support a wide range of platforms. If you experience any compatibility issues, open an issue in the repository or contact [Ably support](https://ably.com/support).
 
-## Usage
+This SDK supports the following platforms:
 
-You will need the following prerequisites:
+| Platform | Support |
+|----------|---------|
+|Android | Android 7.0+ (API level 24+) |
+| Java | Java 8+ |
 
-- An Ably account
-  - You can [sign up](https://ably.com/signup) to the generous free tier.
-- An Ably API key
-  - Use the default or create a new API key in an app within
-    your [Ably account dashboard](https://ably.com/dashboard).
-  - Make sure your API key has the
-    following [capabilities](https://ably.com/docs/auth/capabilities): `publish`, `subscribe`, `presence`, `history` and
-    `channel-metadata`.
+> [!NOTE]
+> Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
+The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
 
 ## Installation
 
