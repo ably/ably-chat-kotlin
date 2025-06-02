@@ -21,7 +21,7 @@ Everything you need to get started with Ably:
 
 ---
 
-## Supported Platforms
+## Supported platforms
 
 Ably aims to support a wide range of platforms. If you experience any compatibility issues, open an issue in the repository or contact [Ably support](https://ably.com/support).
 
