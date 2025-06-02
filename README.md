@@ -129,8 +129,3 @@ Please visit http://support.ably.com/ for access to our knowledge base and to as
 the [community reported Github issues](https://github.com/ably/ably-chat-kotlin/issues) or raise one yourself.
 
 To see what has changed in recent versions, see the [changelog](CHANGELOG.md).
-
-## Further reading
-
-- See a [simple chat example](/example/) in this repo.
-- [Share feedback or request](https://forms.gle/mBw9M53NYuCBLFpMA) a new feature.
