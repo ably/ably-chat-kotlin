@@ -119,6 +119,12 @@ Room status changed: Released
 
 Congratulations! You have sent your first message using the Ably Chat SDK!
 
+## Releases
+
+The [CHANGELOG.md](/ably/ably-chat-kotlin/blob/main/CHANGELOG.md) contains details of the latest releases for this SDK. You can also view all Ably releases on [changelog.ably.com](https://changelog.ably.com).
+
+---
+
 ## Contributing
 
 For guidance on how to contribute to this project, see the [contributing guidelines](CONTRIBUTING.md).
