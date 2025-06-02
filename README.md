@@ -54,6 +54,37 @@ implementation("com.ably.chat:chat-android:0.3.0")
 Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
 The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
 
+
+## Instantiation and authentication
+
+To instantiate the Chat SDK, create an [Ably client](https://ably.com/docs/getting-started/setup) and pass it into the
+Chat constructor:
+
+```kotlin
+import com.ably.chat.ChatClient
+import io.ably.lib.realtime.AblyRealtime
+import io.ably.lib.types.ClientOptions
+
+val realtimeClient = AblyRealtime(
+    ClientOptions().apply {
+        key = "<api-key>"
+        clientId = "<client-id>"
+    },
+)
+
+val chatClient = ChatClient(realtimeClient)
+```
+
+You can use [basic authentication](https://ably.com/docs/auth/basic) i.e. the API Key directly for testing purposes,
+however it is strongly recommended that you use [token authentication](https://ably.com/docs/auth/token) in production
+environments.
+
+To use Chat you must also set a [`clientId`](https://ably.com/docs/auth/identified-clients) so that clients are
+identifiable. If you are prototyping, you can use `java.util.UUID` to generate an ID.
+
+In most cases, `clientId` can be set to `userId`, the user’s application-specific identifier, provided that `userId`
+is unique within the context of your application.
+
 ## Getting Started
 
 At the end of this tutorial, you will have initialized the Ably Chat client and sent your first message.
