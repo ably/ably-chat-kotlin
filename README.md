@@ -36,6 +36,27 @@ This SDK supports the following platforms:
 > Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
 The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
 
+## Installation
+
+The Ably Chat SDK is available on the Maven Central Repository. To include the dependency in your project, add the following to your `build.gradle` file:
+
+For Groovy:
+
+```groovy
+implementation 'com.ably.chat:chat-android:0.3.0'
+```
+
+For Kotlin Script (`build.gradle.kts`):
+
+```kotlin
+implementation("com.ably.chat:chat-android:0.3.0")
+```
+
+### Dependency on ably-android
+
+Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
+The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
+
 ---
 
 ## Documentation
