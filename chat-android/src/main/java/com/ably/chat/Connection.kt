@@ -130,7 +130,7 @@ public fun Connection.statusAsFlow(): Flow<ConnectionStatusChange> = transformCa
 internal class DefaultConnection(
     pubSubConnection: PubSubConnection,
     private val logger: Logger,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : Connection {
 
     private val connectionScope = CoroutineScope(dispatcher.limitedParallelism(1) + SupervisorJob())
