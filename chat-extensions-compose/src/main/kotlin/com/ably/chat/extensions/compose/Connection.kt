@@ -20,6 +20,7 @@ public fun Connection.collectAsStatus(): ConnectionStatus {
     var status by remember(this) { mutableStateOf(status) }
 
     LaunchedEffect(this) {
+        status = this@collectAsStatus.status
         statusAsFlow().collect { status = it.current }
     }
 
