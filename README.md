@@ -1,5 +1,9 @@
 ![Ably Chat Header](/images/ably-chat-github-header.png)
 
+![License](https://badgen.net/github/license/3scale/saas-operator)
+![version](https://img.shields.io/badge/version-0.3.0-2ea44f)
+[![coverage](https://img.shields.io/static/v1?label=coverage&message=80%25%2B&color=2ea44f)](https://github.com/ably/ably-chat-kotlin/actions/workflows/coverage.yml)
+
 # Ably Chat Kotlin SDK
 
 Ably Chat is a set of purpose-built APIs for a host of chat features enabling you to create 1:1, 1:Many, Many:1 and Many:Many chat rooms for
@@ -13,8 +17,9 @@ architectures.
 
 Everything you need to get started with Ably:
 
+* [About Ably Chat.](https://ably.com/docs/chat)
 * [SDK setup in Kotlin.](https://ably.com/docs/chat/setup?lang=kotlin)
-* Play with the [livestream chat demo](https://ably-livestream-chat-demo.vercel.app/).
+* Play with the [livestream chat demo.](https://ably-livestream-chat-demo.vercel.app/)
 
 ---
 
