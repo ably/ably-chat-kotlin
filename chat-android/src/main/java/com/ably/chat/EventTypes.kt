@@ -35,9 +35,6 @@ internal val messageActionNameToAction = mapOf(
     /** Action applied to a deleted message. */
     "message.delete" to MessageAction.MESSAGE_DELETE,
 
-    /** Action applied to a meta occupancy message. */
-    "meta.occupancy" to MessageAction.META_OCCUPANCY,
-
     /** Action applied to a message summary. */
     "message.summary" to MessageAction.MESSAGE_SUMMARY,
 )

@@ -47,8 +47,9 @@ class MonitoringTest {
     @Before
     fun setUp() {
         val sharedChannel = createMockRealtimeChannel()
-        every { sharedChannel.javaChannel.on(capture(channelStateListeners)) } returns mockk()
-        every { sharedChannel.javaChannel.off(any()) } returns Unit
+        val javaChannel = sharedChannel.javaChannel
+        every { javaChannel.on(capture(channelStateListeners)) } returns mockk()
+        every { javaChannel.off(any()) } returns Unit
 
         val realtimeClient = createMockRealtimeClient()
         every {
