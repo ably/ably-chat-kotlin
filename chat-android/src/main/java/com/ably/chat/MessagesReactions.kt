@@ -337,6 +337,9 @@ internal class DefaultMessagesReactions(
         type: MessageReactionType?,
         count: Int,
     ) {
+        // CHA-MR4a1
+        checkMessageSerialIsNotEmpty(messageSerial)
+
         val reactionType = type ?: options.defaultMessageReactionType
 
         logger.trace(
@@ -359,6 +362,9 @@ internal class DefaultMessagesReactions(
     }
 
     override suspend fun delete(messageSerial: String, name: String?, type: MessageReactionType?) {
+        // CHA-MR11a1
+        checkMessageSerialIsNotEmpty(messageSerial)
+
         val reactionType = type ?: options.defaultMessageReactionType
 
         logger.trace(
@@ -393,6 +399,11 @@ internal class DefaultMessagesReactions(
 
     override fun subscribeRaw(listener: MessagesReactions.MessageRawReactionListener): Subscription {
         logger.trace("MessagesReactions.subscribeRaw()")
+
+        if (!options.rawMessageReactions) {
+            throw clientError("raw message reactions are not enabled")
+        }
+
         rawEventlisteners.add(listener)
         return Subscription {
             logger.trace("MessagesReactions.unsubscribeRaw()")
@@ -404,6 +415,12 @@ internal class DefaultMessagesReactions(
         summarySubscription.unsubscribe()
         annotationSubscription?.unsubscribe()
         reactionsScope.cancel()
+    }
+
+    private fun checkMessageSerialIsNotEmpty(messageSerial: String) {
+        if (messageSerial.isEmpty()) {
+            throw clientError("messageSerial cannot be empty")
+        }
     }
 
     private fun internalMessageSummaryListener(message: PubSubMessage) {

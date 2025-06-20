@@ -141,7 +141,7 @@ public fun Message.with(
 ): Message {
     checkMessageSerial(event.message.serial)
 
-    if (event.type == MessageEventType.Created) {
+    if (event.type == MessageEventType.Created) { // CHA-M11a
         throw clientError("MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE")
     }
 

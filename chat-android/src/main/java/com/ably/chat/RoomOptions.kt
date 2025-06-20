@@ -251,7 +251,7 @@ internal fun RoomOptions.channelOptions(): ChannelOptions {
             params = mapOf("occupancy" to "metrics")
         }
 
-        if (messages.rawMessageReactions) {
+        if (messages.rawMessageReactions) { // CHA-MR9a
             channelModes.add(ChannelMode.annotation_subscribe)
         }
 

@@ -6,6 +6,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.RealtimeAnnotations
 import io.ably.lib.realtime.buildRealtimeChannel
+import io.ably.lib.types.AblyException
 import io.ably.lib.types.Annotation
 import io.ably.lib.types.AnnotationAction
 import io.ably.lib.types.MessageAction
@@ -17,8 +18,10 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
@@ -148,6 +151,58 @@ class MessagesReactionsTest {
             ),
             event.reaction,
         )
+    }
+
+    /**
+     * Spec: CHA-MR4a1
+     */
+    @Test
+    fun `send should throw an exception if messageSerial is empty string`() = runTest {
+        val messagesReactions = createMessagesReaction()
+
+        val exception = assertThrows(AblyException::class.java) {
+            runBlocking {
+                messagesReactions.send("", "heart")
+            }
+
+        }
+        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.statusCode, 400)
+    }
+
+    /**
+     * Spec: CHA-MR11a1
+     */
+    @Test
+    fun `delete should throw an exception if messageSerial is empty string`() = runTest {
+        val messagesReactions = createMessagesReaction()
+
+        val exception = assertThrows(AblyException::class.java) {
+            runBlocking {
+                messagesReactions.delete("", "heart")
+            }
+
+        }
+        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.statusCode, 400)
+    }
+
+    /**
+     * Spec: CHA-MR7a
+     */
+    @Test
+    fun `subscribeRaw should throw an exception if messageSerial is empty string`() = runTest {
+        val messagesReactions = createMessagesReaction(
+            MutableMessageOptions().apply {
+                rawMessageReactions = false
+            },
+        )
+
+        val exception = assertThrows(AblyException::class.java) {
+            messagesReactions.subscribeRaw {  }
+        }
+        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.statusCode, 400)
     }
 
     private fun createMessagesReaction(options: MessageOptions = MutableMessageOptions()) = DefaultMessagesReactions(
