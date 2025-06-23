@@ -1,10 +1,9 @@
-# Ably Chat SDK for Android
+![Ably Chat Header](/images/KotlinChatSDK-github.png)
+[![Version](https://img.shields.io/badge/version-0.3.0-2ea44f)](https://github.com/3scale/saas-operator/releases/tag/v0.3.0)
+[![License](https://badgen.net/github/license/3scale/saas-operator)](https://github.com/3scale/saas-operator/blob/main/LICENSE)
 
-<p style="text-align: left">
-    <img src="https://badgen.net/github/license/3scale/saas-operator" alt="License" />
-    <img src="https://img.shields.io/badge/version-0.3.0-2ea44f" alt="version: 0.3.0" />
-    <a href="https://github.com/ably/ably-chat-kotlin/actions/workflows/coverage.yml"><img src="https://img.shields.io/static/v1?label=coverage&message=80%2B%25&color=2ea44f" alt="coverage - 80+%"></a>
-</p>
+
+# Ably Chat Kotlin SDK
 
 Ably Chat is a set of purpose-built APIs for a host of chat features enabling you to create 1:1, 1:Many, Many:1 and Many:Many chat rooms for
 any scale. It is designed to meet a wide range of chat use cases, such as livestreams, in-game communication, customer support, or social
