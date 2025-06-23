@@ -30,6 +30,11 @@ public interface Messages {
     public val channel: AblyRealtimeChannel
 
     /**
+     * Add, delete, and subscribe to message reactions.
+     */
+    public val reactions: MessagesReactions
+
+    /**
      * Subscribe to new messages in this chat room.
      * @param listener callback that will be called
      * @return A response object that allows you to control the subscription.
@@ -368,6 +373,11 @@ internal class DefaultMessages(
      */
     private var deferredChannelSerial = CompletableDeferred<String>()
 
+    override val reactions: MessagesReactions
+        get() = _reactions
+
+    private val _reactions: DefaultMessagesReactions
+
     init {
         logger.trace("init(); roomId=$roomId, initializing channelStateListener to update channel serials after discontinuity")
         channelStateListener = ChannelStateListener {
@@ -376,7 +386,17 @@ internal class DefaultMessages(
             }
         }
         @OptIn(InternalAPI::class)
-        channelWrapper.javaChannel.on(channelStateListener)
+        val internalChannel = channelWrapper.javaChannel
+        internalChannel.on(channelStateListener)
+
+        _reactions = DefaultMessagesReactions(
+            chatApi = chatApi,
+            roomId = roomId,
+            channel = internalChannel,
+            annotations = internalChannel.annotations,
+            options = room.options.messages,
+            parentLogger = logger,
+        )
     }
 
     // CHA-M5c, CHA-M5d - Updated channel serial after discontinuity
@@ -510,6 +530,7 @@ internal class DefaultMessages(
         @OptIn(InternalAPI::class)
         channelWrapper.javaChannel.off(channelStateListener)
         channelSerialMap.clear()
+        _reactions.dispose()
     }
 }
 

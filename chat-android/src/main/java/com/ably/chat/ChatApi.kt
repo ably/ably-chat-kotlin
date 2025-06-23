@@ -3,6 +3,7 @@ package com.ably.chat
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
 import io.ably.lib.types.ErrorInfo
@@ -47,6 +48,7 @@ internal class ChatApi(
             val messageJsonObject = it.requireJsonObject()
             val latestAction = messageJsonObject.get(MessageProperty.Action)?.asString?.let { name -> messageActionNameToAction[name] }
             val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
+            val reactions = messageJsonObject.getAsJsonObject(MessageProperty.Reactions)
             latestAction?.let { action ->
                 logger.debug("getMessages();", context = mapOf("roomId" to roomId, "message" to messageJsonObject.toString()))
                 DefaultMessage(
@@ -60,6 +62,7 @@ internal class ChatApi(
                     action = action,
                     version = messageJsonObject.requireString(MessageProperty.Version),
                     timestamp = messageJsonObject.requireLong(MessageProperty.Timestamp),
+                    reactions = buildMessageReactions(reactions),
                     operation = buildMessageOperation(operation),
                 )
             }
@@ -176,16 +179,46 @@ internal class ChatApi(
         } ?: throw serverError("Occupancy endpoint returned empty value")
     }
 
+    suspend fun sendMessageReaction(roomId: String, messageSerial: String, type: MessageReactionType, name: String, count: Int = 1) {
+        this.makeAuthorizedRequest(
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages/$messageSerial/reactions",
+            method = HttpMethod.Post,
+            body = buildMessageReactionsBody(type, name, count),
+        )
+    }
+
+    suspend fun deleteMessageReaction(roomId: String, messageSerial: String, type: MessageReactionType, name: String? = null) {
+        this.makeAuthorizedRequest(
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages/$messageSerial/reactions",
+            method = HttpMethod.Delete,
+            params = buildMessageReactionsApiParams(type, name),
+        )
+    }
+
+    private fun buildMessageReactionsApiParams(type: MessageReactionType, name: String? = null): List<Param> = buildList {
+        add(Param("type", type.type))
+        name?.let { add(Param("name", it)) }
+    }
+
+    private fun buildMessageReactionsBody(type: MessageReactionType, name: String, count: Int = 1): JsonObject = JsonObject().apply {
+        addProperty("type", type.type)
+        addProperty("name", name)
+        if (type == MessageReactionType.Multiple) {
+            addProperty("count", count)
+        }
+    }
+
     private suspend fun makeAuthorizedRequest(
         url: String,
         method: HttpMethod,
         body: JsonElement? = null,
+        params: List<Param> = listOf(),
     ): JsonElement? = suspendCancellableCoroutine { continuation ->
         val requestBody = body.toRequestBody()
         realtimeClient.requestAsync(
             path = url,
             method = method,
-            params = listOf(pubSubProtocolParam),
+            params = listOf(pubSubProtocolParam) + params,
             body = requestBody,
             headers = listOf(),
             callback = object : AsyncHttpPaginatedResponse.Callback {

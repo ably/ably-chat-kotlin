@@ -3,6 +3,9 @@ package com.ably.chat
 import com.google.gson.JsonObject
 import io.ably.lib.types.Message.Operation
 import io.ably.lib.types.MessageAction
+import io.ably.lib.types.Summary
+import io.ably.lib.types.SummaryClientIdCounts
+import io.ably.lib.types.SummaryClientIdList
 
 /**
  * [Headers type for chat messages.
@@ -91,10 +94,35 @@ public interface Message {
     public val timestamp: Long
 
     /**
+     * The reactions summary for this message.
+     */
+    public val reactions: MessageReactions
+
+    /**
      * The details of the operation that modified the message. This is only set for update and delete actions. It contains
      * information about the operation: the clientId of the user who performed the operation, a description, and metadata.
      */
     public val operation: Operation?
+}
+
+/**
+ * Represents a summary of all reactions on a message.
+ */
+public interface MessageReactions {
+    /**
+     * Map of reaction to the summary (total and clients) for reactions of type [MessageReactionType.Unique].
+     */
+    public val unique: Map<String, SummaryClientIdList>
+
+    /**
+     * Map of reaction to the summary (total and clients) for reactions of type [MessageReactionType.Distinct].
+     */
+    public val distinct: Map<String, SummaryClientIdList>
+
+    /**
+     * Map of reaction to the summary (total and clients) for reactions of type [MessageReactionType.Multiple].
+     */
+    public val multiple: Map<String, SummaryClientIdCounts>
 }
 
 public fun Message.copy(
@@ -108,6 +136,43 @@ public fun Message.copy(
         metadata = metadata,
     ) ?: throw clientError("Message interface is not suitable for inheritance")
 
+public fun Message.with(
+    event: MessageEvent,
+): Message {
+    checkMessageSerial(event.message.serial)
+
+    if (event.type == MessageEventType.Created) { // CHA-M11a
+        throw clientError("MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE")
+    }
+
+    if (event.message.version <= this.version) return this
+
+    return (event.message as? DefaultMessage)?.copy(
+        reactions = reactions,
+    ) ?: throw clientError("Message interface is not suitable for inheritance")
+}
+
+public fun Message.with(
+    event: MessageReactionSummaryEvent,
+): Message {
+    checkMessageSerial(event.summary.messageSerial)
+
+    return (this as? DefaultMessage)?.copy(
+        reactions = DefaultMessageReactions(
+            unique = event.summary.unique,
+            distinct = event.summary.distinct,
+            multiple = event.summary.multiple,
+        ),
+    ) ?: throw clientError("Message interface is not suitable for inheritance")
+}
+
+private fun Message.checkMessageSerial(serial: String) {
+    // message event (update or delete)
+    if (serial != this.serial) {
+        throw clientError("cannot apply event for a different message")
+    }
+}
+
 internal data class DefaultMessage(
     override val serial: String,
     override val clientId: String,
@@ -119,8 +184,15 @@ internal data class DefaultMessage(
     override val action: MessageAction,
     override val version: String,
     override val timestamp: Long,
+    override val reactions: MessageReactions = DefaultMessageReactions(),
     override val operation: Operation? = null,
 ) : Message
+
+internal data class DefaultMessageReactions(
+    override val unique: Map<String, SummaryClientIdList> = mapOf(),
+    override val distinct: Map<String, SummaryClientIdList> = mapOf(),
+    override val multiple: Map<String, SummaryClientIdCounts> = mapOf(),
+) : MessageReactions
 
 internal fun buildMessageOperation(jsonObject: JsonObject?): Operation? {
     if (jsonObject == null) {
@@ -151,6 +223,20 @@ internal fun buildMessageOperation(clientId: String, description: String?, metad
     return operation
 }
 
+internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactions {
+    if (jsonObject == null) return DefaultMessageReactions()
+
+    val uniqueJson = jsonObject.getAsJsonObject(MessageReactionsProperty.Unique)
+    val distinctJson = jsonObject.getAsJsonObject(MessageReactionsProperty.Distinct)
+    val multipleJson = jsonObject.getAsJsonObject(MessageReactionsProperty.Multiple)
+
+    return DefaultMessageReactions(
+        unique = uniqueJson?.let { Summary.asSummaryUniqueV1(it) } ?: mapOf(),
+        distinct = distinctJson?.let { Summary.asSummaryDistinctV1(it) } ?: mapOf(),
+        multiple = multipleJson?.let { Summary.asSummaryMultipleV1(it) } ?: mapOf(),
+    )
+}
+
 /**
  * MessageProperty object representing the properties of a message.
  */
@@ -165,6 +251,7 @@ internal object MessageProperty {
     const val Action = "action"
     const val Version = "version"
     const val Timestamp = "timestamp"
+    const val Reactions = "reactions"
     const val Operation = "operation"
 }
 
@@ -175,4 +262,13 @@ internal object MessageOperationProperty {
     const val ClientId = "clientId"
     const val Description = "description"
     const val Metadata = "metadata"
+}
+
+/**
+ * MessageOperationProperty object representing the properties of a message operation.
+ */
+internal object MessageReactionsProperty {
+    const val Unique = "unique"
+    const val Distinct = "distinct"
+    const val Multiple = "multiple"
 }

@@ -31,19 +31,19 @@ class MessagesTest {
     private val realtimeClient = createMockRealtimeClient()
 
     private lateinit var messages: DefaultMessages
-    private val channelStateListenerSlot = slot<ChannelStateListener>()
+    private val channelStateListenerSlots = mutableListOf<ChannelStateListener>()
 
     @OptIn(InternalAPI::class)
     @Before
     fun setUp() {
         val channel = createMockRealtimeChannel("room1::\$chat")
-        every { channel.javaChannel.on(capture(channelStateListenerSlot)) } returns mockk()
+        val javaChannel = channel.javaChannel
+        every { javaChannel.on(capture(channelStateListenerSlots)) } returns mockk()
         val channels = realtimeClient.channels
         every { channels.get("room1::\$chat", any()) } returns channel
         val chatApi = createMockChatApi(realtimeClient)
         val room = createTestRoom("room1", realtimeClient = realtimeClient, chatApi = chatApi)
-
-        messages = DefaultMessages(room)
+        messages = room.messages
     }
 
     /**
@@ -195,7 +195,7 @@ class MessagesTest {
             attachSerial = "attach-serial-2"
         }
 
-        channelStateListenerSlot.captured.onChannelStateChanged(
+        channelStateListenerSlots.first().onChannelStateChanged(
             buildChannelStateChange(
                 current = ChannelState.attached,
                 previous = ChannelState.attaching,

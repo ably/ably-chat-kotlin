@@ -65,13 +65,22 @@ class RoomFeatureSharedChannelTest {
 
         // Create room with default roomOptions
         var room = createTestRoom(realtimeClient = mockRealtimeClient)
-        Assert.assertTrue(room.options.presence!!.enableEvents)
-        Assert.assertFalse(room.options.occupancy!!.enableEvents)
+        Assert.assertTrue(room.options.presence.enableEvents)
+        Assert.assertFalse(room.options.occupancy.enableEvents)
 
         Assert.assertEquals(1, capturedChannelOptions.size)
 
         // Check for empty presence modes
-        Assert.assertNull(capturedChannelOptions[0].modes)
+        Assert.assertArrayEquals(
+            arrayOf(
+                ChannelMode.publish,
+                ChannelMode.subscribe,
+                ChannelMode.presence,
+                ChannelMode.annotation_publish,
+                ChannelMode.presence_subscribe,
+            ),
+            capturedChannelOptions[0].modes,
+        )
         // Check for empty params since occupancy subscribe is disabled by default
         Assert.assertNull(capturedChannelOptions[0].params)
 
@@ -89,16 +98,17 @@ class RoomFeatureSharedChannelTest {
             "clientId",
             createMockLogger(),
         )
-        Assert.assertFalse(room.options.presence!!.enableEvents)
-        Assert.assertTrue(room.options.occupancy!!.enableEvents)
+        Assert.assertFalse(room.options.presence.enableEvents)
+        Assert.assertTrue(room.options.occupancy.enableEvents)
 
         Assert.assertEquals(1, capturedChannelOptions.size)
 
         // CHA-PR9c2 - Check for set presence modes, presence_subscribe flag doesn't exist
-        Assert.assertEquals(3, capturedChannelOptions[0].modes.size)
+        Assert.assertEquals(4, capturedChannelOptions[0].modes.size)
         Assert.assertEquals(ChannelMode.publish, capturedChannelOptions[0].modes[0])
         Assert.assertEquals(ChannelMode.subscribe, capturedChannelOptions[0].modes[1])
         Assert.assertEquals(ChannelMode.presence, capturedChannelOptions[0].modes[2])
+        Assert.assertEquals(ChannelMode.annotation_publish, capturedChannelOptions[0].modes[3])
 
         // CHA-O6a - Check if occupancy matrix is set
         Assert.assertEquals("metrics", capturedChannelOptions[0].params["occupancy"])
