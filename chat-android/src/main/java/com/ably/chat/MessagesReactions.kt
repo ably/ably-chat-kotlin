@@ -30,9 +30,9 @@ public interface MessagesReactions {
      * @param name The name of the reaction, such as an emoji or predefined reaction identifier.
      * @param type The type of the reaction behavior, represented by [MessageReactionType]. If not specified,
      * the default type configured in the room's [MessageOptions.defaultMessageReactionType] will be used.
-     * @param count The number of reactions to apply. Defaults to 1.
+     * @param count The number of reactions to apply (for [MessageReactionType.Multiple] only). Defaults to 1.
      */
-    public suspend fun send(messageSerial: String, name: String, type: MessageReactionType? = null, count: Int = 1)
+    public suspend fun send(messageSerial: String, name: String, type: MessageReactionType? = null, count: Int? = null)
 
     /**
      * Delete a message reaction
@@ -335,10 +335,9 @@ internal class DefaultMessagesReactions(
         messageSerial: String,
         name: String,
         type: MessageReactionType?,
-        count: Int,
+        count: Int?,
     ) {
-        // CHA-MR4a1
-        checkMessageSerialIsNotEmpty(messageSerial)
+        checkSendArguments(messageSerial, name, type, count)
 
         val reactionType = type ?: options.defaultMessageReactionType
 
@@ -357,8 +356,33 @@ internal class DefaultMessagesReactions(
             messageSerial = messageSerial,
             type = reactionType,
             name = name,
-            count = count,
+            count = count ?: 1,
         )
+    }
+
+    @Suppress("ThrowsCount")
+    private fun checkSendArguments(
+        messageSerial: String,
+        name: String,
+        type: MessageReactionType?,
+        count: Int?,
+    ) {
+        // CHA-MR4a1
+        checkMessageSerialIsNotEmpty(messageSerial)
+
+        // CHA-MR4b3
+        if (count != null && type != MessageReactionType.Multiple) {
+            throw clientError("count option only supports multiple type")
+        }
+
+        // CHA-MR4b3
+        if (count != null && count <= 0) {
+            throw clientError("reaction count should be positive integer")
+        }
+
+        if (name.isEmpty()) {
+            throw clientError("reaction name cannot be empty string")
+        }
     }
 
     override suspend fun delete(messageSerial: String, name: String?, type: MessageReactionType?) {
@@ -376,7 +400,7 @@ internal class DefaultMessagesReactions(
             ),
         )
 
-        if (reactionType != MessageReactionType.Unique && name == null) {
+        if (reactionType != MessageReactionType.Unique && name.isNullOrEmpty()) {
             throw clientError("cannot delete reaction of type $type without a name")
         }
 

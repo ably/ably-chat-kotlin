@@ -164,7 +164,6 @@ class MessagesReactionsTest {
             runBlocking {
                 messagesReactions.send("", "heart")
             }
-
         }
         assertEquals(exception.errorInfo.code, 40_000)
         assertEquals(exception.errorInfo.statusCode, 400)
@@ -181,7 +180,6 @@ class MessagesReactionsTest {
             runBlocking {
                 messagesReactions.delete("", "heart")
             }
-
         }
         assertEquals(exception.errorInfo.code, 40_000)
         assertEquals(exception.errorInfo.statusCode, 400)
@@ -191,7 +189,7 @@ class MessagesReactionsTest {
      * Spec: CHA-MR7a
      */
     @Test
-    fun `subscribeRaw should throw an exception if messageSerial is empty string`() = runTest {
+    fun `subscribeRaw should throw an exception if rawMessageReactions is not enabled`() = runTest {
         val messagesReactions = createMessagesReaction(
             MutableMessageOptions().apply {
                 rawMessageReactions = false
@@ -199,7 +197,56 @@ class MessagesReactionsTest {
         )
 
         val exception = assertThrows(AblyException::class.java) {
-            messagesReactions.subscribeRaw {  }
+            messagesReactions.subscribeRaw { }
+        }
+        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.statusCode, 400)
+    }
+
+    /**
+     * Spec: CHA-MR4b3
+     */
+    @Test
+    fun `send should throw exception if count specified for any type other than multiple`() = runTest {
+        val messagesReactions = createMessagesReaction()
+
+        val exception = assertThrows(AblyException::class.java) {
+            runBlocking {
+                messagesReactions.send("abcdefghij@1672531200000-123", "heart", count = 3)
+            }
+        }
+        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.statusCode, 400)
+    }
+
+    /**
+     * Spec: CHA-MR4b3
+     */
+    @Test
+    fun `send should throw exception if count is not positive`() = runTest {
+        val messagesReactions = createMessagesReaction()
+
+        messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 1)
+        val exception = assertThrows(AblyException::class.java) {
+            runBlocking {
+                messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 0)
+            }
+        }
+        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.statusCode, 400)
+    }
+
+    /**
+     * Spec: CHA-MR4b3
+     */
+    @Test
+    fun `send should throw exception if reaction name is empty`() = runTest {
+        val messagesReactions = createMessagesReaction()
+
+        val exception = assertThrows(AblyException::class.java) {
+            runBlocking {
+                messagesReactions.send("abcdefghij@1672531200000-123", "")
+            }
         }
         assertEquals(exception.errorInfo.code, 40_000)
         assertEquals(exception.errorInfo.statusCode, 400)
