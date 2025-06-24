@@ -8,10 +8,16 @@ import io.mockk.every
 import io.mockk.mockk
 import java.lang.reflect.Field
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 
 fun buildAsyncHttpPaginatedResponse(items: List<JsonElement>): AsyncHttpPaginatedResponse {
     val response = mockk<AsyncHttpPaginatedResponse>()
@@ -122,4 +128,13 @@ fun <T> Any.invokePrivateMethod(methodName: String, vararg args: Any?): T {
     method?.isAccessible = true
     @Suppress("UNCHECKED_CAST")
     return method?.invoke(this, *args) as T
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class MainDispatcherRule(
+    private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
+) : TestWatcher() {
+    override fun starting(description: Description) {
+        Dispatchers.setMain(testDispatcher)
+    }
 }
