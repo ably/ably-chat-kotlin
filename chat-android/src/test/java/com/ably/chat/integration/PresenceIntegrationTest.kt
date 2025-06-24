@@ -1,12 +1,17 @@
 package com.ably.chat.integration
 
+import com.ably.chat.MainDispatcherRule
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class PresenceIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `should return empty list of presence members if nobody is entered`() = runTest {

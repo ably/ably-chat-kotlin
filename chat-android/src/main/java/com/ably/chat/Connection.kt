@@ -139,9 +139,7 @@ internal class DefaultConnection(
     init {
         pubSubConnection.on { stateChange ->
             val nextStatus = mapPubSubStatusToChat(stateChange.current)
-            connectionScope.launch {
-                applyStatusChange(nextStatus, stateChange.reason, stateChange.retryIn)
-            }
+            applyStatusChange(nextStatus, stateChange.reason, stateChange.retryIn)
         }
     }
 
@@ -155,10 +153,10 @@ internal class DefaultConnection(
         }
     }
 
-    private fun applyStatusChange(nextStatus: ConnectionStatus, error: ErrorInfo?, retryIn: Long?) {
+    private fun applyStatusChange(nextStatus: ConnectionStatus, nextError: ErrorInfo?, retryIn: Long?) = connectionScope.launch {
         val previous = status
-        this.status = nextStatus
-        this.error = error
+        status = nextStatus
+        error = nextError
         logger.info("Connection state changed from ${previous.stateName} to ${nextStatus.stateName}")
         emitStateChange(
             DefaultConnectionStatusChange(

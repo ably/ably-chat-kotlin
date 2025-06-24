@@ -49,7 +49,7 @@ class RoomReactionsTest {
 
         every { roomReactions.channelWrapper.subscribe("roomReaction", capture(pubSubMessageListenerSlot)) } returns mockk(relaxed = true)
 
-        val deferredValue = CompletableDeferred<Reaction>()
+        val deferredValue = CompletableDeferred<RoomReactionEvent>()
 
         roomReactions.subscribe {
             deferredValue.complete(it)
@@ -78,7 +78,7 @@ class RoomReactionsTest {
             },
         )
 
-        val reaction = deferredValue.await()
+        val reactionEvent = deferredValue.await()
 
         assertEquals(
             DefaultReaction(
@@ -89,7 +89,7 @@ class RoomReactionsTest {
                 headers = mapOf("foo" to "bar"),
                 isSelf = false,
             ),
-            reaction,
+            reactionEvent.reaction,
         )
     }
 
@@ -105,9 +105,9 @@ class RoomReactionsTest {
         }
 
         roomReactions.asFlow().test {
-            val reaction = mockk<Reaction>()
-            callback.onReaction(reaction)
-            assertEquals(reaction, awaitItem())
+            val reactionEvent = mockk<RoomReactionEvent>()
+            callback.onReaction(reactionEvent)
+            assertEquals(reactionEvent, awaitItem())
             cancel()
         }
 

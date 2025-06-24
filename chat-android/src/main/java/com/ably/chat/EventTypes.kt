@@ -1,11 +1,12 @@
 package com.ably.chat
 
 import io.ably.lib.types.MessageAction
+import io.ably.lib.types.PresenceMessage
 
 /**
  * All chat message events.
  */
-public enum class MessageEventType(public val eventName: String) {
+public enum class ChatMessageEventType(public val eventName: String) {
     /** Fires when a new chat message is received. */
     Created("message.created"),
 
@@ -40,9 +41,9 @@ internal val messageActionNameToAction = mapOf(
 )
 
 internal val messageActionToEventType = mapOf(
-    MessageAction.MESSAGE_CREATE to MessageEventType.Created,
-    MessageAction.MESSAGE_UPDATE to MessageEventType.Updated,
-    MessageAction.MESSAGE_DELETE to MessageEventType.Deleted,
+    MessageAction.MESSAGE_CREATE to ChatMessageEventType.Created,
+    MessageAction.MESSAGE_UPDATE to ChatMessageEventType.Updated,
+    MessageAction.MESSAGE_DELETE to ChatMessageEventType.Deleted,
 )
 
 /**
@@ -68,6 +69,19 @@ public enum class PresenceEventType(public val eventName: String) {
      * Event triggered when a user initially subscribes to presence.
      */
     Present("present"),
+    ;
+
+    internal companion object {
+        fun fromPresenceAction(action: PresenceMessage.Action): PresenceEventType {
+            return when (action) {
+                PresenceMessage.Action.absent -> throw clientError("event with type absent can't be received from the realtime")
+                PresenceMessage.Action.present -> Present
+                PresenceMessage.Action.enter -> Enter
+                PresenceMessage.Action.leave -> Leave
+                PresenceMessage.Action.update -> Update
+            }
+        }
+    }
 }
 
 /**

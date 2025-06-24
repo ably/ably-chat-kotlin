@@ -3,6 +3,7 @@ package com.ably.chat
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.Channel
+import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
@@ -258,6 +259,17 @@ internal class DefaultTyping(
      * Spec: CHA-T4, CHA-T14
      */
     override suspend fun keystroke() {
+        // CHA-T4e
+        if (room.realtimeClient.connection.state != ConnectionState.connected) {
+            logger.trace(
+                "DefaultTyping.keystroke(); connection is not connected",
+                context = mapOf(
+                    "status" to room.realtimeClient.connection.state.name,
+                ),
+            )
+            throw clientError("cannot type, connection is not connected")
+        }
+
         latestJobExecutor.run {
             // CHA-T4c - If heartbeat is active, it's a no-op
             typingHeartbeatStarted?.let {

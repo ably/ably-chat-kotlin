@@ -22,7 +22,7 @@ class RequestHeaderTest {
         val roomId = UUID.randomUUID().toString()
 
         server.servedRequests.test {
-            chatClient.rooms.get(roomId).messages.get()
+            chatClient.rooms.get(roomId).messages.history()
             val agents = awaitItem().headers["ably-agent"]?.split(" ") ?: setOf()
             Assert.assertTrue(
                 agents.contains("chat-kotlin/${com.ably.chat.BuildConfig.APP_VERSION}"),

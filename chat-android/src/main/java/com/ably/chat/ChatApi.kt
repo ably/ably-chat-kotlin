@@ -168,11 +168,11 @@ internal class ChatApi(
     /**
      * return occupancy for specified room
      */
-    suspend fun getOccupancy(roomId: String): OccupancyEvent {
+    suspend fun getOccupancy(roomId: String): OccupancyData {
         logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
         return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
-            DefaultOccupancyEvent(
+            DefaultOccupancyData(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),
             )

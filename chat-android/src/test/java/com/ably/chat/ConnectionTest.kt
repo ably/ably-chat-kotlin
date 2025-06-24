@@ -15,6 +15,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import io.ably.lib.realtime.Connection as PubSubConnection
 
@@ -23,6 +24,9 @@ class ConnectionTest {
     private val pubSubConnection = spyk<PubSubConnection>(buildRealtimeConnection())
 
     private val pubSubConnectionStateListenerSlot = slot<ConnectionStateListener>()
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Before
     fun setUp() {

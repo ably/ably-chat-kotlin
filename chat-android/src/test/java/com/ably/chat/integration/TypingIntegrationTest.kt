@@ -1,5 +1,6 @@
 package com.ably.chat.integration
 
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.TypingEventType
 import com.ably.chat.TypingSetEvent
 import com.ably.chat.TypingSetEventType
@@ -12,9 +13,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class TypingIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     /**
      * @spec CHA-T4, CHA-T9

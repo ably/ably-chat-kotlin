@@ -31,8 +31,8 @@ class MessageTest {
             version = "1",
             action = MessageAction.MESSAGE_UPDATE,
         )
-        val event = DefaultMessageEvent(
-            type = MessageEventType.Updated,
+        val event = DefaultChatMessageEvent(
+            type = ChatMessageEventType.Updated,
             message = eventMessage,
         )
 
@@ -56,8 +56,8 @@ class MessageTest {
             serial = "123",
             version = "2",
         )
-        val event = DefaultMessageEvent(
-            type = MessageEventType.Updated,
+        val event = DefaultChatMessageEvent(
+            type = ChatMessageEventType.Updated,
             message = eventMessage,
         )
 
@@ -82,8 +82,8 @@ class MessageTest {
             version = "1",
         )
 
-        val event = DefaultMessageEvent(
-            type = MessageEventType.Updated,
+        val event = DefaultChatMessageEvent(
+            type = ChatMessageEventType.Updated,
             message = eventMessage,
         )
 

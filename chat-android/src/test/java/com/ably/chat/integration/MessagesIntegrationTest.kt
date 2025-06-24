@@ -1,8 +1,9 @@
 package com.ably.chat.integration
 
 import com.ably.chat.BuildConfig
+import com.ably.chat.ChatMessageEvent
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.Message
-import com.ably.chat.MessageEvent
 import com.ably.chat.MessageMetadata
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
@@ -16,9 +17,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class MessagesIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     /**
      * Spec: CHA-M3, CHA-M4
@@ -32,7 +37,7 @@ class MessagesIntegrationTest {
 
         room.attach()
 
-        val messageEvent = CompletableDeferred<MessageEvent>()
+        val messageEvent = CompletableDeferred<ChatMessageEvent>()
 
         room.messages.subscribe { messageEvent.complete(it) }
         room.messages.send("hello")
@@ -55,7 +60,7 @@ class MessagesIntegrationTest {
 
         room.attach()
 
-        val messageEvent = CompletableDeferred<MessageEvent>()
+        val messageEvent = CompletableDeferred<ChatMessageEvent>()
         room.messages.subscribe { messageEvent.complete(it) }
 
         val metadata = MessageMetadata()
@@ -110,7 +115,7 @@ class MessagesIntegrationTest {
         lateinit var messages: List<Message>
 
         assertWaiter {
-            messages = room.messages.get().items
+            messages = room.messages.history().items
             messages.isNotEmpty()
         }
         assertEquals(1, messages.size)

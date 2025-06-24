@@ -1,6 +1,7 @@
 package com.ably.chat.integration
 
-import com.ably.chat.Reaction
+import com.ably.chat.MainDispatcherRule
+import com.ably.chat.RoomReactionEvent
 import com.ably.chat.get
 import com.ably.chat.reactions
 import java.util.UUID
@@ -8,9 +9,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class ReactionsIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `should observe room reactions`() = runTest {
@@ -20,7 +25,7 @@ class ReactionsIntegrationTest {
         val room = chatClient.rooms.get(roomId) { reactions() }
         room.attach()
 
-        val reactionEvent = CompletableDeferred<Reaction>()
+        val reactionEvent = CompletableDeferred<RoomReactionEvent>()
 
         room.reactions.subscribe { reactionEvent.complete(it) }
 
@@ -28,7 +33,7 @@ class ReactionsIntegrationTest {
 
         assertEquals(
             "heart",
-            reactionEvent.await().type,
+            reactionEvent.await().reaction.type,
         )
     }
 

@@ -6,7 +6,6 @@ import com.ably.pubsub.RealtimePresence
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
-import io.ably.lib.types.PresenceMessage
 import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Presence.PresenceListener as PubSubPresenceListener
 
@@ -103,11 +102,6 @@ public interface PresenceMember {
     public val data: PresenceData?
 
     /**
-     * The current state of the presence member.
-     */
-    public val action: PresenceMessage.Action
-
-    /**
      * The timestamp of when the last change in state occurred for this presence member.
      */
     public val updatedAt: Long
@@ -118,44 +112,21 @@ public interface PresenceMember {
     public val extras: JsonObject
 }
 
-/**
- * Type for PresenceEvent
- */
 public interface PresenceEvent {
-    /**
-     * The type of the presence event.
-     */
-    public val action: PresenceMessage.Action
-
-    /**
-     * The clientId of the client that triggered the presence event.
-     */
-    public val clientId: String
-
-    /**
-     * The timestamp of the presence event.
-     */
-    public val timestamp: Long
-
-    /**
-     * The data associated with the presence event.
-     */
-    public val data: PresenceData?
+    public val type: PresenceEventType
+    public val member: PresenceMember
 }
 
 internal data class DefaultPresenceMember(
     override val clientId: String,
     override val data: PresenceData?,
-    override val action: PresenceMessage.Action,
     override val updatedAt: Long,
     override val extras: JsonObject = JsonObject(),
 ) : PresenceMember
 
 internal data class DefaultPresenceEvent(
-    override val action: PresenceMessage.Action,
-    override val clientId: String,
-    override val timestamp: Long,
-    override val data: PresenceData?,
+    override val type: PresenceEventType,
+    override val member: PresenceMember,
 ) : PresenceEvent
 
 internal class DefaultPresence(
@@ -178,7 +149,6 @@ internal class DefaultPresence(
         return presence.getCoroutine(waitForSync, clientId, connectionId).map { user ->
             DefaultPresenceMember(
                 clientId = user.clientId,
-                action = user.action,
                 data = (user.data as? JsonObject)?.get("userCustomData"),
                 updatedAt = user.timestamp,
             )
@@ -205,16 +175,19 @@ internal class DefaultPresence(
     override fun subscribe(listener: Presence.Listener): Subscription {
         logger.trace("Presence.subscribe()")
         // CHA-PR7d - Check if presence events are enabled
-        if (room.options.presence?.enableEvents == false) {
+        if (!room.options.presence.enableEvents) {
             throw clientError("could not subscribe to presence; presence events are not enabled in room options")
         }
 
         val presenceListener = PubSubPresenceListener {
-            val presenceEvent = DefaultPresenceEvent(
-                action = it.action,
+            val presenceMember = DefaultPresenceMember(
                 clientId = it.clientId,
-                timestamp = it.timestamp,
+                updatedAt = it.timestamp,
                 data = (it.data as? JsonObject)?.get("userCustomData"),
+            )
+            val presenceEvent = DefaultPresenceEvent(
+                type = PresenceEventType.fromPresenceAction(it.action),
+                member = presenceMember,
             )
             listener.onEvent(presenceEvent)
         }

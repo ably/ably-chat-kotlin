@@ -16,8 +16,10 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.rules.TestRule
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
+import org.junit.runners.model.Statement
 
 fun buildAsyncHttpPaginatedResponse(items: List<JsonElement>): AsyncHttpPaginatedResponse {
     val response = mockk<AsyncHttpPaginatedResponse>()
@@ -136,5 +138,40 @@ class MainDispatcherRule(
 ) : TestWatcher() {
     override fun starting(description: Description) {
         Dispatchers.setMain(testDispatcher)
+    }
+}
+
+class RetryTestRule(times: Int) : TestRule {
+    private val timesToRunTestCount: Int = times + 1
+
+    override fun apply(base: Statement, description: Description): Statement = statement(base, description)
+
+    private fun statement(base: Statement, description: Description): Statement {
+        return object : Statement() {
+            @Throws(Throwable::class)
+            override fun evaluate() {
+                var latestException: Throwable? = null
+
+                for (runCount in 0..<timesToRunTestCount) {
+                    try {
+                        base.evaluate()
+                        return
+                    } catch (t: Throwable) {
+                        latestException = t
+                        System.err.printf(
+                            "%s: test failed on run: `%d`. Will run a maximum of `%d` times.%n",
+                            description.getDisplayName(),
+                            runCount,
+                            timesToRunTestCount,
+                        )
+                    }
+                }
+
+                if (latestException != null) {
+                    System.err.printf("%s: giving up after `%d` failures%n", description.getDisplayName(), timesToRunTestCount)
+                    throw latestException
+                }
+            }
+        }
     }
 }

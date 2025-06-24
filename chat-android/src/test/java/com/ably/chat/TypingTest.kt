@@ -11,6 +11,8 @@ import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.processEvent
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.CompletionListener
+import io.ably.lib.realtime.Connection
+import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.Message
 import io.mockk.coEvery
 import io.mockk.every
@@ -32,6 +34,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 class TypingTest {
@@ -41,9 +44,15 @@ class TypingTest {
     private var pubSubTypingListener: PubSubMessageListener? = null
     private lateinit var typingLogger: Logger
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
+        val connection = mockk<Connection>()
+        connection.state = ConnectionState.connected
+        every { realtimeClient.connection } returns connection
 
         val channels = realtimeClient.channels
         every { channels.get(any(), any()) } returns realtimeChannel

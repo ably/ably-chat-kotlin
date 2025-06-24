@@ -64,10 +64,12 @@ class PresenceTest {
 
         assertEquals(
             DefaultPresenceEvent(
-                action = PresenceMessage.Action.leave,
-                clientId = "client1",
-                timestamp = 100_000L,
-                data = null,
+                type = PresenceEventType.Leave,
+                DefaultPresenceMember(
+                    clientId = "client1",
+                    updatedAt = 100_000L,
+                    data = null,
+                ),
             ),
             presenceEvent,
         )
@@ -101,10 +103,12 @@ class PresenceTest {
 
         assertEquals(
             DefaultPresenceEvent(
-                action = PresenceMessage.Action.leave,
-                clientId = "client1",
-                timestamp = 100_000L,
-                data = null,
+                type = PresenceEventType.Leave,
+                DefaultPresenceMember(
+                    clientId = "client1",
+                    updatedAt = 100_000L,
+                    data = null,
+                ),
             ),
             presenceEvent,
         )
@@ -140,10 +144,12 @@ class PresenceTest {
 
         assertEquals(
             DefaultPresenceEvent(
-                action = PresenceMessage.Action.leave,
-                clientId = "client1",
-                timestamp = 100_000L,
-                data = JsonPrimitive("user"),
+                type = PresenceEventType.Leave,
+                DefaultPresenceMember(
+                    clientId = "client1",
+                    updatedAt = 100_000L,
+                    data = JsonPrimitive("user"),
+                ),
             ),
             presenceEvent,
         )

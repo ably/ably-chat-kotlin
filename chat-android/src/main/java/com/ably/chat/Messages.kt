@@ -51,7 +51,7 @@ public interface Messages {
      *
      * @return Paginated result of messages. This paginated result can be used to fetch more messages if available.
      */
-    public suspend fun get(
+    public suspend fun history(
         start: Long? = null,
         end: Long? = null,
         limit: Int = 100,
@@ -123,14 +123,14 @@ public interface Messages {
          * A function that can be called when the new messaging event happens.
          * @param event The event that happened.
          */
-        public fun onEvent(event: MessageEvent)
+        public fun onEvent(event: ChatMessageEvent)
     }
 }
 
 /**
- * @return [MessageEvent] events as a [Flow]
+ * @return [ChatMessageEvent] events as a [Flow]
  */
-public fun Messages.asFlow(): Flow<MessageEvent> = transformCallbackAsFlow {
+public fun Messages.asFlow(): Flow<ChatMessageEvent> = transformCallbackAsFlow {
     subscribe(it)
 }
 
@@ -168,11 +168,11 @@ internal data class QueryOptions(
 /**
  * Payload for a message event.
  */
-public interface MessageEvent {
+public interface ChatMessageEvent {
     /**
      * The type of the message event.
      */
-    public val type: MessageEventType
+    public val type: ChatMessageEventType
 
     /**
      * The message that was received.
@@ -180,10 +180,10 @@ public interface MessageEvent {
     public val message: Message
 }
 
-internal data class DefaultMessageEvent(
-    override val type: MessageEventType,
+internal data class DefaultChatMessageEvent(
+    override val type: ChatMessageEventType,
     override val message: Message,
-) : MessageEvent
+) : ChatMessageEvent
 
 /**
  * Params for sending a text message. Only `text` is mandatory.
@@ -317,7 +317,7 @@ public interface MessagesSubscription : Subscription {
      * @returns paginated result of messages, in newest-to-oldest order.
      * Spec: CHA-M5j
      */
-    public suspend fun getPreviousMessages(start: Long? = null, end: Long? = null, limit: Int = 100): PaginatedResult<Message>
+    public suspend fun historyBeforeSubscribe(start: Long? = null, end: Long? = null, limit: Int = 100): PaginatedResult<Message>
 }
 
 internal class DefaultMessagesSubscription(
@@ -334,7 +334,7 @@ internal class DefaultMessagesSubscription(
         subscription.unsubscribe()
     }
 
-    override suspend fun getPreviousMessages(start: Long?, end: Long?, limit: Int): PaginatedResult<Message> {
+    override suspend fun historyBeforeSubscribe(start: Long?, end: Long?, limit: Int): PaginatedResult<Message> {
         logger.trace("getPreviousMessages(); roomId=$roomId, start=$start, end=$end, limit=$limit")
         val fromSerial = fromSerialProvider().await()
         val queryOptions = QueryOptions(start = start, end = end, limit = limit, orderBy = NewestFirst)
@@ -433,7 +433,7 @@ internal class DefaultMessages(
                 timestamp = pubSubMessage.timestamp,
                 operation = pubSubMessage.operation,
             )
-            listener.onEvent(DefaultMessageEvent(type = eventType, message = chatMessage))
+            listener.onEvent(DefaultChatMessageEvent(type = eventType, message = chatMessage))
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
@@ -459,7 +459,7 @@ internal class DefaultMessages(
         )
     }
 
-    override suspend fun get(start: Long?, end: Long?, limit: Int, orderBy: OrderBy): PaginatedResult<Message> {
+    override suspend fun history(start: Long?, end: Long?, limit: Int, orderBy: OrderBy): PaginatedResult<Message> {
         logger.trace("get(); roomId=$roomId, start=$start, end=$end, limit=$limit, orderBy=$orderBy")
         return chatApi.getMessages(
             roomId,

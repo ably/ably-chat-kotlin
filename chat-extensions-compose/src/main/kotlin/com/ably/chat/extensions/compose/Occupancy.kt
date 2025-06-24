@@ -48,8 +48,8 @@ public fun Room.collectAsOccupancy(): CurrentOccupancy {
         occupancy.asFlow().collect {
             if (initialOccupancyGet.isActive) initialOccupancyGet.cancelAndJoin()
             currentOccupancy = DefaultCurrentOccupancy(
-                connections = it.connections,
-                presenceMembers = it.presenceMembers,
+                connections = it.occupancy.connections,
+                presenceMembers = it.occupancy.presenceMembers,
             )
         }
     }

@@ -92,7 +92,7 @@ class MessagesTest {
 
         every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
 
-        val deferredValue = CompletableDeferred<MessageEvent>()
+        val deferredValue = CompletableDeferred<ChatMessageEvent>()
 
         messages.subscribe {
             deferredValue.complete(it)
@@ -127,7 +127,7 @@ class MessagesTest {
 
         val messageEvent = deferredValue.await()
 
-        assertEquals(MessageEventType.Created, messageEvent.type)
+        assertEquals(ChatMessageEventType.Created, messageEvent.type)
         assertEquals(
             DefaultMessage(
                 roomId = "room1",
@@ -155,7 +155,7 @@ class MessagesTest {
         subscription.unsubscribe()
 
         val exception = assertThrows(AblyException::class.java) {
-            runBlocking { subscription.getPreviousMessages() }
+            runBlocking { subscription.historyBeforeSubscribe() }
         }
 
         assertEquals(40_000, exception.errorInfo.code)
@@ -250,7 +250,7 @@ class MessagesTest {
         }
 
         messages.asFlow().test {
-            val event = mockk<MessageEvent>()
+            val event = mockk<ChatMessageEvent>()
             callback.onEvent(event)
             assertEquals(event, awaitItem())
             cancel()

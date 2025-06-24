@@ -55,14 +55,24 @@ public interface RoomReactions {
          * A function that can be called when the new reaction happens.
          * @param event The event that happened.
          */
-        public fun onReaction(event: Reaction)
+        public fun onReaction(event: RoomReactionEvent)
     }
 }
+
+public interface RoomReactionEvent {
+    public val type: RoomReactionEventType
+    public val reaction: Reaction
+}
+
+internal data class DefaultRoomReactionEvent(
+    override val reaction: Reaction,
+    override val type: RoomReactionEventType = RoomReactionEventType.Reaction,
+) : RoomReactionEvent
 
 /**
  * @return [Reaction] events as a [Flow]
  */
-public fun RoomReactions.asFlow(): Flow<Reaction> = transformCallbackAsFlow {
+public fun RoomReactions.asFlow(): Flow<RoomReactionEvent> = transformCallbackAsFlow {
     subscribe(it)
 }
 
@@ -161,7 +171,7 @@ internal class DefaultRoomReactions(
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )
-            listener.onReaction(reaction)
+            listener.onReaction(DefaultRoomReactionEvent(reaction))
         }
         return channelWrapper.subscribe(RoomReactionEventType.Reaction.eventName, messageListener).asChatSubscription()
     }

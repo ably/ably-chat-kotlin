@@ -1,6 +1,7 @@
 package com.ably.chat.integration
 
-import com.ably.chat.DefaultOccupancyEvent
+import com.ably.chat.DefaultOccupancyData
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.OccupancyEvent
 import com.ably.chat.get
 import com.ably.chat.occupancy
@@ -10,9 +11,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class OccupancyIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `should return occupancy for the client`() = runTest {
@@ -26,7 +31,7 @@ class OccupancyIntegrationTest {
         }
 
         chatClientRoom.attach()
-        assertEquals(DefaultOccupancyEvent(1, 0), firstOccupancyEvent.await())
+        assertEquals(DefaultOccupancyData(1, 0), firstOccupancyEvent.await().occupancy)
     }
 
     companion object {
