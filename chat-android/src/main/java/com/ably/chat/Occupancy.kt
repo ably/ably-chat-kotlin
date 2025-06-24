@@ -181,7 +181,7 @@ internal class DefaultOccupancy(
     // (CHA-O3)
     override suspend fun get(): OccupancyData {
         logger.trace("Occupancy.get()")
-        return room.chatApi.getOccupancy(room.roomId)
+        return room.chatApi.getOccupancy(room.name)
     }
 
     override fun current(): OccupancyData? {

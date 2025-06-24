@@ -69,7 +69,7 @@ class RoomEnsureAttachedTest {
             val exception = result.exceptionOrNull() as AblyException
             Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
             Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
-            val errMsg = "Can't perform operation; the room '${room.roomId}' is in an invalid state: $invalidStatus"
+            val errMsg = "Can't perform operation; the room '${room.name}' is in an invalid state: $invalidStatus"
             Assert.assertEquals(errMsg, exception.errorInfo.message)
         }
     }
@@ -162,7 +162,7 @@ class RoomEnsureAttachedTest {
             val exception = result.exceptionOrNull() as AblyException
             Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
             Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
-            val errMsg = "Can't perform operation; the room '${room.roomId}' is in an invalid state: $invalidStatus"
+            val errMsg = "Can't perform operation; the room '${room.name}' is in an invalid state: $invalidStatus"
             Assert.assertEquals(errMsg, exception.errorInfo.message)
 
             Assert.assertEquals(0, statusManager.InternalEmitter.Filters.size) // Emitted event processed

@@ -57,7 +57,7 @@ class MessagesTest {
                 addProperty(MessageProperty.Serial, "abcdefghij@1672531200000-123")
                 addProperty(MessageProperty.CreatedAt, 1_000_000)
             },
-            roomId = "room1",
+            roomName = "room1",
         )
 
         val sentMessage = messages.send(
@@ -70,7 +70,6 @@ class MessagesTest {
             DefaultMessage(
                 serial = "abcdefghij@1672531200000-123",
                 clientId = "clientId",
-                roomId = "room1",
                 text = "lala",
                 createdAt = 1_000_000,
                 metadata = JsonObject().apply { addProperty("meta", "data") },
@@ -130,7 +129,6 @@ class MessagesTest {
         assertEquals(ChatMessageEventType.Created, messageEvent.type)
         assertEquals(
             DefaultMessage(
-                roomId = "room1",
                 createdAt = 1000L,
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",

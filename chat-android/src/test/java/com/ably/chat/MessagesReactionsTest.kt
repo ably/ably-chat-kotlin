@@ -254,7 +254,7 @@ class MessagesReactionsTest {
 
     private fun createMessagesReaction(options: MessageOptions = MutableMessageOptions()) = DefaultMessagesReactions(
         chatApi = chatApi,
-        roomId = "room1",
+        roomName = "room1",
         channel = channel,
         annotations = annotations,
         options = options,

@@ -125,7 +125,7 @@ class AtomicCoroutineScopeTest {
 
     @Test
     fun `should perform mutually exclusive operations with custom room scope`() = runTest {
-        val roomScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + CoroutineName("roomId"))
+        val roomScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + CoroutineName("roomName"))
         val atomicCoroutineScope = AtomicCoroutineScope(roomScope)
         val deferredResults = mutableListOf<Deferred<Int>>()
 
@@ -156,7 +156,7 @@ class AtomicCoroutineScopeTest {
         val results = deferredResults.awaitAll()
         repeat(10) {
             Assert.assertEquals(it, results[it])
-            Assert.assertEquals("roomId", contextNames[it])
+            Assert.assertEquals("roomName", contextNames[it])
             assertThat(contexts[it], containsString("Dispatchers.Default.limitedParallelism(1)"))
         }
         assertWaiter { atomicCoroutineScope.finishedProcessing }

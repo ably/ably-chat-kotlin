@@ -271,7 +271,7 @@ internal data class DefaultMessageReaction(
 
 internal class DefaultMessagesReactions(
     private val chatApi: ChatApi,
-    private val roomId: String,
+    private val roomName: String,
     private val channel: Channel,
     private val annotations: RealtimeAnnotations,
     private val options: MessageOptions,
@@ -352,7 +352,7 @@ internal class DefaultMessagesReactions(
         )
 
         chatApi.sendMessageReaction(
-            roomId = roomId,
+            roomName = roomName,
             messageSerial = messageSerial,
             type = reactionType,
             name = name,
@@ -405,7 +405,7 @@ internal class DefaultMessagesReactions(
         }
 
         chatApi.deleteMessageReaction(
-            roomId = roomId,
+            roomName = roomName,
             messageSerial = messageSerial,
             type = reactionType,
             name = name,

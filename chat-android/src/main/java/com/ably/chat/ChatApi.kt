@@ -33,15 +33,15 @@ internal class ChatApi(
      *
      * @return paginated result with messages
      */
-    suspend fun getMessages(roomId: String, options: QueryOptions, fromSerial: String? = null): PaginatedResult<Message> {
+    suspend fun getMessages(roomName: String, options: QueryOptions, fromSerial: String? = null): PaginatedResult<Message> {
         logger.trace(
             "getMessages();",
-            context = mapOf("roomId" to roomId, "options" to options.toString(), "fromSerial" to fromSerial.toString()),
+            context = mapOf("roomName" to roomName, "options" to options.toString(), "fromSerial" to fromSerial.toString()),
         )
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages",
             method = HttpMethod.Get,
             params = params,
         ) {
@@ -50,11 +50,10 @@ internal class ChatApi(
             val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
             val reactions = messageJsonObject.getAsJsonObject(MessageProperty.Reactions)
             latestAction?.let { action ->
-                logger.debug("getMessages();", context = mapOf("roomId" to roomId, "message" to messageJsonObject.toString()))
+                logger.debug("getMessages();", context = mapOf("roomName" to roomName, "message" to messageJsonObject.toString()))
                 DefaultMessage(
                     serial = messageJsonObject.requireString(MessageProperty.Serial),
                     clientId = messageJsonObject.requireString(MessageProperty.ClientId),
-                    roomId = messageJsonObject.requireString(MessageProperty.RoomId),
                     text = messageJsonObject.requireString(MessageProperty.Text),
                     createdAt = messageJsonObject.requireLong(MessageProperty.CreatedAt),
                     metadata = messageJsonObject.getAsJsonObject(MessageProperty.Metadata) ?: MessageMetadata(),
@@ -72,23 +71,22 @@ internal class ChatApi(
     /**
      * Spec: CHA-M3
      */
-    suspend fun sendMessage(roomId: String, params: SendMessageParams): Message {
-        logger.trace("sendMessage();", context = mapOf("roomId" to roomId, "params" to params.toString()))
+    suspend fun sendMessage(roomName: String, params: SendMessageParams): Message {
+        logger.trace("sendMessage();", context = mapOf("roomName" to roomName, "params" to params.toString()))
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
-            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages",
             HttpMethod.Post,
             body,
         )?.let {
             val serial = it.requireString(MessageProperty.Serial)
             val createdAt = it.requireLong(MessageProperty.CreatedAt)
-            logger.debug("sendMessage();", context = mapOf("roomId" to roomId, "response" to it.toString()))
+            logger.debug("sendMessage();", context = mapOf("roomName" to roomName, "response" to it.toString()))
             // CHA-M3a
             DefaultMessage(
                 serial = serial,
                 clientId = clientId,
-                roomId = roomId,
                 text = params.text,
                 createdAt = createdAt,
                 metadata = params.metadata ?: MessageMetadata(),
@@ -104,12 +102,12 @@ internal class ChatApi(
     /**
      * Spec: CHA-M8
      */
-    suspend fun updateMessage(message: Message, params: UpdateMessageParams): Message {
+    suspend fun updateMessage(roomName: String, message: Message, params: UpdateMessageParams): Message {
         logger.trace("updateMessage();", context = mapOf("message" to message.toString(), "params" to params.toString()))
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
-            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${message.roomId}/messages/${message.serial}",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/${message.serial}",
             HttpMethod.Put,
             body,
         )?.let {
@@ -120,7 +118,6 @@ internal class ChatApi(
             DefaultMessage(
                 serial = message.serial,
                 clientId = clientId,
-                roomId = message.roomId,
                 text = params.message.text,
                 createdAt = message.createdAt,
                 metadata = params.message.metadata ?: MessageMetadata(),
@@ -136,12 +133,12 @@ internal class ChatApi(
     /**
      * Spec: CHA-M9
      */
-    suspend fun deleteMessage(message: Message, params: DeleteMessageParams): Message {
+    suspend fun deleteMessage(roomName: String, message: Message, params: DeleteMessageParams): Message {
         logger.trace("deleteMessage();", context = mapOf("message" to message.toString(), "params" to params.toString()))
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
-            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${message.roomId}/messages/${message.serial}/delete",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/${message.serial}/delete",
             HttpMethod.Post,
             body,
         )?.let {
@@ -152,7 +149,6 @@ internal class ChatApi(
             DefaultMessage(
                 serial = message.serial,
                 clientId = clientId,
-                roomId = message.roomId,
                 text = message.text,
                 createdAt = message.createdAt,
                 metadata = message.metadata,
@@ -168,10 +164,10 @@ internal class ChatApi(
     /**
      * return occupancy for specified room
      */
-    suspend fun getOccupancy(roomId: String): OccupancyData {
-        logger.trace("getOccupancy();", context = mapOf("roomId" to roomId))
-        return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/occupancy", HttpMethod.Get)?.let {
-            logger.debug("getOccupancy();", context = mapOf("roomId" to roomId, "response" to it.toString()))
+    suspend fun getOccupancy(roomName: String): OccupancyData {
+        logger.trace("getOccupancy();", context = mapOf("roomName" to roomName))
+        return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/occupancy", HttpMethod.Get)?.let {
+            logger.debug("getOccupancy();", context = mapOf("roomName" to roomName, "response" to it.toString()))
             DefaultOccupancyData(
                 connections = it.requireInt("connections"),
                 presenceMembers = it.requireInt("presenceMembers"),
@@ -179,17 +175,17 @@ internal class ChatApi(
         } ?: throw serverError("Occupancy endpoint returned empty value")
     }
 
-    suspend fun sendMessageReaction(roomId: String, messageSerial: String, type: MessageReactionType, name: String, count: Int = 1) {
+    suspend fun sendMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String, count: Int = 1) {
         this.makeAuthorizedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages/$messageSerial/reactions",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/$messageSerial/reactions",
             method = HttpMethod.Post,
             body = buildMessageReactionsBody(type, name, count),
         )
     }
 
-    suspend fun deleteMessageReaction(roomId: String, messageSerial: String, type: MessageReactionType, name: String? = null) {
+    suspend fun deleteMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String? = null) {
         this.makeAuthorizedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomId/messages/$messageSerial/reactions",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/$messageSerial/reactions",
             method = HttpMethod.Delete,
             params = buildMessageReactionsApiParams(type, name),
         )

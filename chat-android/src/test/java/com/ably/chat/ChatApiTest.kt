@@ -30,7 +30,6 @@ class ChatApiTest {
                     addProperty("foo", "bar")
                     add(MessageProperty.Metadata, JsonObject())
                     addProperty(MessageProperty.Serial, "timeserial")
-                    addProperty(MessageProperty.RoomId, "roomId")
                     addProperty(MessageProperty.ClientId, "clientId")
                     addProperty(MessageProperty.Text, "hello")
                     addProperty(MessageProperty.CreatedAt, 1_000_000)
@@ -41,13 +40,12 @@ class ChatApiTest {
             ),
         )
 
-        val messages = chatApi.getMessages("roomId", QueryOptions())
+        val messages = chatApi.getMessages("roomName", QueryOptions())
 
         assertEquals(
             listOf(
                 DefaultMessage(
                     serial = "timeserial",
-                    roomId = "roomId",
                     clientId = "clientId",
                     text = "hello",
                     createdAt = 1_000_000L,
@@ -78,7 +76,7 @@ class ChatApiTest {
         )
 
         val exception = assertThrows(AblyException::class.java) {
-            runBlocking { chatApi.getMessages("roomId", QueryOptions()) }
+            runBlocking { chatApi.getMessages("roomName", QueryOptions()) }
         }
 
         assertTrue(exception.message!!.matches(""".*Required field "\w+" is missing""".toRegex()))
@@ -98,12 +96,11 @@ class ChatApiTest {
             },
         )
 
-        val message = chatApi.sendMessage("roomId", SendMessageParams(text = "hello"))
+        val message = chatApi.sendMessage("roomName", SendMessageParams(text = "hello"))
 
         assertEquals(
             DefaultMessage(
                 serial = "timeserial",
-                roomId = "roomId",
                 clientId = "clientId",
                 text = "hello",
                 createdAt = 1_000_000L,
@@ -131,7 +128,7 @@ class ChatApiTest {
         )
 
         assertThrows(AblyException::class.java) {
-            runBlocking { chatApi.sendMessage("roomId", SendMessageParams(text = "hello")) }
+            runBlocking { chatApi.sendMessage("roomName", SendMessageParams(text = "hello")) }
         }
     }
 
@@ -148,7 +145,7 @@ class ChatApiTest {
         )
 
         assertThrows(AblyException::class.java) {
-            runBlocking { chatApi.getOccupancy("roomId") }
+            runBlocking { chatApi.getOccupancy("roomName") }
         }
     }
 }

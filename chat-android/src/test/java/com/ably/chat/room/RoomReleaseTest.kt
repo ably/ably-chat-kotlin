@@ -40,13 +40,13 @@ class RoomReleaseTest {
 
     @Test
     fun `(CHA-RC1g) Should be able to release existing room, makes it eligible for garbage collection`() = runTest {
-        val roomId = "1234"
+        val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
         coJustRun { defaultRoom.release() }
@@ -54,25 +54,25 @@ class RoomReleaseTest {
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
 
         // Creates original room and adds to the room map
-        val room = rooms.get(roomId)
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
+        val room = rooms.get(roomName)
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room, rooms.RoomNameToRoom[roomName])
 
         // Release the room
-        rooms.release(roomId)
+        rooms.release(roomName)
 
-        Assert.assertEquals(0, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(0, rooms.RoomNameToRoom.size)
     }
 
     @Test
     fun `(CHA-RC1g1, CHA-RC1g5) Release operation only returns after channel goes into Released state`() = runTest {
-        val roomId = "1234"
+        val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -91,15 +91,15 @@ class RoomReleaseTest {
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
 
         // Creates original room and adds to the room map
-        val room = rooms.get(roomId)
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
+        val room = rooms.get(roomName)
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room, rooms.RoomNameToRoom[roomName])
 
         // Release the room
-        rooms.release(roomId)
+        rooms.release(roomName)
 
         // CHA-RC1g5 - Room is removed after release operation
-        Assert.assertEquals(0, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(0, rooms.RoomNameToRoom.size)
 
         Assert.assertEquals(2, roomStateChanges.size)
         Assert.assertEquals(RoomStatus.Releasing, roomStateChanges[0].current)
@@ -108,33 +108,33 @@ class RoomReleaseTest {
 
     @Test
     fun `(CHA-RC1g2) If the room does not exist in the room map, and no release operation is in progress, there is no-op`() = runTest {
-        val roomId = "1234"
+        val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         // No room exists
-        Assert.assertEquals(0, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(0, rooms.RoomNameToRoom.size)
         Assert.assertEquals(0, rooms.RoomReleaseDeferredMap.size)
         Assert.assertEquals(0, rooms.RoomGetDeferredMap.size)
 
         // Release the room
-        rooms.release(roomId)
+        rooms.release(roomName)
 
-        Assert.assertEquals(0, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(0, rooms.RoomNameToRoom.size)
         Assert.assertEquals(0, rooms.RoomReleaseDeferredMap.size)
         Assert.assertEquals(0, rooms.RoomGetDeferredMap.size)
     }
 
     @Test
     fun `(CHA-RC1g3) If the release operation is already in progress, then the associated deferred will be resolved`() = runTest {
-        val roomId = "1234"
+        val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
@@ -149,16 +149,16 @@ class RoomReleaseTest {
         }
 
         // Creates a room and adds to the room map
-        val room = rooms.get(roomId)
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
+        val room = rooms.get(roomName)
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room, rooms.RoomNameToRoom[roomName])
 
         // Release the room in separate coroutine, keep it in progress
         val releasedDeferredList = mutableListOf<Deferred<Unit>>()
 
         repeat(1000) {
             val roomReleaseDeferred = async(Dispatchers.IO) {
-                rooms.release(roomId)
+                rooms.release(roomName)
             }
             releasedDeferredList.add(roomReleaseDeferred)
         }
@@ -166,7 +166,7 @@ class RoomReleaseTest {
         // Wait for room to get into releasing state
         assertWaiter { room.status == RoomStatus.Releasing }
         Assert.assertEquals(1, rooms.RoomReleaseDeferredMap.size)
-        Assert.assertNotNull(rooms.RoomReleaseDeferredMap[roomId])
+        Assert.assertNotNull(rooms.RoomReleaseDeferredMap[roomName])
 
         // Release the room, room release deferred gets empty
         roomReleased.send(Unit)
@@ -174,7 +174,7 @@ class RoomReleaseTest {
         Assert.assertEquals(RoomStatus.Released, room.status)
 
         Assert.assertTrue(rooms.RoomReleaseDeferredMap.isEmpty())
-        Assert.assertTrue(rooms.RoomIdToRoom.isEmpty())
+        Assert.assertTrue(rooms.RoomNameToRoom.isEmpty())
 
         coVerify(exactly = 1) {
             defaultRoom.release()
@@ -185,13 +185,13 @@ class RoomReleaseTest {
     @Suppress("MaximumLineLength", "LongMethod")
     @Test
     fun `(CHA-RC1g4, CHA-RC1f6) Pending room get operation waiting for room release should be cancelled and deferred associated with previous release operation will be resolved`() = runTest {
-        val roomId = "1234"
+        val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -210,59 +210,59 @@ class RoomReleaseTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger)
             }
             room
         }
 
         // Creates original room and adds to the room map
-        val originalRoom = rooms.get(roomId)
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(originalRoom, rooms.RoomIdToRoom[roomId])
+        val originalRoom = rooms.get(roomName)
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(originalRoom, rooms.RoomNameToRoom[roomName])
 
         // Release the room in separate coroutine, keep it in progress
-        launch { rooms.release(roomId) }
+        launch { rooms.release(roomName) }
 
-        // Room is in releasing state, hence RoomReleaseDeferred contain deferred for given roomId
+        // Room is in releasing state, hence RoomReleaseDeferred contain deferred for given roomName
         assertWaiter { originalRoom.status == RoomStatus.Releasing }
         Assert.assertEquals(1, rooms.RoomReleaseDeferredMap.size)
-        Assert.assertNotNull(rooms.RoomReleaseDeferredMap[roomId])
+        Assert.assertNotNull(rooms.RoomReleaseDeferredMap[roomName])
 
         // Call roomGet Dispatchers.IO scope, it should wait for release op
         val roomGetDeferredList = mutableListOf<Deferred<Room>>()
         repeat(100) {
             val roomGetDeferred = async(Dispatchers.IO + SupervisorJob()) {
-                rooms.get(roomId)
+                rooms.get(roomName)
             }
             roomGetDeferredList.add(roomGetDeferred)
         }
         // CHA-RC1f5 - Room Get is in waiting state, for room to get released
         assertWaiter { rooms.RoomGetDeferredMap.size == 1 }
-        Assert.assertNotNull(rooms.RoomGetDeferredMap[roomId])
+        Assert.assertNotNull(rooms.RoomGetDeferredMap[roomName])
 
         // Call the release again, so that all pending roomGet gets cancelled
-        val roomReleaseDeferred = launch { rooms.release(roomId) }
+        val roomReleaseDeferred = launch { rooms.release(roomName) }
 
         // All RoomGetDeferred got cancelled due to room release.
         assertWaiter { rooms.RoomGetDeferredMap.isEmpty() }
 
         // Call RoomGet after release, so this should return a new room when room is released
-        val roomGetDeferred = async { rooms.get(roomId) }
+        val roomGetDeferred = async { rooms.get(roomName) }
 
         // CHA-RC1f5 - Room Get is in waiting state, for room to get released
         assertWaiter { rooms.RoomGetDeferredMap.size == 1 }
-        Assert.assertNotNull(rooms.RoomGetDeferredMap[roomId])
+        Assert.assertNotNull(rooms.RoomGetDeferredMap[roomName])
 
         // Release the room, room release deferred gets empty
         roomReleased.send(Unit)
         assertWaiter { originalRoom.status == RoomStatus.Released }
         assertWaiter { rooms.RoomReleaseDeferredMap.isEmpty() }
-        Assert.assertNull(rooms.RoomReleaseDeferredMap[roomId])
+        Assert.assertNull(rooms.RoomReleaseDeferredMap[roomName])
 
         // Room Get in waiting state gets cleared, so it's map for the same is cleared
         assertWaiter { rooms.RoomGetDeferredMap.isEmpty() }
         Assert.assertEquals(0, rooms.RoomGetDeferredMap.size)
-        Assert.assertNull(rooms.RoomGetDeferredMap[roomId])
+        Assert.assertNull(rooms.RoomGetDeferredMap[roomName])
 
         roomReleaseDeferred.join()
 
