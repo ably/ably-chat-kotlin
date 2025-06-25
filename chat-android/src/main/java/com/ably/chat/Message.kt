@@ -33,11 +33,6 @@ public interface Message {
     public val clientId: String
 
     /**
-     * The roomId of the chat room to which the message belongs.
-     */
-    public val roomId: String
-
-    /**
      * The text of the message.
      */
     public val text: String
@@ -176,7 +171,6 @@ private fun Message.checkMessageSerial(serial: String) {
 internal data class DefaultMessage(
     override val serial: String,
     override val clientId: String,
-    override val roomId: String,
     override val text: String,
     override val createdAt: Long,
     override val metadata: MessageMetadata,
@@ -243,7 +237,6 @@ internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactions {
 internal object MessageProperty {
     const val Serial = "serial"
     const val ClientId = "clientId"
-    const val RoomId = "roomId"
     const val Text = "text"
     const val CreatedAt = "createdAt"
     const val Metadata = "metadata"

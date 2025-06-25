@@ -31,9 +31,9 @@ class MessagesIntegrationTest {
     @Test
     fun `should be able to send and retrieve messages without room features`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId)
+        val room = chatClient.rooms.get(roomName)
 
         room.attach()
 
@@ -54,9 +54,9 @@ class MessagesIntegrationTest {
     @Test
     fun `should be able to send and retrieve messages with all room features enabled`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId, RoomOptionsWithAllFeatures)
+        val room = chatClient.rooms.get(roomName, RoomOptionsWithAllFeatures)
 
         room.attach()
 
@@ -70,7 +70,6 @@ class MessagesIntegrationTest {
 
         val receivedMessage = messageEvent.await().message
 
-        assertEquals(roomId, receivedMessage.roomId)
         assertEquals(MessageAction.MESSAGE_CREATE, receivedMessage.action)
         assertEquals("hello", receivedMessage.text)
         assertEquals("sandbox-client", receivedMessage.clientId)
@@ -84,7 +83,6 @@ class MessagesIntegrationTest {
         // check for sentMessage fields against receivedMessage fields
         assertEquals(sentMessage.serial, receivedMessage.serial)
         assertEquals(sentMessage.clientId, receivedMessage.clientId)
-        assertEquals(sentMessage.roomId, receivedMessage.roomId)
         assertEquals(sentMessage.text, receivedMessage.text)
         assertEquals(sentMessage.createdAt, receivedMessage.createdAt)
         assertEquals(sentMessage.metadata.toString(), receivedMessage.metadata.toString())
@@ -101,9 +99,9 @@ class MessagesIntegrationTest {
     @Test
     fun `should be able to send and retrieve messages from history`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId)
+        val room = chatClient.rooms.get(roomName)
 
         room.attach()
 
@@ -121,7 +119,6 @@ class MessagesIntegrationTest {
         assertEquals(1, messages.size)
         val historyMessage = messages.first()
 
-        assertEquals(roomId, historyMessage.roomId)
         assertEquals(MessageAction.MESSAGE_CREATE, historyMessage.action)
         assertEquals("hello", historyMessage.text)
         assertEquals("sandbox-client", historyMessage.clientId)
@@ -135,7 +132,6 @@ class MessagesIntegrationTest {
         // check for sentMessage fields against historyMessage fields
         assertEquals(sentMessage.serial, historyMessage.serial)
         assertEquals(sentMessage.clientId, historyMessage.clientId)
-        assertEquals(sentMessage.roomId, historyMessage.roomId)
         assertEquals(sentMessage.text, historyMessage.text)
         assertEquals(sentMessage.createdAt, historyMessage.createdAt)
         assertEquals(sentMessage.metadata.toString(), historyMessage.metadata.toString())
@@ -152,9 +148,9 @@ class MessagesIntegrationTest {
     @Test
     fun `should be able to update a sent message`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId)
+        val room = chatClient.rooms.get(roomName)
 
         room.attach()
         assertWaiter { room.status == RoomStatus.Attached }
@@ -200,7 +196,6 @@ class MessagesIntegrationTest {
         assertEquals(updatedMessage.createdAt, receivedMsg2.createdAt)
         assertEquals(updatedMessage.timestamp, receivedMsg2.timestamp)
         assertEquals(updatedMessage.clientId, receivedMsg2.clientId)
-        assertEquals(updatedMessage.roomId, receivedMsg2.roomId)
         assertEquals(updatedMessage.action, receivedMsg2.action)
     }
 
@@ -210,9 +205,9 @@ class MessagesIntegrationTest {
     @Test
     fun `should be able to delete a sent message`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId)
+        val room = chatClient.rooms.get(roomName)
 
         room.attach()
         assertWaiter { room.status == RoomStatus.Attached }
@@ -252,15 +247,14 @@ class MessagesIntegrationTest {
         assertEquals(deletedMessage.createdAt, receivedMsg2.createdAt)
         assertEquals(deletedMessage.timestamp, receivedMsg2.timestamp)
         assertEquals(deletedMessage.clientId, receivedMsg2.clientId)
-        assertEquals(deletedMessage.roomId, receivedMsg2.roomId)
         assertEquals(deletedMessage.action, receivedMsg2.action)
     }
 
     @Test
     fun `messages channel should include agent channel param`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
-        val room = chatClient.rooms.get(roomId)
+        val roomName = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomName)
         assertEquals(
             "chat-kotlin/${BuildConfig.APP_VERSION}",
             room.messages.channel.channelOptions?.params?.get("agent"),

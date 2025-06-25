@@ -20,9 +20,9 @@ class ReactionsIntegrationTest {
     @Test
     fun `should observe room reactions`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val room = chatClient.rooms.get(roomId) { reactions() }
+        val room = chatClient.rooms.get(roomName) { reactions() }
         room.attach()
 
         val reactionEvent = CompletableDeferred<RoomReactionEvent>()

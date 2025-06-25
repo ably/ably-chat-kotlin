@@ -88,14 +88,14 @@ internal fun createMockChatApi(
 internal fun createMockLogger(): Logger = mockk<AndroidLogger>(relaxed = true)
 
 internal fun createTestRoom(
-    roomId: String = DEFAULT_ROOM_ID,
+    roomName: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
     realtimeClient: RealtimeClient = createMockRealtimeClient(),
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
     roomOptions: (MutableRoomOptions.() -> Unit)? = null,
 ): DefaultRoom =
-    DefaultRoom(roomId, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientId, logger)
+    DefaultRoom(roomName, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientId, logger)
 
 internal val RoomOptionsWithAllFeatures: RoomOptions
     get() = buildRoomOptions {
@@ -108,7 +108,7 @@ internal val RoomOptionsWithAllFeatures: RoomOptions
     }
 
 // Rooms mocks
-val Rooms.RoomIdToRoom get() = getPrivateField<MutableMap<String, Room>>("roomIdToRoom")
+val Rooms.RoomNameToRoom get() = getPrivateField<MutableMap<String, Room>>("roomNameToRoom")
 val Rooms.RoomGetDeferredMap get() = getPrivateField<MutableMap<String, CompletableDeferred<Unit>>>("roomGetDeferredMap")
 val Rooms.RoomReleaseDeferredMap get() = getPrivateField<MutableMap<String, CompletableDeferred<Unit>>>("roomReleaseDeferredMap")
 
@@ -149,13 +149,13 @@ internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
     invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
 
 internal fun createRoomFeatureMocks(
-    roomId: String = DEFAULT_ROOM_ID,
+    roomName: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
 ): List<RoomFeature> {
     val realtimeClient = createMockRealtimeClient()
     val chatApi = createMockChatApi()
     val logger = createMockLogger()
-    val room = createTestRoom(roomId, clientId, realtimeClient, chatApi, logger)
+    val room = createTestRoom(roomName, clientId, realtimeClient, chatApi, logger)
 
     val messages = spyk(room.messages, recordPrivateCalls = true) as RoomFeature
     val presence = spyk(room.presence, recordPrivateCalls = true) as RoomFeature

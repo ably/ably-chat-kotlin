@@ -27,7 +27,7 @@ public interface Room : Discontinuity {
      * The unique identifier of the room.
      * @returns The room identifier.
      */
-    public val roomId: String
+    public val name: String
 
     /**
      * Allows you to send, subscribe-to and query messages in the room.
@@ -132,19 +132,19 @@ public fun Room.statusAsFlow(): Flow<RoomStatusChange> = transformCallbackAsFlow
 }
 
 internal class DefaultRoom(
-    override val roomId: String,
+    override val name: String,
     override val options: RoomOptions,
     internal val realtimeClient: RealtimeClient,
     internal val chatApi: ChatApi,
     internal val clientId: String,
     logger: Logger,
 ) : Room {
-    internal val logger = logger.withContext("Room", mapOf("roomId" to roomId))
+    internal val logger = logger.withContext("Room", mapOf("name" to name))
 
     /**
      * Spec: CHA-RC3a, CHA-RC3c
      */
-    override val channel: RealtimeChannel = realtimeClient.channels.get("$roomId::\$chat", options.channelOptions())
+    override val channel: RealtimeChannel = realtimeClient.channels.get("$name::\$chat", options.channelOptions())
 
     /**
      * RoomScope is a crucial part of the Room lifecycle. It manages sequential and atomic operations.
@@ -152,7 +152,7 @@ internal class DefaultRoom(
      * preventing concurrency issues. Every operation within Room must be performed through this scope.
      */
     private val roomScope =
-        CoroutineScope(Dispatchers.Default.limitedParallelism(1) + CoroutineName(roomId) + SupervisorJob())
+        CoroutineScope(Dispatchers.Default.limitedParallelism(1) + CoroutineName(name) + SupervisorJob())
 
     override val messages = DefaultMessages(room = this)
 
@@ -264,7 +264,7 @@ internal class DefaultRoom(
                             } else {
                                 featureLogger.error("ensureAttached(); waiting complete, room ATTACHING failed with error: ${it.error}")
                                 val exception =
-                                    roomInvalidStateException(roomId, statusManager.status, HttpStatusCode.InternalServerError)
+                                    roomInvalidStateException(name, statusManager.status, HttpStatusCode.InternalServerError)
                                 attachDeferred.completeExceptionally(exception)
                             }
                         }
@@ -273,7 +273,7 @@ internal class DefaultRoom(
                             featureLogger.error(
                                 "ensureAttached(); waiting complete, room ATTACHING failed with error: ${statusManager.error}",
                             )
-                            val exception = roomInvalidStateException(roomId, statusManager.status, HttpStatusCode.InternalServerError)
+                            val exception = roomInvalidStateException(name, statusManager.status, HttpStatusCode.InternalServerError)
                             attachDeferred.completeExceptionally(exception)
                         }
                     }
@@ -284,7 +284,7 @@ internal class DefaultRoom(
             // CHA-PR3h, CHA-PR10h, CHA-PR4c, CHA-PR6h, CHA-T2g, CHA-T4a4, CHA-T5d
             else -> {
                 featureLogger.error("ensureAttached(); Room is in invalid state: $currentRoomStatus, error: ${statusManager.error}")
-                throw roomInvalidStateException(roomId, currentRoomStatus, HttpStatusCode.BadRequest)
+                throw roomInvalidStateException(name, currentRoomStatus, HttpStatusCode.BadRequest)
             }
         }
     }

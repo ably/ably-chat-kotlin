@@ -186,7 +186,6 @@ private fun createMessage(
     serial = serial,
     version = version,
     clientId = "client1",
-    roomId = "room1",
     createdAt = System.currentTimeMillis(),
     metadata = JsonObject(),
     headers = mapOf(),

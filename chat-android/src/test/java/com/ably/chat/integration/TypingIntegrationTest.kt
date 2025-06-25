@@ -28,11 +28,11 @@ class TypingIntegrationTest {
     fun `should return typing start indication for client`() = runTest {
         val chatClient1 = sandbox.createSandboxChatClient("client1")
         val chatClient2 = sandbox.createSandboxChatClient("client2")
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
-        val chatClient1Room = chatClient1.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
+        val chatClient1Room = chatClient1.rooms.get(roomName) { typing { heartbeatThrottle = 10.seconds } }
         chatClient1Room.attach()
-        val chatClient2Room = chatClient2.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
+        val chatClient2Room = chatClient2.rooms.get(roomName) { typing { heartbeatThrottle = 10.seconds } }
         chatClient2Room.attach()
 
         assertEquals(emptySet<String>(), chatClient1Room.typing.current())
@@ -63,12 +63,12 @@ class TypingIntegrationTest {
         val chatClient1 = sandbox.createSandboxChatClient("client1")
         val chatClient2 = sandbox.createSandboxChatClient("client2")
         val chatClient3 = sandbox.createSandboxChatClient("client3")
-        val roomId = UUID.randomUUID().toString()
-        val chatClient1Room = chatClient1.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
+        val roomName = UUID.randomUUID().toString()
+        val chatClient1Room = chatClient1.rooms.get(roomName) { typing { heartbeatThrottle = 10.seconds } }
         chatClient1Room.attach()
-        val chatClient2Room = chatClient2.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
+        val chatClient2Room = chatClient2.rooms.get(roomName) { typing { heartbeatThrottle = 10.seconds } }
         chatClient2Room.attach()
-        val chatClient3Room = chatClient3.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
+        val chatClient3Room = chatClient3.rooms.get(roomName) { typing { heartbeatThrottle = 10.seconds } }
         chatClient3Room.attach()
 
         // Client 1, Client 2 starts typing

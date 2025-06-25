@@ -19,10 +19,10 @@ class RequestHeaderTest {
     fun `should use additional agents in Realtime wrapper SDK client calls`() = runTest {
         val ablyRealtime = createAblyRealtime()
         val chatClient = ChatClient(ablyRealtime)
-        val roomId = UUID.randomUUID().toString()
+        val roomName = UUID.randomUUID().toString()
 
         server.servedRequests.test {
-            chatClient.rooms.get(roomId).messages.history()
+            chatClient.rooms.get(roomName).messages.history()
             val agents = awaitItem().headers["ably-agent"]?.split(" ") ?: setOf()
             Assert.assertTrue(
                 agents.contains("chat-kotlin/${com.ably.chat.BuildConfig.APP_VERSION}"),

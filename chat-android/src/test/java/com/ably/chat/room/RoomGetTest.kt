@@ -44,13 +44,13 @@ class RoomGetTest {
         val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
         val room = rooms.get("1234")
         Assert.assertNotNull(room)
-        Assert.assertEquals("1234", room.roomId)
+        Assert.assertEquals("1234", room.name)
         Assert.assertEquals(buildRoomOptions(), room.options)
     }
 
     @Suppress("MaximumLineLength")
     @Test
-    fun `(CHA-RC1f1) If the room id already exists, and newly requested with different options, then ErrorInfo with code 40000 is thrown`() = runTest {
+    fun `(CHA-RC1f1) If the room name already exists, and newly requested with different options, then ErrorInfo with code 40000 is thrown`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms: Rooms = spyk(
@@ -60,8 +60,8 @@ class RoomGetTest {
 
         // Create room with id "1234"
         val room = rooms.get("1234")
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room, rooms.RoomIdToRoom["1234"])
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room, rooms.RoomNameToRoom["1234"])
 
         // Throws exception for requesting room for different roomOptions
         var exception = assertThrows(AblyException::class.java) {
@@ -85,25 +85,25 @@ class RoomGetTest {
     }
 
     @Test
-    fun `(CHA-RC1f2) If the room id already exists, and newly requested with same options, then returns same room`() = runTest {
+    fun `(CHA-RC1f2) If the room name already exists, and newly requested with same options, then returns same room`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val room1 = rooms.get("1234")
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room1, rooms.RoomIdToRoom["1234"])
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room1, rooms.RoomNameToRoom["1234"])
 
         val room2 = rooms.get("1234")
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
         Assert.assertEquals(room1, room2)
 
         val room3 = rooms.get("5678") { typing() }
-        Assert.assertEquals(2, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room3, rooms.RoomIdToRoom["5678"])
+        Assert.assertEquals(2, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room3, rooms.RoomNameToRoom["5678"])
 
         val room4 = rooms.get("5678") { typing() }
-        Assert.assertEquals(2, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(2, rooms.RoomNameToRoom.size)
         Assert.assertEquals(room3, room4)
 
         val room5 = rooms.get("7890") {
@@ -113,8 +113,8 @@ class RoomGetTest {
             }
         }
 
-        Assert.assertEquals(3, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room5, rooms.RoomIdToRoom["7890"])
+        Assert.assertEquals(3, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room5, rooms.RoomNameToRoom["7890"])
 
         val room6 = rooms.get("7890") {
             typing { heartbeatThrottle = 1500.milliseconds }
@@ -122,7 +122,7 @@ class RoomGetTest {
                 enableEvents = true
             }
         }
-        Assert.assertEquals(3, rooms.RoomIdToRoom.size)
+        Assert.assertEquals(3, rooms.RoomNameToRoom.size)
         Assert.assertEquals(room5, room6)
     }
 
@@ -132,29 +132,29 @@ class RoomGetTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
-        val roomId = "1234"
+        val roomName = "1234"
 
         // No release op. in progress
         Assert.assertEquals(0, rooms.RoomReleaseDeferredMap.size)
-        Assert.assertNull(rooms.RoomReleaseDeferredMap[roomId])
+        Assert.assertNull(rooms.RoomReleaseDeferredMap[roomName])
 
         // Creates a new room and adds to the room map
         val room = rooms.get("1234")
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(room, rooms.RoomIdToRoom[roomId])
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(room, rooms.RoomNameToRoom[roomName])
     }
 
     @OptIn(DelicateCoroutinesApi::class)
     @Suppress("MaximumLineLength", "LongMethod")
     @Test
     fun `(CHA-RC1f4, CHA-RC1f5) If CHA-RC1g release operation is in progress, new instance should not be returned until release operation completes`() = runTest {
-        val roomId = "1234"
+        val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -173,49 +173,49 @@ class RoomGetTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomId, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger)
             }
             room
         }
 
         // Creates original room and adds to the room map
-        val originalRoom = rooms.get(roomId)
-        Assert.assertEquals(1, rooms.RoomIdToRoom.size)
-        Assert.assertEquals(originalRoom, rooms.RoomIdToRoom[roomId])
+        val originalRoom = rooms.get(roomName)
+        Assert.assertEquals(1, rooms.RoomNameToRoom.size)
+        Assert.assertEquals(originalRoom, rooms.RoomNameToRoom[roomName])
 
         // Release the room in separate coroutine, keep it in progress
         val invocationOrder = mutableListOf<String>()
-        val roomReleaseDeferred = launch { rooms.release(roomId) }
+        val roomReleaseDeferred = launch { rooms.release(roomName) }
         roomReleaseDeferred.invokeOnCompletion {
             invocationOrder.add("room.released")
         }
 
         // Get the same room in separate coroutine, it should wait for release op
-        val roomGetDeferred = async { rooms.get(roomId) }
+        val roomGetDeferred = async { rooms.get(roomName) }
         roomGetDeferred.invokeOnCompletion {
             invocationOrder.add("room.get")
         }
 
-        // Room is in releasing state, hence RoomReleaseDeferred contain deferred for given roomId
+        // Room is in releasing state, hence RoomReleaseDeferred contain deferred for given roomName
         assertWaiter { originalRoom.status == RoomStatus.Releasing }
         Assert.assertEquals(1, rooms.RoomReleaseDeferredMap.size)
-        Assert.assertNotNull(rooms.RoomReleaseDeferredMap[roomId])
+        Assert.assertNotNull(rooms.RoomReleaseDeferredMap[roomName])
 
         // CHA-RC1f5 - Room Get is in waiting state, for room to get released
         assertWaiter { rooms.RoomGetDeferredMap.size == 1 }
         Assert.assertEquals(1, rooms.RoomGetDeferredMap.size)
-        Assert.assertNotNull(rooms.RoomGetDeferredMap[roomId])
+        Assert.assertNotNull(rooms.RoomGetDeferredMap[roomName])
 
         // Release the room, room release deferred gets empty
         roomReleased.send(Unit)
         assertWaiter { originalRoom.status == RoomStatus.Released }
         assertWaiter { rooms.RoomReleaseDeferredMap.isEmpty() }
-        Assert.assertNull(rooms.RoomReleaseDeferredMap[roomId])
+        Assert.assertNull(rooms.RoomReleaseDeferredMap[roomName])
 
         // Room Get in waiting state gets cleared, so it's map for the same is cleared
         assertWaiter { rooms.RoomGetDeferredMap.isEmpty() }
         Assert.assertEquals(0, rooms.RoomGetDeferredMap.size)
-        Assert.assertNull(rooms.RoomGetDeferredMap[roomId])
+        Assert.assertNull(rooms.RoomGetDeferredMap[roomName])
 
         val newRoom = roomGetDeferred.await()
         roomReleaseDeferred.join()

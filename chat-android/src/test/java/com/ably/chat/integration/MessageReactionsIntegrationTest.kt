@@ -31,8 +31,8 @@ class MessageReactionsIntegrationTest {
     @Test
     fun `should correctly send message reaction`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
-        val room = chatClient.rooms.get(roomId) {
+        val roomName = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomName) {
             messages {
                 rawMessageReactions = true
             }
@@ -59,8 +59,8 @@ class MessageReactionsIntegrationTest {
     @Test
     fun `should correctly delete message reaction`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
-        val room = chatClient.rooms.get(roomId)
+        val roomName = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomName)
         room.attach()
         val message = room.messages.send("test")
 
@@ -84,8 +84,8 @@ class MessageReactionsIntegrationTest {
     @Test
     fun `should delete with multiple summary type`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
-        val room = chatClient.rooms.get(roomId)
+        val roomName = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomName)
         room.attach()
         val message = room.messages.send("test")
 
@@ -111,8 +111,8 @@ class MessageReactionsIntegrationTest {
     @Test
     fun `should use unique summary type`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
-        val roomId = UUID.randomUUID().toString()
-        val room = chatClient.rooms.get(roomId) {
+        val roomName = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomName) {
             messages {
                 defaultMessageReactionType = MessageReactionType.Unique
             }

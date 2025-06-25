@@ -38,7 +38,7 @@ class RoomIntegrationTest {
         Assert.assertEquals(RoomStatus.Detached, room.status)
 
         // Perform release operation
-        chatClient.rooms.release(room.roomId)
+        chatClient.rooms.release(room.name)
         Assert.assertEquals(RoomStatus.Released, room.status)
 
         assertWaiter { room.LifecycleManager.atomicCoroutineScope().finishedProcessing }
@@ -63,7 +63,7 @@ class RoomIntegrationTest {
         Assert.assertEquals(RoomStatus.Attached, room.status)
 
         // Perform release operation
-        chatClient.rooms.release(room.roomId)
+        chatClient.rooms.release(room.name)
         Assert.assertEquals(RoomStatus.Released, room.status)
 
         assertWaiter { room.LifecycleManager.atomicCoroutineScope().finishedProcessing }

@@ -50,7 +50,7 @@ class OccupancyTest {
                 addProperty("connections", 2)
                 addProperty("presenceMembers", 1)
             },
-            roomId = "room1",
+            roomName = "room1",
         )
 
         assertEquals(DefaultOccupancyData(connections = 2, presenceMembers = 1), occupancy.get())
