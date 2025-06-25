@@ -3,7 +3,6 @@ package com.ably.chat
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
@@ -48,7 +47,7 @@ public interface Typing {
      * Current typing members.
      * @return set of clientIds that are currently typing.
      */
-    public fun get(): Set<String>
+    public fun current(): Set<String>
 
     /**
      * This will send a `typing.started` event to the server.
@@ -250,8 +249,8 @@ internal class DefaultTyping(
     /**
      * Spec: CHA-T9
      */
-    override fun get(): Set<String> {
-        logger.trace("DefaultTyping.get()")
+    override fun current(): Set<String> {
+        logger.trace("DefaultTyping.current()")
         return currentlyTypingMembers.toSet()
     }
 
@@ -259,17 +258,6 @@ internal class DefaultTyping(
      * Spec: CHA-T4, CHA-T14
      */
     override suspend fun keystroke() {
-        // CHA-T4e
-        if (room.realtimeClient.connection.state != ConnectionState.connected) {
-            logger.trace(
-                "DefaultTyping.keystroke(); connection is not connected",
-                context = mapOf(
-                    "status" to room.realtimeClient.connection.state.name,
-                ),
-            )
-            throw clientError("cannot type, connection is not connected")
-        }
-
         latestJobExecutor.run {
             // CHA-T4c - If heartbeat is active, it's a no-op
             typingHeartbeatStarted?.let {
@@ -278,8 +266,8 @@ internal class DefaultTyping(
                     return@run
                 }
             }
+            room.ensureConnected(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4, CHA-T4d, CHA-T4e
             // send typing.start event
-            room.ensureAttached(logger) // CHA-T4a1, CHA-T4a3, CHA-T4a4, CHA-T4d
             sendTyping(TypingEventType.Started) // CHA-T4a3
             typingHeartbeatStarted = timeSource.markNow() // CHA-T4a4
         }
@@ -303,7 +291,7 @@ internal class DefaultTyping(
                 }
             }
             // send typing.stop event
-            room.ensureAttached(logger) // CHA-T5e, CHA-T5c, CHA-T5d
+            room.ensureConnected(logger) // CHA-T5e, CHA-T5c, CHA-T5d
             sendTyping(TypingEventType.Stopped) // CHA-T5d
             typingHeartbeatStarted = null // CHA-T5e
         }
@@ -367,7 +355,7 @@ internal class DefaultTyping(
     private fun emit(eventType: TypingEventType, clientId: String) {
         val typingEventChange = DefaultTypingEventChange(eventType, clientId)
         listeners.forEach {
-            it.onEvent(DefaultTypingEvent(get(), typingEventChange))
+            it.onEvent(DefaultTypingEvent(current(), typingEventChange))
         }
     }
 }

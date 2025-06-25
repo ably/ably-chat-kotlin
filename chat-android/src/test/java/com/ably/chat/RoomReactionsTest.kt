@@ -7,6 +7,8 @@ import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimeChannel
 import com.google.gson.JsonObject
 import io.ably.lib.realtime.CompletionListener
+import io.ably.lib.realtime.Connection
+import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.Message
 import io.ably.lib.types.MessageExtras
 import io.mockk.coEvery
@@ -119,6 +121,12 @@ class RoomReactionsTest {
     @Test
     fun `(CHA-ER3d) Reactions are sent on the channel using an @ephemeral@ message`() = runTest {
         var publishedMessage: Message? = null
+        val connection = mockk<Connection>()
+        connection.state = ConnectionState.connected
+        val realtimeClient = room.realtimeClient
+
+        every { realtimeClient.connection } returns connection
+
         every {
             realtimeChannel.publish(any<Message>(), any<CompletionListener>())
         } answers {

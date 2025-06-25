@@ -3,6 +3,7 @@ package com.ably.chat
 import com.ably.chat.Discontinuity.Listener
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
+import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
@@ -210,6 +211,25 @@ internal class DefaultRoom(
     internal suspend fun release() {
         logger.trace("release();")
         lifecycleManager.release()
+    }
+
+    /**
+     * Ensures that the connection for the realtime client is established before performing
+     * any operations that require an active connection. ([RoomReactions.send], [Typing.keystroke])
+     * If the connection is not in a "connected" state, an error is logged and an exception is thrown.
+     */
+    internal fun ensureConnected(featureLogger: Logger) {
+        featureLogger.trace("ensureConnected();")
+
+        if (realtimeClient.connection.state != ConnectionState.connected) {
+            featureLogger.trace(
+                "Room.ensureConnected(); connection state is not connected",
+                context = mapOf(
+                    "status" to realtimeClient.connection.state.name,
+                ),
+            )
+            throw clientError("cannot perform operation, connection is not connected")
+        }
     }
 
     /**

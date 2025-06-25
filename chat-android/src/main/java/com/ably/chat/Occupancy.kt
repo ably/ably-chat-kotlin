@@ -89,8 +89,8 @@ public interface OccupancyEvent {
     public val occupancy: OccupancyData
 }
 
-public enum class OccupancyEventType {
-    Updated,
+public enum class OccupancyEventType(public val eventName: String) {
+    Updated("occupancy.updated"),
 }
 
 /**
@@ -185,7 +185,7 @@ internal class DefaultOccupancy(
     }
 
     override fun current(): OccupancyData? {
-        logger.trace("Occupancy.get()")
+        logger.trace("Occupancy.current()")
         if (!room.options.occupancy.enableEvents) { // CHA-O7c
             throw clientError("cannot get current occupancy; occupancy events are not enabled in room options")
         }

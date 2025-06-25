@@ -151,7 +151,7 @@ internal class DefaultRoomReactions(
                 )
             }
         }
-        room.ensureAttached(logger) // TODO - This check might be removed in the future due to core spec change
+        room.ensureConnected(logger) // CHA-ER3f
         channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage()) // CHA-ER3d
     }
 
