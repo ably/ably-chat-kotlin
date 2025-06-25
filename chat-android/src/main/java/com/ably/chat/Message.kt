@@ -137,11 +137,11 @@ public fun Message.copy(
     ) ?: throw clientError("Message interface is not suitable for inheritance")
 
 public fun Message.with(
-    event: MessageEvent,
+    event: ChatMessageEvent,
 ): Message {
     checkMessageSerial(event.message.serial)
 
-    if (event.type == MessageEventType.Created) { // CHA-M11a
+    if (event.type == ChatMessageEventType.Created) { // CHA-M11a
         throw clientError("MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE")
     }
 

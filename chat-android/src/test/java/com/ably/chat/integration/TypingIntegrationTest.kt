@@ -1,5 +1,6 @@
 package com.ably.chat.integration
 
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.TypingEventType
 import com.ably.chat.TypingSetEvent
 import com.ably.chat.TypingSetEventType
@@ -12,9 +13,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class TypingIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     /**
      * @spec CHA-T4, CHA-T9
@@ -30,8 +35,8 @@ class TypingIntegrationTest {
         val chatClient2Room = chatClient2.rooms.get(roomId) { typing { heartbeatThrottle = 10.seconds } }
         chatClient2Room.attach()
 
-        assertEquals(emptySet<String>(), chatClient1Room.typing.get())
-        assertEquals(emptySet<String>(), chatClient2Room.typing.get())
+        assertEquals(emptySet<String>(), chatClient1Room.typing.current())
+        assertEquals(emptySet<String>(), chatClient2Room.typing.current())
 
         val startTypingEventDeferred = CompletableDeferred<TypingSetEvent>()
         chatClient2Room.typing.subscribe {
@@ -45,8 +50,8 @@ class TypingIntegrationTest {
         assertEquals("client1", startTypingEvent.change.clientId)
         assertEquals(TypingEventType.Started, startTypingEvent.change.type)
 
-        assertEquals(setOf("client1"), chatClient1Room.typing.get())
-        assertEquals(setOf("client1"), chatClient2Room.typing.get())
+        assertEquals(setOf("client1"), chatClient1Room.typing.current())
+        assertEquals(setOf("client1"), chatClient2Room.typing.current())
     }
 
     /**
@@ -89,9 +94,9 @@ class TypingIntegrationTest {
         assertEquals("client2", startTypingEvent2.change.clientId)
         assertEquals(TypingEventType.Started, startTypingEvent2.change.type)
 
-        assertWaiter { chatClient1Room.typing.get() == setOf("client1", "client2") }
-        assertWaiter { chatClient2Room.typing.get() == setOf("client1", "client2") }
-        assertWaiter { chatClient3Room.typing.get() == setOf("client1", "client2") }
+        assertWaiter { chatClient1Room.typing.current() == setOf("client1", "client2") }
+        assertWaiter { chatClient2Room.typing.current() == setOf("client1", "client2") }
+        assertWaiter { chatClient3Room.typing.current() == setOf("client1", "client2") }
 
         // Client 1 stops typing
         val stopTypingEventDeferred1 = CompletableDeferred<TypingSetEvent>()
@@ -106,9 +111,9 @@ class TypingIntegrationTest {
         assertEquals("client1", stopTypingEvent1.change.clientId)
         assertEquals(TypingEventType.Stopped, stopTypingEvent1.change.type)
 
-        assertWaiter { chatClient1Room.typing.get() == setOf("client2") }
-        assertWaiter { chatClient2Room.typing.get() == setOf("client2") }
-        assertWaiter { chatClient3Room.typing.get() == setOf("client2") }
+        assertWaiter { chatClient1Room.typing.current() == setOf("client2") }
+        assertWaiter { chatClient2Room.typing.current() == setOf("client2") }
+        assertWaiter { chatClient3Room.typing.current() == setOf("client2") }
 
         // Client 2 stops typing
         val stopTypingEventDeferred2 = CompletableDeferred<TypingSetEvent>()
@@ -123,9 +128,9 @@ class TypingIntegrationTest {
         assertEquals("client2", stopTypingEvent2.change.clientId)
         assertEquals(TypingEventType.Stopped, stopTypingEvent2.change.type)
 
-        assertWaiter { chatClient1Room.typing.get().isEmpty() }
-        assertWaiter { chatClient2Room.typing.get().isEmpty() }
-        assertWaiter { chatClient3Room.typing.get().isEmpty() }
+        assertWaiter { chatClient1Room.typing.current().isEmpty() }
+        assertWaiter { chatClient2Room.typing.current().isEmpty() }
+        assertWaiter { chatClient3Room.typing.current().isEmpty() }
     }
 
     companion object {

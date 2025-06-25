@@ -12,8 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.ably.chat.ChatMessageEventType
 import com.ably.chat.Message
-import com.ably.chat.MessageEventType
 import com.ably.chat.MessagesSubscription
 import com.ably.chat.PaginatedResult
 import com.ably.chat.Room
@@ -46,13 +46,13 @@ public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSiz
     DisposableEffect(this) {
         subscription = messages.subscribe { event ->
             when (event.type) {
-                MessageEventType.Created -> loaded.add(0, event.message)
+                ChatMessageEventType.Created -> loaded.add(0, event.message)
 
-                MessageEventType.Updated -> loaded.replaceFirstWith(event.message) {
+                ChatMessageEventType.Updated -> loaded.replaceFirstWith(event.message) {
                     it.serial == event.message.serial
                 }
 
-                MessageEventType.Deleted -> loaded.replaceFirstWith(event.message) {
+                ChatMessageEventType.Deleted -> loaded.replaceFirstWith(event.message) {
                     it.serial == event.message.serial
                 }
             }
@@ -91,7 +91,7 @@ public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSiz
 
         val receivedPaginatedResult = try {
             lastReceivedPaginatedResult?.next()
-                ?: subscription!!.getPreviousMessages(limit = fetchSize)
+                ?: subscription!!.historyBeforeSubscribe(limit = fetchSize)
         } catch (exception: AblyException) {
             error = exception.errorInfo
             return@LaunchedEffect

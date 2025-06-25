@@ -39,9 +39,17 @@ public interface Occupancy {
     /**
      * Get the current occupancy of the chat room.
      *
-     * @returns the current occupancy of the chat room.
+     * @return the current occupancy of the chat room.
      */
-    public suspend fun get(): OccupancyEvent
+    public suspend fun get(): OccupancyData
+
+    /**
+     * Get the latest occupancy data received from realtime events.
+     *
+     * @return The latest occupancy data, or undefined if no realtime events have been received yet.
+     * @throws [io.ably.lib.types.AblyException] If occupancy events are not enabled for this room.
+     */
+    public fun current(): OccupancyData?
 
     /**
      * An interface for listening to new occupancy event
@@ -63,11 +71,34 @@ public fun Occupancy.asFlow(): Flow<OccupancyEvent> = transformCallbackAsFlow {
 }
 
 /**
- * Represents the occupancy of a chat room.
+ * Represents the occupancy event.
  *
  * (CHA-O2)
  */
 public interface OccupancyEvent {
+    /**
+     * Defines the type of the occupancy event, represented by an instance of [OccupancyEventType].
+     */
+    public val type: OccupancyEventType
+
+    /**
+     * Represents data about the occupancy of a chat room, including connection and presence details.
+     *
+     * Provides information such as the number of active connections and the number of presence members in the chat room.
+     */
+    public val occupancy: OccupancyData
+}
+
+public enum class OccupancyEventType(public val eventName: String) {
+    Updated("occupancy.updated"),
+}
+
+/**
+ * Represents the occupancy of a chat room.
+ *
+ * (CHA-O2)
+ */
+public interface OccupancyData {
     /**
      * The number of connections to the chat room.
      */
@@ -79,9 +110,14 @@ public interface OccupancyEvent {
     public val presenceMembers: Int
 }
 
-internal data class DefaultOccupancyEvent(
+internal data class DefaultOccupancyData(
     override val connections: Int,
     override val presenceMembers: Int,
+) : OccupancyData
+
+internal data class DefaultOccupancyEvent(
+    override val occupancy: DefaultOccupancyData,
+    override val type: OccupancyEventType = OccupancyEventType.Updated,
 ) : OccupancyEvent
 
 private const val META_OCCUPANCY_EVENT_NAME = "[meta]occupancy"
@@ -98,6 +134,8 @@ internal class DefaultOccupancy(
 
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel
+
+    private var latestOccupancyData: OccupancyData? = null
 
     private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
 
@@ -128,7 +166,7 @@ internal class DefaultOccupancy(
     // Spec: CHA-O4
     override fun subscribe(listener: Occupancy.Listener): Subscription {
         logger.trace("Occupancy.subscribe()")
-        if (room.options.occupancy?.enableEvents == false) { // CHA-O4e
+        if (!room.options.occupancy.enableEvents) { // CHA-O4e
             throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")
         }
 
@@ -141,9 +179,19 @@ internal class DefaultOccupancy(
     }
 
     // (CHA-O3)
-    override suspend fun get(): OccupancyEvent {
+    override suspend fun get(): OccupancyData {
         logger.trace("Occupancy.get()")
         return room.chatApi.getOccupancy(room.roomId)
+    }
+
+    override fun current(): OccupancyData? {
+        logger.trace("Occupancy.current()")
+        if (!room.options.occupancy.enableEvents) { // CHA-O7c
+            throw clientError("cannot get current occupancy; occupancy events are not enabled in room options")
+        }
+        // CHA-O7a
+        // CHA-O7b
+        return latestOccupancyData
     }
 
     override fun dispose() {
@@ -209,12 +257,16 @@ internal class DefaultOccupancy(
             return
         }
 
+        val occupancyData = DefaultOccupancyData(
+            connections = connections.asInt,
+            presenceMembers = presenceMembers.asInt,
+        )
+
+        latestOccupancyData = occupancyData
+
         eventBus.tryEmit(
             // (CHA-04c)
-            DefaultOccupancyEvent(
-                connections = connections.asInt,
-                presenceMembers = presenceMembers.asInt,
-            ),
+            DefaultOccupancyEvent(occupancyData),
         )
     }
 }

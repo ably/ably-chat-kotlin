@@ -154,7 +154,7 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         room.reactions.asFlow().collect {
-            receivedReactions.add(it)
+            receivedReactions.add(it.reaction)
         }
     }
 

@@ -3,6 +3,7 @@ package com.ably.chat.room
 import com.ably.chat.ChatApi
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.RoomStatus
 import com.ably.chat.Rooms
 import com.ably.chat.buildChatClientOptions
@@ -17,6 +18,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Assert.assertThrows
+import org.junit.Rule
 import org.junit.Test
 
 /**
@@ -31,6 +33,9 @@ class ConfigureRoomOptionsTest {
     private val logger = createMockLogger()
     private val mockRealtimeClient = createMockRealtimeClient()
     private val chatApi = mockk<ChatApi>(relaxed = true)
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `(CHA-RC2a) If a room is requested with a negative typing timeout, an ErrorInfo with code 40001 must be thrown`() = runTest {

@@ -4,7 +4,9 @@ import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.ably.chat.Occupancy
+import com.ably.chat.OccupancyData
 import com.ably.chat.OccupancyEvent
+import com.ably.chat.OccupancyEventType
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.Subscription
@@ -69,8 +71,8 @@ class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
         return Subscription { listeners.remove(listener) }
     }
 
-    override suspend fun get(): OccupancyEvent = mutex.withLock {
-        currentOccupancyEvent
+    override suspend fun get(): OccupancyData = mutex.withLock {
+        currentOccupancyEvent.occupancy
     }
 
     suspend fun pause() {
@@ -89,7 +91,11 @@ class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
     }
 }
 
-fun OccupancyEvent(connections: Int, presenceMembers: Int): OccupancyEvent = mockk {
-    every { this@mockk.connections } returns connections
-    every { this@mockk.presenceMembers } returns presenceMembers
+fun OccupancyEvent(connections: Int, presenceMembers: Int): OccupancyEvent = mockk occupancyEvent@{
+    val occupancy = mockk<OccupancyData> occupancyData@{
+        every { this@occupancyData.connections } returns connections
+        every { this@occupancyData.presenceMembers } returns presenceMembers
+    }
+    every { this@occupancyEvent.type } returns OccupancyEventType.Updated
+    every { this@occupancyEvent.occupancy } returns occupancy
 }

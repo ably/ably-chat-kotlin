@@ -11,6 +11,8 @@ import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.processEvent
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.CompletionListener
+import io.ably.lib.realtime.Connection
+import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.Message
 import io.mockk.coEvery
 import io.mockk.every
@@ -32,6 +34,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 class TypingTest {
@@ -41,9 +44,15 @@ class TypingTest {
     private var pubSubTypingListener: PubSubMessageListener? = null
     private lateinit var typingLogger: Logger
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     @Before
     fun setUp() {
         val realtimeClient = createMockRealtimeClient()
+        val connection = mockk<Connection>()
+        connection.state = ConnectionState.connected
+        every { realtimeClient.connection } returns connection
 
         val channels = realtimeClient.channels
         every { channels.get(any(), any()) } returns realtimeChannel
@@ -218,7 +227,7 @@ class TypingTest {
             delay(500)
             typingEvents.size == 0
         }
-        assertTrue(typing.get().isEmpty())
+        assertTrue(typing.current().isEmpty())
 
         // Receive mock typing stop event with empty clientId
         receiveTypingEvent(TypingEventType.Stopped, "")
@@ -230,16 +239,16 @@ class TypingTest {
             delay(500)
             typingEvents.size == 0
         }
-        assertTrue(typing.get().isEmpty())
+        assertTrue(typing.current().isEmpty())
 
         // Receive mock typing event with valid clientId
         receiveTypingEvent(TypingEventType.Started, DEFAULT_CLIENT_ID)
         assertWaiter { typingEvents.size == 1 }
-        assertEquals(1, typing.get().size)
+        assertEquals(1, typing.current().size)
 
         receiveTypingEvent(TypingEventType.Stopped, DEFAULT_CLIENT_ID)
         assertWaiter { typingEvents.size == 2 }
-        assertEquals(0, typing.get().size)
+        assertEquals(0, typing.current().size)
 
         // No error detected
         verify(exactly = 2) {
@@ -308,7 +317,7 @@ class TypingTest {
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
-        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.get()) // clientId added to internal set
+        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.current()) // clientId added to internal set
         assertNotNull(typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID]) // self stop timer started
 
         testScheduler.advanceTimeBy(9.seconds)
@@ -327,7 +336,7 @@ class TypingTest {
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[1].change.clientId)
 
         assertTrue(typing.TypingStartEventPrunerJobs.isEmpty())
-        assertTrue(typing.get().isEmpty())
+        assertTrue(typing.current().isEmpty())
     }
 
     /**
@@ -349,7 +358,7 @@ class TypingTest {
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
-        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.get())
+        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.current())
         assertNotNull(typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID])
 
         val activityTimer1 = typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID]
@@ -366,7 +375,7 @@ class TypingTest {
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[1].change.clientId)
 
         assertTrue(typing.TypingStartEventPrunerJobs.isEmpty())
-        assertTrue(typing.get().isEmpty())
+        assertTrue(typing.current().isEmpty())
 
         // If stop event is received again, nothing is emitted
         receiveTypingEvent(TypingEventType.Stopped, DEFAULT_CLIENT_ID)
@@ -375,7 +384,7 @@ class TypingTest {
             typingEvents.size == 2
         }
         assertTrue(typing.TypingStartEventPrunerJobs.isEmpty())
-        assertTrue(typing.get().isEmpty())
+        assertTrue(typing.current().isEmpty())
     }
 
     /**
@@ -398,7 +407,7 @@ class TypingTest {
         assertEquals(TypingEventType.Started, typingEvents[0].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[0].change.clientId)
 
-        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.get())
+        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.current())
         assertNotNull(typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID])
 
         receiveTypingEvent(TypingEventType.Stopped, "missing-client-Id")
@@ -409,7 +418,7 @@ class TypingTest {
         }
 
         assertNotNull(typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID])
-        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.get())
+        assertEquals(setOf(DEFAULT_CLIENT_ID), typing.current())
     }
 
     /**

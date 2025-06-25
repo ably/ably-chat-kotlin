@@ -3,13 +3,18 @@ package com.ably.chat.integration
 import com.ably.chat.ConnectionStatus
 import com.ably.chat.ConnectionStatusChange
 import com.ably.chat.DefaultConnectionStatusChange
+import com.ably.chat.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class ConnectionIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `should observe connection status`() = runTest {

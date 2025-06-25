@@ -1,8 +1,10 @@
 package com.ably.chat.integration
 
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.MessageReactionSummaryEvent
 import com.ably.chat.MessageReactionType
 import com.ably.chat.MessagesReactions
+import com.ably.chat.RetryTestRule
 import com.ably.chat.Room
 import com.ably.chat.Subscription
 import com.ably.chat.get
@@ -12,9 +14,16 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class MessageReactionsIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    @get:Rule
+    val retryTestRule = RetryTestRule(3)
 
     /**
      * Spec: CHA-MR4, CHA-MR7

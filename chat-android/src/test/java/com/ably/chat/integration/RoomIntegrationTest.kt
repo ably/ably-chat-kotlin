@@ -1,6 +1,7 @@
 package com.ably.chat.integration
 
 import com.ably.chat.ChatClient
+import com.ably.chat.MainDispatcherRule
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
@@ -11,9 +12,13 @@ import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 
 class RoomIntegrationTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     private suspend fun validateAllOps(room: Room, chatClient: ChatClient) {
         Assert.assertEquals(RoomStatus.Initialized, room.status)

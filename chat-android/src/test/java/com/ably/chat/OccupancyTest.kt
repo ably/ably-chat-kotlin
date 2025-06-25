@@ -53,7 +53,7 @@ class OccupancyTest {
             roomId = "room1",
         )
 
-        assertEquals(DefaultOccupancyEvent(connections = 2, presenceMembers = 1), occupancy.get())
+        assertEquals(DefaultOccupancyData(connections = 2, presenceMembers = 1), occupancy.get())
     }
 
     /**
@@ -81,7 +81,7 @@ class OccupancyTest {
 
         pubSubMessageListenerSlot.captured.onMessage(occupancyEventMessage)
 
-        assertEquals(DefaultOccupancyEvent(connections = 2, presenceMembers = 1), deferredEvent.await())
+        assertEquals(DefaultOccupancyData(connections = 2, presenceMembers = 1), deferredEvent.await().occupancy)
     }
 
     /**
@@ -115,7 +115,7 @@ class OccupancyTest {
         pubSubMessageListenerSlot.captured.onMessage(invalidOccupancyEvent)
         pubSubMessageListenerSlot.captured.onMessage(validOccupancyEvent)
 
-        assertEquals(DefaultOccupancyEvent(connections = 1, presenceMembers = 1), deferredEvent.await())
+        assertEquals(DefaultOccupancyData(connections = 1, presenceMembers = 1), deferredEvent.await().occupancy)
     }
 
     /**
@@ -149,7 +149,7 @@ class OccupancyTest {
 
         pubSubMessageListenerSlot.captured.onMessage(fakeMessage)
 
-        assertEquals(DefaultOccupancyEvent(connections = 1, presenceMembers = 1), deferredEvent.await())
+        assertEquals(DefaultOccupancyData(connections = 1, presenceMembers = 1), deferredEvent.await().occupancy)
     }
 
     @Test
@@ -189,7 +189,7 @@ class OccupancyTest {
         }
 
         occupancy.asFlow().test {
-            val event = DefaultOccupancyEvent(connections = 2, presenceMembers = 1)
+            val event = DefaultOccupancyEvent(DefaultOccupancyData(connections = 2, presenceMembers = 1))
             callback.onEvent(event)
             assertEquals(event, awaitItem())
             cancel()

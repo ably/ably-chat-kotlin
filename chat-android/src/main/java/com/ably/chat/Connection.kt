@@ -3,21 +3,13 @@ package com.ably.chat
 import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.types.ErrorInfo
 import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import io.ably.lib.realtime.Connection as PubSubConnection
-
-/**
- * Default timeout for transient states before we attempt handle them as a state change.
- */
-internal const val TRANSIENT_TIMEOUT = 5000
 
 /**
  * (CHA-CS1) The different states that the connection can be in through its lifecycle.
@@ -133,11 +125,9 @@ internal class DefaultConnection(
     dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : Connection {
 
-    private val connectionScope = CoroutineScope(dispatcher.limitedParallelism(1) + SupervisorJob())
+    private val connectionScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private val listeners: MutableList<Connection.Listener> = CopyOnWriteArrayList()
-
-    private var transientDisconnectJob: Job? = null
 
     // (CHA-CS3)
     override var status: ConnectionStatus = mapPubSubStatusToChat(pubSubConnection.state)
@@ -149,27 +139,7 @@ internal class DefaultConnection(
     init {
         pubSubConnection.on { stateChange ->
             val nextStatus = mapPubSubStatusToChat(stateChange.current)
-
-            val transientDisconnectTimerIsActive = transientDisconnectJob != null
-
-            // (CHA-CS5a2)
-            if (transientDisconnectTimerIsActive && nextStatus in listOf(ConnectionStatus.Connecting, ConnectionStatus.Disconnected)) {
-                return@on
-            }
-
-            // (CHA-CS5a1)
-            if (nextStatus == ConnectionStatus.Disconnected && status == ConnectionStatus.Connected) {
-                transientDisconnectJob = connectionScope.launch {
-                    delay(TRANSIENT_TIMEOUT.milliseconds)
-                    applyStatusChange(nextStatus, stateChange.reason, stateChange.retryIn)
-                    transientDisconnectJob = null
-                }
-            } else {
-                // (CHA-CS5a3)
-                transientDisconnectJob?.cancel()
-                transientDisconnectJob = null
-                applyStatusChange(nextStatus, stateChange.reason, stateChange.retryIn)
-            }
+            applyStatusChange(nextStatus, stateChange.reason, stateChange.retryIn)
         }
     }
 
@@ -183,10 +153,10 @@ internal class DefaultConnection(
         }
     }
 
-    private fun applyStatusChange(nextStatus: ConnectionStatus, error: ErrorInfo?, retryIn: Long?) {
+    private fun applyStatusChange(nextStatus: ConnectionStatus, nextError: ErrorInfo?, retryIn: Long?) = connectionScope.launch {
         val previous = status
-        this.status = nextStatus
-        this.error = error
+        status = nextStatus
+        error = nextError
         logger.info("Connection state changed from ${previous.stateName} to ${nextStatus.stateName}")
         emitStateChange(
             DefaultConnectionStatusChange(

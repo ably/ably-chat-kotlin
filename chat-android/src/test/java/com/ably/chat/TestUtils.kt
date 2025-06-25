@@ -8,10 +8,18 @@ import io.mockk.every
 import io.mockk.mockk
 import java.lang.reflect.Field
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.rules.TestRule
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
 
 fun buildAsyncHttpPaginatedResponse(items: List<JsonElement>): AsyncHttpPaginatedResponse {
     val response = mockk<AsyncHttpPaginatedResponse>()
@@ -122,4 +130,48 @@ fun <T> Any.invokePrivateMethod(methodName: String, vararg args: Any?): T {
     method?.isAccessible = true
     @Suppress("UNCHECKED_CAST")
     return method?.invoke(this, *args) as T
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class MainDispatcherRule(
+    private val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
+) : TestWatcher() {
+    override fun starting(description: Description) {
+        Dispatchers.setMain(testDispatcher)
+    }
+}
+
+class RetryTestRule(times: Int) : TestRule {
+    private val timesToRunTestCount: Int = times + 1
+
+    override fun apply(base: Statement, description: Description): Statement = statement(base, description)
+
+    private fun statement(base: Statement, description: Description): Statement {
+        return object : Statement() {
+            @Throws(Throwable::class)
+            override fun evaluate() {
+                var latestException: Throwable? = null
+
+                for (runCount in 0..<timesToRunTestCount) {
+                    try {
+                        base.evaluate()
+                        return
+                    } catch (t: Throwable) {
+                        latestException = t
+                        System.err.printf(
+                            "%s: test failed on run: `%d`. Will run a maximum of `%d` times.%n",
+                            description.getDisplayName(),
+                            runCount,
+                            timesToRunTestCount,
+                        )
+                    }
+                }
+
+                if (latestException != null) {
+                    System.err.printf("%s: giving up after `%d` failures%n", description.getDisplayName(), timesToRunTestCount)
+                    throw latestException
+                }
+            }
+        }
+    }
 }
