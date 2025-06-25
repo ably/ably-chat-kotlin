@@ -1,5 +1,27 @@
 # Change Log
 
+## [0.4.0](https://github.com/ably/ably-chat-kotlin/tree/v0.4.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.3.0...v0.4.0)
+
+## What's Changed
+
+### New features
+
+The following features have been added in this release:
+
+- **Message reactions** Added __experimental__ support for message reactions. [#139](https://github.com/ably/ably-chat-kotlin/pull/139)
+
+### Breaking changes
+
+This release also includes several breaking changes:
+
+- `roomId` has been renamed to `name` or `roomName` throughout the SDK to align terminology with other Ably SDKs [#141](https://github.com/ably/ably-chat-kotlin/pull/141)
+- Event restructuring in Occupancy, Room Reactions, and Presence to match the style used by messages and typing indicators [#140](https://github.com/ably/ably-chat-kotlin/pull/140)
+- Sending typing indicators and room reactions now requires the connection status to be `Connected` [#140](https://github.com/ably/ably-chat-kotlin/pull/140)
+
+For detailed migration instructions, please refer to the [Upgrading Guide](UPGRADING.md).
+
 ## [0.3.0](https://github.com/ably/ably-chat-kotlin/tree/v0.3.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.2.1...v0.3.0)
