@@ -144,6 +144,66 @@ class MessagesTest {
     }
 
     /**
+     * @spec CHA-M4a
+     */
+    @Test
+    fun `should be able to subscribe to incoming delete messages`() = runTest {
+        val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
+
+        every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
+
+        val deferredValue = CompletableDeferred<ChatMessageEvent>()
+
+        messages.subscribe {
+            deferredValue.complete(it)
+        }
+
+        verify { messages.channelWrapper.subscribe("chat.message", any()) }
+
+        pubSubMessageListenerSlot.captured.onMessage(
+            PubSubMessage().apply {
+                data = JsonObject().apply {
+                    add("metadata", JsonObject())
+                }
+                serial = "abcdefghij@1672531200000-123"
+                clientId = "clientId"
+                timestamp = 1000L
+                createdAt = 1000L
+                extras = MessageExtras(
+                    JsonObject().apply {
+                        add(
+                            "headers",
+                            JsonObject().apply {
+                                addProperty("foo", "bar")
+                            },
+                        )
+                    },
+                )
+                action = MessageAction.MESSAGE_DELETE
+                version = "abcdefghij@1672531200000-123"
+            },
+        )
+
+        val messageEvent = deferredValue.await()
+
+        assertEquals(ChatMessageEventType.Deleted, messageEvent.type)
+        assertEquals(
+            DefaultMessage(
+                createdAt = 1000L,
+                clientId = "clientId",
+                serial = "abcdefghij@1672531200000-123",
+                text = "",
+                metadata = MessageMetadata(),
+                headers = mapOf("foo" to "bar"),
+                action = MessageAction.MESSAGE_DELETE,
+                version = "abcdefghij@1672531200000-123",
+                timestamp = 1000L,
+            ),
+            messageEvent.message,
+        )
+    }
+
+    /**
      * @nospec
      */
     @Test
