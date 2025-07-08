@@ -1,5 +1,16 @@
 # Change Log
 
+## [0.5.0](https://github.com/ably/ably-chat-kotlin/tree/v0.5.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.4.0...v0.5.0)
+
+## What's Changed
+
+Breaking Changes:
+
+- Renames `Reaction` to `RoomReaction` [144](https://github.com/ably/ably-chat-kotlin/pull/144)
+- Renames `RoomReaction.type` to `RoomReaction.name` [144](https://github.com/ably/ably-chat-kotlin/pull/144)
+
 ## [0.4.0](https://github.com/ably/ably-chat-kotlin/tree/v0.4.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.3.0...v0.4.0)
