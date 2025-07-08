@@ -33,7 +33,7 @@ class ReactionsIntegrationTest {
 
         assertEquals(
             "heart",
-            reactionEvent.await().reaction.type,
+            reactionEvent.await().reaction.name,
         )
     }
 

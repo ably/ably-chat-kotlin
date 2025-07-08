@@ -46,8 +46,8 @@ import androidx.compose.ui.unit.dp
 import com.ably.chat.ChatClient
 import com.ably.chat.LogLevel
 import com.ably.chat.Message
-import com.ably.chat.Reaction
 import com.ably.chat.Room
+import com.ably.chat.RoomReaction
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.asFlow
 import com.ably.chat.copy
@@ -150,7 +150,7 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
     val updating = edited != null
     val coroutineScope = rememberCoroutineScope()
     val paginatedMessages = room.collectAsPagingMessagesState(scrollThreshold = 10, fetchSize = 15)
-    val receivedReactions = remember { mutableListOf<Reaction>() }
+    val receivedReactions = remember { mutableListOf<RoomReaction>() }
 
     LaunchedEffect(Unit) {
         room.reactions.asFlow().collect {
@@ -238,7 +238,7 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             },
             onReactionClick = {
                 coroutineScope.launch {
-                    room.reactions.send(type = "\uD83D\uDC4D")
+                    room.reactions.send(name = "\uD83D\uDC4D")
                 }
             },
         )
