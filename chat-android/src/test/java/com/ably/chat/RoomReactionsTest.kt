@@ -62,7 +62,7 @@ class RoomReactionsTest {
         pubSubMessageListenerSlot.captured.onMessage(
             PubSubMessage().apply {
                 data = JsonObject().apply {
-                    addProperty("type", "like")
+                    addProperty("name", "like")
                     add("metadata", JsonObject())
                 }
                 clientId = "clientId"
@@ -83,8 +83,8 @@ class RoomReactionsTest {
         val reactionEvent = deferredValue.await()
 
         assertEquals(
-            DefaultReaction(
-                type = "like",
+            DefaultRoomReaction(
+                name = "like",
                 createdAt = 1000L,
                 clientId = "clientId",
                 metadata = MessageMetadata(),

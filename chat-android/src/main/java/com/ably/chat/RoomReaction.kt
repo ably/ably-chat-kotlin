@@ -13,11 +13,11 @@ public typealias ReactionMetadata = Metadata
 /**
  * Represents a room-level reaction.
  */
-public interface Reaction {
+public interface RoomReaction {
     /**
-     * The type of the reaction, for example "like" or "love".
+     * The name of the reaction, for example "like" or "love".
      */
-    public val type: String
+    public val name: String
 
     /**
      * Metadata of the reaction. If no metadata was set this is an empty object.
@@ -45,11 +45,11 @@ public interface Reaction {
     public val isSelf: Boolean
 }
 
-internal data class DefaultReaction(
-    override val type: String,
+internal data class DefaultRoomReaction(
+    override val name: String,
     override val metadata: ReactionMetadata,
     override val headers: ReactionHeaders,
     override val createdAt: Long,
     override val clientId: String,
     override val isSelf: Boolean,
-) : Reaction
+) : RoomReaction

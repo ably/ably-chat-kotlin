@@ -29,15 +29,15 @@ public interface RoomReactions {
      * This method allows you to send a reaction at the room level.
      * It accepts parameters for defining the type of reaction, metadata, and additional headers.
      *
-     * @param type The type of the reaction. See [SendReactionParams.type].
-     * @param metadata Optional metadata to include with the reaction. Defaults to `null`. See [SendReactionParams.metadata]
-     * @param headers Additional headers to include with the reaction. Defaults to an empty map. See [SendReactionParams.headers]
+     * @param name The name of the reaction. See [SendRoomReactionParams.name].
+     * @param metadata Optional metadata to include with the reaction. Defaults to `null`. See [SendRoomReactionParams.metadata]
+     * @param headers Additional headers to include with the reaction. Defaults to an empty map. See [SendRoomReactionParams.headers]
      *
      * @return Unit when the reaction has been successfully sent. Note that it is
      * possible to receive your own reaction via the reactions listener before
      * this method completes.
      */
-    public suspend fun send(type: String, metadata: ReactionMetadata? = null, headers: ReactionHeaders? = null)
+    public suspend fun send(name: String, metadata: ReactionMetadata? = null, headers: ReactionHeaders? = null)
 
     /**
      * Subscribe to receive room-level reactions.
@@ -61,16 +61,16 @@ public interface RoomReactions {
 
 public interface RoomReactionEvent {
     public val type: RoomReactionEventType
-    public val reaction: Reaction
+    public val reaction: RoomReaction
 }
 
 internal data class DefaultRoomReactionEvent(
-    override val reaction: Reaction,
+    override val reaction: RoomReaction,
     override val type: RoomReactionEventType = RoomReactionEventType.Reaction,
 ) : RoomReactionEvent
 
 /**
- * @return [Reaction] events as a [Flow]
+ * @return [RoomReaction] events as a [Flow]
  */
 public fun RoomReactions.asFlow(): Flow<RoomReactionEvent> = transformCallbackAsFlow {
     subscribe(it)
@@ -79,14 +79,14 @@ public fun RoomReactions.asFlow(): Flow<RoomReactionEvent> = transformCallbackAs
 /**
  * Params for sending a room-level reactions. Only `type` is mandatory.
  */
-internal data class SendReactionParams(
+internal data class SendRoomReactionParams(
     /**
-     * The type of the reaction, for example an emoji or a short string such as
+     * The name of the reaction, for example an emoji or a short string such as
      * "like".
      *
      * It is the only mandatory parameter to send a room-level reaction.
      */
-    val type: String,
+    val name: String,
 
     /**
      * Optional metadata of the reaction.
@@ -136,11 +136,11 @@ internal class DefaultRoomReactions(
     private val logger = room.logger.withContext(tag = "Reactions")
 
     // (CHA-ER3) Ephemeral room reactions are sent to Ably via the Realtime connection via a send method.
-    override suspend fun send(type: String, metadata: ReactionMetadata?, headers: ReactionHeaders?) {
+    override suspend fun send(name: String, metadata: ReactionMetadata?, headers: ReactionHeaders?) {
         val pubSubMessage = PubSubMessage().apply {
-            name = RoomReactionEventType.Reaction.eventName
+            this.name = RoomReactionEventType.Reaction.eventName
             data = JsonObject().apply {
-                addProperty("type", type)
+                addProperty("name", name)
                 metadata?.let { add("metadata", it) }
             }
             headers?.let {
@@ -163,8 +163,8 @@ internal class DefaultRoomReactions(
             val data = pubSubMessage.data as? JsonObject ?: throw AblyException.fromErrorInfo(
                 ErrorInfo("Unrecognized Pub/Sub channel's message for `roomReaction` event", HttpStatusCode.InternalServerError),
             )
-            val reaction = DefaultReaction(
-                type = data.requireString("type"),
+            val reaction = DefaultRoomReaction(
+                name = data.requireString("name"),
                 createdAt = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
                 metadata = data.getAsJsonObject("metadata") ?: ReactionMetadata(),
