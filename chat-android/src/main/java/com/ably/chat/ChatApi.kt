@@ -51,10 +51,17 @@ internal class ChatApi(
             val reactions = messageJsonObject.getAsJsonObject(MessageProperty.Reactions)
             latestAction?.let { action ->
                 logger.debug("getMessages();", context = mapOf("roomName" to roomName, "message" to messageJsonObject.toString()))
+
+                val text = if (action == MessageAction.MESSAGE_DELETE) {
+                    ""
+                } else {
+                    messageJsonObject.requireString(MessageProperty.Text)
+                }
+
                 DefaultMessage(
                     serial = messageJsonObject.requireString(MessageProperty.Serial),
                     clientId = messageJsonObject.requireString(MessageProperty.ClientId),
-                    text = messageJsonObject.requireString(MessageProperty.Text),
+                    text = text,
                     createdAt = messageJsonObject.requireLong(MessageProperty.CreatedAt),
                     metadata = messageJsonObject.getAsJsonObject(MessageProperty.Metadata) ?: MessageMetadata(),
                     headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),

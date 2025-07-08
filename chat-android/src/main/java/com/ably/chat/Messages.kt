@@ -419,14 +419,14 @@ internal class DefaultMessages(
             val eventType = messageActionToEventType[pubSubMessage.action]
                 ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
 
-            val data = parsePubSubMessageData(pubSubMessage.data)
+            val data = parsePubSubMessageData(eventType, pubSubMessage.data)
             val chatMessage = DefaultMessage(
                 createdAt = pubSubMessage.createdAt,
                 clientId = pubSubMessage.clientId,
                 serial = pubSubMessage.serial,
                 text = data.text,
                 metadata = data.metadata ?: MessageMetadata(),
-                headers = pubSubMessage.extras.asJsonObject().get("headers")?.toMap() ?: mapOf(),
+                headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
                 version = pubSubMessage.version,
                 timestamp = pubSubMessage.timestamp,
@@ -540,12 +540,15 @@ internal class DefaultMessages(
  */
 private data class PubSubMessageData(val text: String, val metadata: MessageMetadata?)
 
-private fun parsePubSubMessageData(data: Any): PubSubMessageData {
+private fun parsePubSubMessageData(action: ChatMessageEventType, data: Any): PubSubMessageData {
     if (data !is JsonObject) {
         throw serverError("Unrecognized Pub/Sub channel's message for `Message.created` event")
     }
+
+    val text = if (action == ChatMessageEventType.Deleted) "" else data.requireString("text")
+
     return PubSubMessageData(
-        text = data.requireString("text"),
+        text = text,
         metadata = data.getAsJsonObject("metadata"),
     )
 }

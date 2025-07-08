@@ -9,6 +9,7 @@ import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.copy
 import com.ably.chat.room.RoomOptionsWithAllFeatures
+import com.google.gson.JsonObject
 import io.ably.lib.realtime.channelOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
@@ -236,12 +237,12 @@ class MessagesIntegrationTest {
         assertWaiter { receivedMsges.size == 2 }
         val receivedMsg2 = receivedMsges.last()
 
-        assertEquals(deletedMessage.text, receivedMsg2.text)
-        assertEquals(deletedMessage.metadata.toString(), receivedMsg2.metadata.toString())
+        assertEquals("", receivedMsg2.text)
+        assertEquals(JsonObject(), receivedMsg2.metadata)
+        assertEquals(mapOf<String, String>(), receivedMsg2.headers)
         assertEquals(deletedMessage.operation?.description, receivedMsg2.operation?.description)
         assertEquals(deletedMessage.operation?.metadata, receivedMsg2.operation?.metadata)
         assertEquals(deletedMessage.operation?.clientId, receivedMsg2.operation?.clientId)
-        assertEquals(deletedMessage.headers, receivedMsg2.headers)
         assertEquals(deletedMessage.serial, receivedMsg2.serial)
         assertEquals(deletedMessage.version, receivedMsg2.version)
         assertEquals(deletedMessage.createdAt, receivedMsg2.createdAt)

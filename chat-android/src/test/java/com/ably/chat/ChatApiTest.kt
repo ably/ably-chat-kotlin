@@ -86,6 +86,44 @@ class ChatApiTest {
      * @nospec
      */
     @Test
+    fun `getMessages should process message without text for deletes`() = runTest {
+        mockMessagesApiResponse(
+            realtime,
+            listOf(
+                JsonObject().apply {
+                    add(MessageProperty.Metadata, JsonObject())
+                    addProperty(MessageProperty.Serial, "timeserial")
+                    addProperty(MessageProperty.ClientId, "clientId")
+                    addProperty(MessageProperty.CreatedAt, 1_000_000)
+                    addProperty(MessageProperty.Action, "message.delete")
+                    addProperty(MessageProperty.Version, "timeserial")
+                    addProperty(MessageProperty.Timestamp, 1_000_000)
+                },
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                DefaultMessage(
+                    serial = "timeserial",
+                    clientId = "clientId",
+                    text = "",
+                    createdAt = 1_000_000L,
+                    metadata = MessageMetadata(),
+                    headers = mapOf(),
+                    action = MessageAction.MESSAGE_DELETE,
+                    version = "timeserial",
+                    timestamp = 1_000_000L,
+                ),
+            ),
+            chatApi.getMessages("roomName", QueryOptions()).items,
+        )
+    }
+
+    /**
+     * @nospec
+     */
+    @Test
     fun `sendMessage should ignore unknown fields for Chat Backend`() = runTest {
         mockSendMessageApiResponse(
             realtime,
