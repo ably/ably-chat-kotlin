@@ -2,6 +2,41 @@
 
 This guide provides detailed instructions on how to upgrade between versions of the Chat SDK.
 
+## 0.4.x to 0.5.x
+
+### Room Reaction Wire Protocol
+
+**Expected Impact: Medium**
+
+The room reactions wire protocol has been updated to reflect the change below. If you are using multiple SDKs (e.g. Mobile, Web), please ensure you update them at the same time
+to avoid compatibility issues.
+
+### Room Reaction Interface Rename
+
+**Expected Impact: Medium**
+
+The `Reaction` interface and related types have been renamed to `RoomReaction` to disambiguate against message reactions. The property `type` has been renamed to `name`.
+
+#### Affected Types
+
+The following types have been renamed:
+
+- `Reaction` → `RoomReaction`
+
+#### Code Changes Required
+
+**Before**
+
+```kotlin
+room.reactions.send(type = "like")
+```
+
+**After**
+
+```kotlin
+room.reactions.send(name = "like")
+```
+
 ## 0.3.x to 0.4.x
 
 ### Room ID Rename
