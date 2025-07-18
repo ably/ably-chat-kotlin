@@ -1,5 +1,4 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.detekt)
@@ -51,7 +50,6 @@ tasks.register("check") {
 configure(subprojects) {
     pluginManager.withPlugin("com.vanniktech.maven.publish") {
         extensions.configure<MavenPublishBaseExtension> {
-            publishToMavenCentral(SonatypeHost.S01)
             signAllPublications()
         }
     }
