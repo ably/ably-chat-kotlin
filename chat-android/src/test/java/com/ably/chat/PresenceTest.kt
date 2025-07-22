@@ -55,6 +55,7 @@ class PresenceTest {
         presenceListenerSlot.captured.onPresenceMessage(
             PresenceMessage().apply {
                 action = PresenceMessage.Action.leave
+                connectionId = "foobar"
                 clientId = "client1"
                 timestamp = 100_000L
             },
@@ -67,6 +68,7 @@ class PresenceTest {
                 type = PresenceEventType.Leave,
                 DefaultPresenceMember(
                     clientId = "client1",
+                    connectionId = "foobar",
                     updatedAt = 100_000L,
                     data = null,
                 ),
@@ -79,7 +81,7 @@ class PresenceTest {
      * @spec CHA-PR2a
      */
     @Test
-    fun `should transform PresenceMessage into Chat's PresenceEvent if there is no 'userCustomData'`() = runTest {
+    fun `should transform PresenceMessage into Chat's PresenceEvent if there is empty data`() = runTest {
         val presenceListenerSlot = slot<PresenceListener>()
 
         every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns mockk(relaxUnitFun = true)
@@ -94,6 +96,7 @@ class PresenceTest {
             PresenceMessage().apply {
                 action = PresenceMessage.Action.leave
                 clientId = "client1"
+                connectionId = "bar"
                 timestamp = 100_000L
                 data = JsonObject()
             },
@@ -106,8 +109,9 @@ class PresenceTest {
                 type = PresenceEventType.Leave,
                 DefaultPresenceMember(
                     clientId = "client1",
+                    connectionId = "bar",
                     updatedAt = 100_000L,
-                    data = null,
+                    data = JsonObject(),
                 ),
             ),
             presenceEvent,
@@ -118,7 +122,7 @@ class PresenceTest {
      * @spec CHA-PR2a
      */
     @Test
-    fun `should transform PresenceMessage into Chat's PresenceEvent if 'userCustomData' is primitive`() = runTest {
+    fun `should transform PresenceMessage into Chat's PresenceEvent if data is primitive`() = runTest {
         val presenceListenerSlot = slot<PresenceListener>()
 
         every { pubSubPresence.subscribe(capture(presenceListenerSlot)) } returns mockk(relaxUnitFun = true)
@@ -132,11 +136,10 @@ class PresenceTest {
         presenceListenerSlot.captured.onPresenceMessage(
             PresenceMessage().apply {
                 action = PresenceMessage.Action.leave
+                connectionId = "foo"
                 clientId = "client1"
                 timestamp = 100_000L
-                data = JsonObject().apply {
-                    addProperty("userCustomData", "user")
-                }
+                data = JsonPrimitive("user")
             },
         )
 
@@ -147,6 +150,7 @@ class PresenceTest {
                 type = PresenceEventType.Leave,
                 DefaultPresenceMember(
                     clientId = "client1",
+                    connectionId = "foo",
                     updatedAt = 100_000L,
                     data = JsonPrimitive("user"),
                 ),
