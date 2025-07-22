@@ -1,5 +1,5 @@
 ![Ably Chat Header](images/AndroidSDK-github.png)
-[![Version](https://img.shields.io/badge/version-0.4.0-2ea44f)](https://github.com/ably/ably-chat-kotlin/releases/tag/v0.4.0)
+[![Version](https://img.shields.io/maven-central/v/com.ably.chat/chat-android?color=2ea44f&label=version)](https://central.sonatype.com/artifact/com.ably.chat/chat-android)
 [![License](https://badgen.net/github/license/ably/ably-chat-kotlin)](https://github.com/ably/ably-chat-kotlin/blob/main/LICENSE)
 
 
