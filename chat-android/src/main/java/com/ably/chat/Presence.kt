@@ -97,6 +97,11 @@ public interface PresenceMember {
     public val clientId: String
 
     /**
+     * The ID of the connection associated with the client that published the `PresenceMessage`.
+     */
+    public val connectionId: String
+
+    /**
      * The data associated with the presence member.
      */
     public val data: PresenceData?
@@ -119,6 +124,7 @@ public interface PresenceEvent {
 
 internal data class DefaultPresenceMember(
     override val clientId: String,
+    override val connectionId: String,
     override val data: PresenceData?,
     override val updatedAt: Long,
     override val extras: JsonObject = JsonObject(),
@@ -149,7 +155,8 @@ internal class DefaultPresence(
         return presence.getCoroutine(waitForSync, clientId, connectionId).map { user ->
             DefaultPresenceMember(
                 clientId = user.clientId,
-                data = (user.data as? JsonObject)?.get("userCustomData"),
+                connectionId = user.connectionId,
+                data = user.data as? JsonElement,
                 updatedAt = user.timestamp,
             )
         }
@@ -159,17 +166,17 @@ internal class DefaultPresence(
 
     override suspend fun enter(data: PresenceData?) {
         room.ensureAttached(logger) // CHA-PR3e, CHA-PR3d, CHA-PR3h
-        presence.enterClientCoroutine(room.clientId, wrapInUserCustomData(data))
+        presence.enterClientCoroutine(room.clientId, data)
     }
 
     override suspend fun update(data: PresenceData?) {
         room.ensureAttached(logger) // CHA-PR10e, CHA-PR10d, CHA-PR10h
-        presence.updateClientCoroutine(room.clientId, wrapInUserCustomData(data))
+        presence.updateClientCoroutine(room.clientId, data)
     }
 
     override suspend fun leave(data: PresenceData?) {
         room.ensureAttached(logger) // CHA-PR4d, CHA-PR4b, CHA-PR4c
-        presence.leaveClientCoroutine(room.clientId, wrapInUserCustomData(data))
+        presence.leaveClientCoroutine(room.clientId, data)
     }
 
     override fun subscribe(listener: Presence.Listener): Subscription {
@@ -182,8 +189,9 @@ internal class DefaultPresence(
         val presenceListener = PubSubPresenceListener {
             val presenceMember = DefaultPresenceMember(
                 clientId = it.clientId,
+                connectionId = it.connectionId,
                 updatedAt = it.timestamp,
-                data = (it.data as? JsonObject)?.get("userCustomData"),
+                data = it.data as? JsonElement,
             )
             val presenceEvent = DefaultPresenceEvent(
                 type = PresenceEventType.fromPresenceAction(it.action),
@@ -193,12 +201,6 @@ internal class DefaultPresence(
         }
 
         return presence.subscribe(presenceListener).asChatSubscription()
-    }
-
-    private fun wrapInUserCustomData(data: PresenceData?) = data?.let {
-        JsonObject().apply {
-            add("userCustomData", data)
-        }
     }
 
     override fun dispose() {
