@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.6.0](https://github.com/ably/ably-chat-kotlin/tree/v0.6.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.5.0...v0.6.0)
+
+## What's Changed
+
+Breaking Changes:
+
+- Removes opinionated presence structure [150](https://github.com/ably/ably-chat-kotlin/pull/150)
+
 ## [0.5.0](https://github.com/ably/ably-chat-kotlin/tree/v0.5.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.4.0...v0.5.0)
