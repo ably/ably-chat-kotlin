@@ -2,7 +2,6 @@
 [![Version](https://img.shields.io/maven-central/v/com.ably.chat/chat-android?color=2ea44f&label=version)](https://central.sonatype.com/artifact/com.ably.chat/chat-android)
 [![License](https://badgen.net/github/license/ably/ably-chat-kotlin)](https://github.com/ably/ably-chat-kotlin/blob/main/LICENSE)
 
-
 # Ably Chat Android SDK
 
 Ably Chat is a set of purpose-built APIs for a host of chat features enabling you to create 1:1, 1:Many, Many:1 and Many:Many chat rooms for
@@ -46,13 +45,13 @@ The Ably Chat SDK is available on the Maven Central Repository. To include the d
 For Groovy:
 
 ```groovy
-implementation 'com.ably.chat:chat-android:0.5.0'
+implementation 'com.ably.chat:chat-android:0.6.0'
 ```
 
 For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat-android:0.5.0")
+implementation("com.ably.chat:chat-android:0.6.0")
 ```
 
 ## Releases
