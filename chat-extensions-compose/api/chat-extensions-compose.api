@@ -1,0 +1,38 @@
+public final class com/ably/chat/extensions/compose/ConnectionKt {
+	public static final fun collectAsStatus (Lcom/ably/chat/Connection;Landroidx/compose/runtime/Composer;I)Lcom/ably/chat/ConnectionStatus;
+}
+
+public abstract interface class com/ably/chat/extensions/compose/CurrentOccupancy {
+	public abstract fun getConnections ()I
+	public abstract fun getPresenceMembers ()I
+}
+
+public final class com/ably/chat/extensions/compose/MessagesKt {
+	public static final fun collectAsPagingMessagesState (Lcom/ably/chat/Room;IILandroidx/compose/runtime/Composer;II)Lcom/ably/chat/extensions/compose/PagingMessagesState;
+}
+
+public final class com/ably/chat/extensions/compose/OccupancyKt {
+	public static final fun collectAsOccupancy (Lcom/ably/chat/Room;Landroidx/compose/runtime/Composer;I)Lcom/ably/chat/extensions/compose/CurrentOccupancy;
+}
+
+public abstract interface class com/ably/chat/extensions/compose/PagingMessagesState {
+	public abstract fun getError ()Lio/ably/lib/types/ErrorInfo;
+	public abstract fun getHasMore ()Z
+	public abstract fun getListState ()Landroidx/compose/foundation/lazy/LazyListState;
+	public abstract fun getLoaded ()Landroidx/compose/runtime/snapshots/SnapshotStateList;
+	public abstract fun getLoading ()Z
+	public abstract fun refresh (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/ably/chat/extensions/compose/PresenceKt {
+	public static final fun collectAsPresenceMembers (Lcom/ably/chat/Room;Landroidx/compose/runtime/Composer;I)Ljava/util/List;
+}
+
+public final class com/ably/chat/extensions/compose/RoomKt {
+	public static final fun collectAsStatus (Lcom/ably/chat/Room;Landroidx/compose/runtime/Composer;I)Lcom/ably/chat/RoomStatus;
+}
+
+public final class com/ably/chat/extensions/compose/TypingKt {
+	public static final fun collectAsCurrentlyTyping (Lcom/ably/chat/Room;Landroidx/compose/runtime/Composer;I)Ljava/util/Set;
+}
+

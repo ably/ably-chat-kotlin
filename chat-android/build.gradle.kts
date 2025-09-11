@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kover)
     alias(libs.plugins.maven.publish)
     alias(libs.plugins.dokka)
+    alias(libs.plugins.binary.compatibility.validator)
 }
 
 val version = property("VERSION_NAME")

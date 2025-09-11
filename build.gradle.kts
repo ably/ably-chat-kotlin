@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.build.config) apply false
     alias(libs.plugins.maven.publish) apply false
+    alias(libs.plugins.binary.compatibility.validator) apply false
 }
 
 dependencies {
