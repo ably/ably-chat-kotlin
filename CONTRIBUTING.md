@@ -27,10 +27,10 @@ gradlew.bat <task name>
 To build the library’s AAR package, execute:
 
 ```bash
-./gradlew chat-android:assemble
+./gradlew chat:assemble
 ```
 
-The built AAR package will be located in the `chat-android/build/outputs/aar/` directory.
+The built AAR package will be located in the `chat/build/outputs/aar/` directory.
 
 ### Code Standard
 
@@ -63,7 +63,7 @@ Our tests are written using JUnit and can be executed with the following command
 
 This will run all unit tests in the project. Ensure all tests pass before submitting a pull request.
 
-## Using `chat-android` locally in other projects
+## Using `chat` locally in other projects
 
 If you wish to make changes to the source code and test them immediately in another project, follow these steps:
 
@@ -97,7 +97,7 @@ In the project where you want to use the updated library:
 
 2. Add a dependency for the local version of the library:
     ```kotlin
-    implementation("com.ably.chat:chat-android:0.1.0-local.1")
+    implementation("com.ably.chat:chat:0.1.0-local.1")
     ```
 
 > [!NOTE]

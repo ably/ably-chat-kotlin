@@ -6,7 +6,7 @@ ably = "1.2.53"
 junit = "4.13.2"
 agp = "8.5.2"
 detekt = "1.23.6"
-kotlin = "2.0.10"
+kotlin = "2.0.21"
 androidx-test = "1.6.1"
 androidx-junit = "1.2.1"
 core-ktx = "1.13.1"
@@ -29,6 +29,7 @@ binary-compatibility-validator = "0.16.3"
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 detekt-rules-libraries = { module = "io.gitlab.arturbosch.detekt:detekt-rules-libraries", version.ref = "detekt" }
+ably-java = { module = "io.ably:ably-java", version.ref = "ably" }
 ably-android = { module = "io.ably:ably-android", version.ref = "ably" }
 ably-pubsub-adapter = { module = "io.ably:pubsub-adapter", version.ref = "ably" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test" }
@@ -55,6 +56,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 android-mockk = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 
 coroutine-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutine" }
+coroutine-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutine" }
 coroutine-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutine" }
 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -69,7 +71,8 @@ ktor-client = ["ktor-client-core", "ktor-client-cio"]
 
 [plugins]
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-android-kotlin = { id = "org.jetbrains.kotlin.android", version = "2.0.21" }
+android-kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+multiplatform-kotlin = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
