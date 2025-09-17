@@ -1,6 +1,6 @@
 
 rootProject.name = "Ably Chat SDK"
-include("chat-android")
+include("chat")
 include("example")
 include("chat-extensions-compose")
 

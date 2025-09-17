@@ -54,7 +54,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":chat-android"))
+    implementation(project(":chat"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)

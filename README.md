@@ -1,8 +1,8 @@
-![Ably Chat Header](images/AndroidSDK-github.png)
+![Ably Chat Header](images/Android-JVM-SDK-github.png)
 [![Version](https://img.shields.io/maven-central/v/com.ably.chat/chat-android?color=2ea44f&label=version)](https://central.sonatype.com/artifact/com.ably.chat/chat-android)
 [![License](https://badgen.net/github/license/ably/ably-chat-kotlin)](https://github.com/ably/ably-chat-kotlin/blob/main/LICENSE)
 
-# Ably Chat Android SDK
+# Ably Chat SDK
 
 Ably Chat is a set of purpose-built APIs for a host of chat features enabling you to create 1:1, 1:Many, Many:1 and Many:Many chat rooms for
 any scale. It is designed to meet a wide range of chat use cases, such as livestreams, in-game communication, customer support, or social
@@ -13,7 +13,7 @@ architectures.
 
 ## Getting started
 
-Everything you need to get started with Ably Chat for Android:
+Everything you need to get started with Ably Chat for JVM and Android:
 
 * [Getting started: Chat with Kotlin.](https://ably.com/docs/chat/getting-started/kotlin)
 * [SDK and usage docs in Kotlin.](https://ably.com/docs/chat/setup?lang=kotlin)
@@ -33,8 +33,8 @@ This SDK supports the following platforms:
 | Java | Java 8+ |
 
 > [!NOTE]
-> Key functionality such as sending and receiving messages is powered by the [ably-android](https://github.com/ably/ably-java) library.
-The `ably-android` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
+> Key functionality such as sending and receiving messages is powered by the [ably-java](https://github.com/ably/ably-java) library.
+The `ably-java` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
 
 ---
 
@@ -45,13 +45,13 @@ The Ably Chat SDK is available on the Maven Central Repository. To include the d
 For Groovy:
 
 ```groovy
-implementation 'com.ably.chat:chat-android:0.6.0'
+implementation 'com.ably.chat:chat:0.6.0'
 ```
 
 For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat-android:0.6.0")
+implementation("com.ably.chat:chat:0.6.0")
 ```
 
 ## Releases

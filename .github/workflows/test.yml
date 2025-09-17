@@ -1,4 +1,4 @@
-name: Check
+name: Test
 
 on:
   pull_request:
@@ -7,8 +7,18 @@ on:
       - main
 
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Android Release tests
+            task: testReleaseUnitTest
+          - name: Android Debug tests
+            task: testDebugUnitTest
+          - name: JVM tests
+            task: jvmTest
     steps:
       - uses: actions/checkout@v4
 
@@ -22,4 +32,4 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Run Gradle check
-        run: ./gradlew check -x :chat:jvmTest -x :chat:testReleaseUnitTest -x :chat:testDebugUnitTest
+        run: ./gradlew :chat:${{ matrix.task }}

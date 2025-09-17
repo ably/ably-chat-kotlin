@@ -23,14 +23,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Run tests and generate coverage report
-        run: ./gradlew koverXmlReport
+        run: ./gradlew koverXmlReport -x :chat:testReleaseUnitTest
 
       - name: Add coverage report to PR
         id: kover
         uses: mi-kas/kover-report@v1
         with:
           path: |
-            ${{ github.workspace }}/chat-android/build/reports/kover/report.xml
+            ${{ github.workspace }}/chat/build/reports/kover/report.xml
           title: Code Coverage
           update-comment: true
           min-coverage-overall: 80
