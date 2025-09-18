@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.7.0](https://github.com/ably/ably-chat-kotlin/tree/v0.7.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.6.0...v0.7.0)
+
+## What's Changed
+
+- Enabling the SDK to run on JVM environments in addition to Android.
+This expands the SDK's compatibility to server-side applications, desktop applications,
+and other JVM-based platforms while maintaining the same chat functionality and API.
+
 ## [0.6.0](https://github.com/ably/ably-chat-kotlin/tree/v0.6.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.5.0...v0.6.0)
