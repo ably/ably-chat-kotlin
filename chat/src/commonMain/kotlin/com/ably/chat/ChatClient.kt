@@ -63,7 +63,10 @@ internal class DefaultChatClient(
 
     private val realtimeClientWrapper = RealtimeClient(realtime).createWrapperSdkProxy(
         WrapperSdkProxyOptions(
-            agents = mapOf("chat-kotlin" to BuildConfig.APP_VERSION),
+            agents = mapOf(
+                "chat-kotlin" to BuildConfig.APP_VERSION,
+                PlatformSpecificAgent to BuildConfig.APP_VERSION,
+            ),
         ),
     )
 
