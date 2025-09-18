@@ -5,6 +5,7 @@ import com.ably.chat.ChatMessageEvent
 import com.ably.chat.MainDispatcherRule
 import com.ably.chat.Message
 import com.ably.chat.MessageMetadata
+import com.ably.chat.PlatformSpecificAgent
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.copy
@@ -257,7 +258,7 @@ class MessagesIntegrationTest {
         val roomName = UUID.randomUUID().toString()
         val room = chatClient.rooms.get(roomName)
         assertEquals(
-            "chat-kotlin/${BuildConfig.APP_VERSION}",
+            "chat-kotlin/${BuildConfig.APP_VERSION} $PlatformSpecificAgent/${BuildConfig.APP_VERSION}",
             room.messages.channel.channelOptions?.params?.get("agent"),
         )
     }
