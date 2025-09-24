@@ -208,9 +208,9 @@ class MessagesTest {
      */
     @Test
     fun `should throw an exception for listener history if not subscribed`() = runTest {
-        val subscription = messages.subscribe {}
+        val (unsubscribe, subscription) = messages.subscribe {}
 
-        subscription.unsubscribe()
+        unsubscribe()
 
         val exception = assertThrows(AblyException::class.java) {
             runBlocking { subscription.historyBeforeSubscribe() }

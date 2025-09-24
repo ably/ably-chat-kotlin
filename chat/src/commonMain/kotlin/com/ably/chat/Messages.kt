@@ -318,6 +318,17 @@ public interface MessagesSubscription : Subscription {
      * Spec: CHA-M5j
      */
     public suspend fun historyBeforeSubscribe(start: Long? = null, end: Long? = null, limit: Int = 100): PaginatedResult<Message>
+
+    /**
+     * Syntactic sugar to allow using `historyBeforeSubscribe` with custom `unsubscribe` handle
+     *
+     * @example
+     * ```kotlin
+     * val (unsubscribe, subscription) = messages.subscribe { println(it) }
+     * val previousMessages = subscription.historyBeforeSubscribe()
+     * ```
+     */
+    public operator fun component2(): MessagesSubscription = this
 }
 
 internal class DefaultMessagesSubscription(
