@@ -1,6 +1,5 @@
 package com.ably.chat
 
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.RealtimeAnnotations
 import io.ably.lib.types.Annotation
@@ -476,9 +475,9 @@ internal class DefaultMessagesReactions(
             return
         }
 
-        val unique = Summary.asSummaryUniqueV1(message.summary.get(MessageReactionType.Unique.type) ?: JsonObject())
-        val distinct = Summary.asSummaryDistinctV1(message.summary.get(MessageReactionType.Distinct.type) ?: JsonObject())
-        val multiple = Summary.asSummaryMultipleV1(message.summary.get(MessageReactionType.Multiple.type) ?: JsonObject())
+        val unique = message.summary.get(MessageReactionType.Unique.type)?.let { Summary.asSummaryUniqueV1(it) } ?: mapOf()
+        val distinct = message.summary.get(MessageReactionType.Distinct.type)?.let { Summary.asSummaryDistinctV1(it) } ?: mapOf()
+        val multiple = message.summary.get(MessageReactionType.Multiple.type)?.let { Summary.asSummaryMultipleV1(it) } ?: mapOf()
 
         summaryEventBus.tryEmit(
             DefaultMessageReactionSummaryEvent(

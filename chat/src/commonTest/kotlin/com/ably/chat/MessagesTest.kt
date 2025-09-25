@@ -2,11 +2,11 @@ package com.ably.chat
 
 import app.cash.turbine.test
 import com.ably.annotations.InternalAPI
+import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.realtime.buildChannelStateChange
@@ -53,9 +53,9 @@ class MessagesTest {
     fun `should be able to send message and get it back from response`() = runTest {
         mockSendMessageApiResponse(
             realtimeClient,
-            JsonObject().apply {
-                addProperty(MessageProperty.Serial, "abcdefghij@1672531200000-123")
-                addProperty(MessageProperty.CreatedAt, 1_000_000)
+            jsonObject {
+                put(MessageProperty.Serial, "abcdefghij@1672531200000-123")
+                put(MessageProperty.CreatedAt, 1_000_000)
             },
             roomName = "room1",
         )
@@ -63,7 +63,7 @@ class MessagesTest {
         val sentMessage = messages.send(
             text = "lala",
             headers = mapOf("foo" to "bar"),
-            metadata = JsonObject().apply { addProperty("meta", "data") },
+            metadata = jsonObject { put("meta", "data") },
         )
 
         assertEquals(
@@ -72,7 +72,7 @@ class MessagesTest {
                 clientId = "clientId",
                 text = "lala",
                 createdAt = 1_000_000,
-                metadata = JsonObject().apply { addProperty("meta", "data") },
+                metadata = jsonObject { put("meta", "data") },
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
                 version = "abcdefghij@1672531200000-123",
@@ -101,23 +101,20 @@ class MessagesTest {
 
         pubSubMessageListenerSlot.captured.onMessage(
             PubSubMessage().apply {
-                data = JsonObject().apply {
-                    addProperty("text", "some text")
-                    add("metadata", JsonObject())
-                }
+                data = jsonObject {
+                    put("text", "some text")
+                    putObject("metadata") {}
+                }.toGson()
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
                 timestamp = 1000L
                 createdAt = 1000L
                 extras = MessageExtras(
-                    JsonObject().apply {
-                        add(
-                            "headers",
-                            JsonObject().apply {
-                                addProperty("foo", "bar")
-                            },
-                        )
-                    },
+                    jsonObject {
+                        putObject("headers") {
+                            put("foo", "bar")
+                        }
+                    }.toGson().asJsonObject,
                 )
                 action = MessageAction.MESSAGE_CREATE
                 version = "abcdefghij@1672531200000-123"
@@ -162,22 +159,19 @@ class MessagesTest {
 
         pubSubMessageListenerSlot.captured.onMessage(
             PubSubMessage().apply {
-                data = JsonObject().apply {
-                    add("metadata", JsonObject())
-                }
+                data = jsonObject {
+                    putObject("metadata") {}
+                }.toGson()
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
                 timestamp = 1000L
                 createdAt = 1000L
                 extras = MessageExtras(
-                    JsonObject().apply {
-                        add(
-                            "headers",
-                            JsonObject().apply {
-                                addProperty("foo", "bar")
-                            },
-                        )
-                    },
+                    jsonObject {
+                        putObject("headers") {
+                            put("foo", "bar")
+                        }
+                    }.toGson().asJsonObject,
                 )
                 action = MessageAction.MESSAGE_DELETE
                 version = "abcdefghij@1672531200000-123"
@@ -321,16 +315,16 @@ class MessagesTest {
 }
 
 private fun buildDummyPubSubMessage() = PubSubMessage().apply {
-    data = JsonObject().apply {
-        addProperty("text", "dummy text")
-        add("metadata", JsonObject())
-    }
+    data = jsonObject {
+        put("text", "dummy text")
+        putObject("metadata") {}
+    }.toGson()
     serial = "abcdefghij@1672531200000-123"
     clientId = "dummy"
     timestamp = 1000L
     createdAt = 1000L
     extras = MessageExtras(
-        JsonObject().apply {},
+        jsonObject {}.toGson().asJsonObject,
     )
     action = MessageAction.MESSAGE_CREATE
     version = "abcdefghij@1672531200000-123"

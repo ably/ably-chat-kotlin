@@ -1,13 +1,12 @@
 package com.ably.chat
 
 import app.cash.turbine.test
+import com.ably.chat.json.jsonObject
 import com.ably.chat.room.DEFAULT_ROOM_ID
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimePresence
-import com.google.gson.JsonObject
-import com.google.gson.JsonPrimitive
 import io.ably.lib.realtime.Presence.PresenceListener
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.PresenceMessage
@@ -98,7 +97,7 @@ class PresenceTest {
                 clientId = "client1"
                 connectionId = "bar"
                 timestamp = 100_000L
-                data = JsonObject()
+                data = jsonObject {}.toGson()
             },
         )
 
@@ -111,7 +110,7 @@ class PresenceTest {
                     clientId = "client1",
                     connectionId = "bar",
                     updatedAt = 100_000L,
-                    data = JsonObject(),
+                    data = jsonObject {},
                 ),
             ),
             presenceEvent,
@@ -139,7 +138,9 @@ class PresenceTest {
                 connectionId = "foo"
                 clientId = "client1"
                 timestamp = 100_000L
-                data = JsonPrimitive("user")
+                data = jsonObject {
+                    put("clientId", "user")
+                }.toGson()
             },
         )
 
@@ -152,7 +153,9 @@ class PresenceTest {
                     clientId = "client1",
                     connectionId = "foo",
                     updatedAt = 100_000L,
-                    data = JsonPrimitive("user"),
+                    data = jsonObject {
+                        put("clientId", "user")
+                    },
                 ),
             ),
             presenceEvent,

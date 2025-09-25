@@ -1,8 +1,8 @@
 package com.ably.chat
 
+import com.ably.chat.json.JsonValue
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
-import com.google.gson.JsonElement
 import io.ably.lib.types.AsyncHttpPaginatedResponse
 import io.mockk.every
 import io.mockk.mockk
@@ -21,15 +21,15 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
 
-fun buildAsyncHttpPaginatedResponse(items: List<JsonElement>): AsyncHttpPaginatedResponse {
+fun buildAsyncHttpPaginatedResponse(items: List<JsonValue>): AsyncHttpPaginatedResponse {
     val response = mockk<AsyncHttpPaginatedResponse>()
     every {
         response.items()
-    } returns items.toTypedArray()
+    } returns items.map { it.toGson() }.toTypedArray()
     return response
 }
 
-fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<JsonElement>, roomName: String = "roomName") {
+fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<JsonValue>, roomName: String = "roomName") {
     every {
         realtimeClientMock.requestAsync("/chat/v3/rooms/$roomName/messages", any(), HttpMethod.Get, any(), any(), any())
     } answers {
@@ -40,7 +40,7 @@ fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<J
     }
 }
 
-fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: JsonElement, roomName: String = "roomName") {
+fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
         realtimeClientMock.requestAsync("/chat/v3/rooms/$roomName/messages", any(), HttpMethod.Post, any(), any(), any())
     } answers {
@@ -53,7 +53,7 @@ fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: Jso
     }
 }
 
-fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonElement, roomName: String = "roomName") {
+fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
         realtimeClientMock.requestAsync("/chat/v3/rooms/$roomName/occupancy", any(), HttpMethod.Get, any(), any(), any())
     } answers {

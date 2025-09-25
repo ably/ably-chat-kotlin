@@ -18,7 +18,7 @@ import androidx.compose.ui.window.Popup
 import com.ably.chat.Room
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.extensions.compose.collectAsPresenceMembers
-import com.google.gson.JsonObject
+import com.ably.chat.json.jsonObject
 import kotlinx.coroutines.launch
 
 @Suppress("LongMethod")
@@ -45,15 +45,15 @@ fun PresencePopup(room: Room, onDismiss: () -> Unit) {
                 Text("Chat Members", style = MaterialTheme.typography.headlineMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 members.forEach { member ->
-                    BasicText("${member.clientId} - (${(member.data as? JsonObject)?.get("status")?.asString})")
+                    BasicText("${member.clientId} - (${member.data?.get("status")})")
                     Spacer(modifier = Modifier.height(4.dp))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = {
                     coroutineScope.launch {
                         presence.enter(
-                            JsonObject().apply {
-                                addProperty("status", "online")
+                            jsonObject {
+                                put("status", "online")
                             },
                         )
                     }
@@ -63,8 +63,8 @@ fun PresencePopup(room: Room, onDismiss: () -> Unit) {
                 Button(onClick = {
                     coroutineScope.launch {
                         presence.enter(
-                            JsonObject().apply {
-                                addProperty("status", "away")
+                            jsonObject {
+                                put("status", "away")
                             },
                         )
                     }

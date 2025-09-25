@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import com.google.gson.JsonObject
+import com.ably.chat.json.JsonObject
 
 /**
  * Metadata is a map of extra information that can be attached to chat

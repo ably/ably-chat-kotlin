@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import com.google.gson.JsonObject
+import com.ably.chat.json.JsonObject
 import io.ably.lib.types.Message.Operation
 import io.ably.lib.types.MessageAction
 import io.ably.lib.types.Summary
@@ -193,17 +193,19 @@ internal fun buildMessageOperation(jsonObject: JsonObject?): Operation? {
         return null
     }
     val operation = Operation()
-    if (jsonObject.has(MessageOperationProperty.ClientId)) {
-        operation.clientId = jsonObject.get(MessageOperationProperty.ClientId).asString
+
+    jsonObject[MessageOperationProperty.ClientId]?.tryAsString()?.let { clientId ->
+        operation.clientId = clientId
     }
-    if (jsonObject.has(MessageOperationProperty.Description)) {
-        operation.description = jsonObject.get(MessageOperationProperty.Description).asString
+
+    jsonObject[MessageOperationProperty.Description]?.tryAsString()?.let { description ->
+        operation.description = description
     }
-    if (jsonObject.has(MessageOperationProperty.Metadata)) {
-        val metadataObject = jsonObject.getAsJsonObject(MessageOperationProperty.Metadata)
+
+    jsonObject[MessageOperationProperty.Metadata]?.tryAsJsonObject()?.let { metadataObject ->
         operation.metadata = mutableMapOf()
-        for ((key, value) in metadataObject.entrySet()) {
-            operation.metadata[key] = value.asString
+        for ((key, value) in metadataObject.entries) {
+            operation.metadata[key] = value.tryAsString()
         }
     }
     return operation
@@ -220,14 +222,14 @@ internal fun buildMessageOperation(clientId: String, description: String?, metad
 internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactions {
     if (jsonObject == null) return DefaultMessageReactions()
 
-    val uniqueJson = jsonObject.getAsJsonObject(MessageReactionsProperty.Unique)
-    val distinctJson = jsonObject.getAsJsonObject(MessageReactionsProperty.Distinct)
-    val multipleJson = jsonObject.getAsJsonObject(MessageReactionsProperty.Multiple)
+    val uniqueJson = jsonObject[MessageReactionsProperty.Unique]
+    val distinctJson = jsonObject[MessageReactionsProperty.Distinct]
+    val multipleJson = jsonObject[MessageReactionsProperty.Multiple]
 
     return DefaultMessageReactions(
-        unique = uniqueJson?.let { Summary.asSummaryUniqueV1(it) } ?: mapOf(),
-        distinct = distinctJson?.let { Summary.asSummaryDistinctV1(it) } ?: mapOf(),
-        multiple = multipleJson?.let { Summary.asSummaryMultipleV1(it) } ?: mapOf(),
+        unique = uniqueJson?.let { Summary.asSummaryUniqueV1(it.toGson().asJsonObject) } ?: mapOf(),
+        distinct = distinctJson?.let { Summary.asSummaryDistinctV1(it.toGson().asJsonObject) } ?: mapOf(),
+        multiple = multipleJson?.let { Summary.asSummaryMultipleV1(it.toGson().asJsonObject) } ?: mapOf(),
     )
 }
 

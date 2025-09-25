@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import com.google.gson.JsonObject
+import com.ably.chat.json.jsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.MessageAction
 import io.ably.lib.types.SummaryClientIdCounts
@@ -187,7 +187,7 @@ private fun createMessage(
     version = version,
     clientId = "client1",
     createdAt = System.currentTimeMillis(),
-    metadata = JsonObject(),
+    metadata = jsonObject {},
     headers = mapOf(),
     action = action,
     timestamp = System.currentTimeMillis(),

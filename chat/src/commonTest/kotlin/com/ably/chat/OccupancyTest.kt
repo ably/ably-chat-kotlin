@@ -1,11 +1,11 @@
 package com.ably.chat
 
 import app.cash.turbine.test
+import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
-import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.mockk.every
 import io.mockk.mockk
@@ -46,9 +46,9 @@ class OccupancyTest {
     fun `user should be able to receive occupancy via #get()`() = runTest {
         mockOccupancyApiResponse(
             realtimeClient,
-            JsonObject().apply {
-                addProperty("connections", 2)
-                addProperty("presenceMembers", 1)
+            jsonObject {
+                put("connections", 2)
+                put("presenceMembers", 1)
             },
             roomName = "room1",
         )
@@ -63,15 +63,12 @@ class OccupancyTest {
     @Test
     fun `user should be able to register a listener that receives occupancy events in realtime`() = runTest {
         val occupancyEventMessage = PubSubMessage().apply {
-            data = JsonObject().apply {
-                add(
-                    "metrics",
-                    JsonObject().apply {
-                        addProperty("connections", 2)
-                        addProperty("presenceMembers", 1)
-                    },
-                )
-            }
+            data = jsonObject {
+                putObject("metrics") {
+                    put("connections", 2)
+                    put("presenceMembers", 1)
+                }
+            }.toGson()
         }
 
         val deferredEvent = CompletableDeferred<OccupancyEvent>()
@@ -90,21 +87,18 @@ class OccupancyTest {
     @Test
     fun `invalid occupancy event should be dropped`() = runTest {
         val validOccupancyEvent = PubSubMessage().apply {
-            data = JsonObject().apply {
-                add(
-                    "metrics",
-                    JsonObject().apply {
-                        addProperty("connections", 1)
-                        addProperty("presenceMembers", 1)
-                    },
-                )
-            }
+            data = jsonObject {
+                putObject("metrics") {
+                    put("connections", 1)
+                    put("presenceMembers", 1)
+                }
+            }.toGson()
         }
 
         val invalidOccupancyEvent = PubSubMessage().apply {
-            data = JsonObject().apply {
-                add("metrics", JsonObject())
-            }
+            data = jsonObject {
+                putObject("metrics") {}
+            }.toGson()
         }
 
         val deferredEvent = CompletableDeferred<OccupancyEvent>()
@@ -129,15 +123,12 @@ class OccupancyTest {
         subscription.unsubscribe()
 
         val fakeMessage = PubSubMessage().apply {
-            data = JsonObject().apply {
-                add(
-                    "metrics",
-                    JsonObject().apply {
-                        addProperty("connections", 1)
-                        addProperty("presenceMembers", 1)
-                    },
-                )
-            }
+            data = jsonObject {
+                putObject("metrics") {
+                    put("connections", 1)
+                    put("presenceMembers", 1)
+                }
+            }.toGson()
         }
 
         pubSubMessageListenerSlot.captured.onMessage(fakeMessage)

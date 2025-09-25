@@ -4,13 +4,12 @@ import com.ably.chat.BuildConfig
 import com.ably.chat.ChatMessageEvent
 import com.ably.chat.MainDispatcherRule
 import com.ably.chat.Message
-import com.ably.chat.MessageMetadata
 import com.ably.chat.PlatformSpecificAgent
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.copy
+import com.ably.chat.json.jsonObject
 import com.ably.chat.room.RoomOptionsWithAllFeatures
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.channelOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID
@@ -65,8 +64,9 @@ class MessagesIntegrationTest {
         val messageEvent = CompletableDeferred<ChatMessageEvent>()
         room.messages.subscribe { messageEvent.complete(it) }
 
-        val metadata = MessageMetadata()
-        metadata.addProperty("foo", "bar")
+        val metadata = jsonObject {
+            put("foo", "bar")
+        }
         val headers = mapOf("headerKey" to "headerValue")
         val sentMessage = room.messages.send("hello", metadata, headers)
 
@@ -107,8 +107,9 @@ class MessagesIntegrationTest {
 
         room.attach()
 
-        val metadata = MessageMetadata()
-        metadata.addProperty("foo", "bar")
+        val metadata = jsonObject {
+            put("foo", "bar")
+        }
         val headers = mapOf("headerKey" to "headerValue")
         val sentMessage = room.messages.send("hello", metadata, headers)
 
@@ -160,14 +161,16 @@ class MessagesIntegrationTest {
         val receivedMsges = mutableListOf<Message>()
         room.messages.subscribe { receivedMsges.add(it.message) }
 
-        val metadata = MessageMetadata()
-        metadata.addProperty("foo", "bar")
+        val metadata = jsonObject {
+            put("foo", "bar")
+        }
         val sentMessage = room.messages.send("hello", metadata, mapOf("headerKey" to "headerValue"))
         assertWaiter { receivedMsges.size == 1 }
 
         val updatedText = "hello updated"
-        val updatedMetadata = MessageMetadata()
-        updatedMetadata.addProperty("foo", "baz")
+        val updatedMetadata = jsonObject {
+            put("foo", "baz")
+        }
         val headers = mapOf("headerKey" to "headerValue")
 
         val opDescription = "Updating message"
@@ -217,8 +220,9 @@ class MessagesIntegrationTest {
         val receivedMsges = mutableListOf<Message>()
         room.messages.subscribe { receivedMsges.add(it.message) }
 
-        val metadata = MessageMetadata()
-        metadata.addProperty("foo", "bar")
+        val metadata = jsonObject {
+            put("foo", "bar")
+        }
         val sentMessage = room.messages.send("hello", metadata, mapOf("headerKey" to "headerValue"))
         assertWaiter { receivedMsges.size == 1 }
 
@@ -239,7 +243,7 @@ class MessagesIntegrationTest {
         val receivedMsg2 = receivedMsges.last()
 
         assertEquals("", receivedMsg2.text)
-        assertEquals(JsonObject(), receivedMsg2.metadata)
+        assertEquals(jsonObject {}, receivedMsg2.metadata)
         assertEquals(mapOf<String, String>(), receivedMsg2.headers)
         assertEquals(deletedMessage.operation?.description, receivedMsg2.operation?.description)
         assertEquals(deletedMessage.operation?.metadata, receivedMsg2.operation?.metadata)

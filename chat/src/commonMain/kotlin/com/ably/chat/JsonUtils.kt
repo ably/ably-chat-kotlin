@@ -1,84 +1,94 @@
 package com.ably.chat
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
-import com.google.gson.JsonPrimitive
+import com.ably.chat.json.JsonBoolean
+import com.ably.chat.json.JsonNumber
+import com.ably.chat.json.JsonObject
+import com.ably.chat.json.JsonString
+import com.ably.chat.json.JsonValue
+import com.ably.chat.json.jsonObject
 import io.ably.lib.http.HttpCore
 import io.ably.lib.http.HttpUtils
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 
-internal fun JsonElement?.toRequestBody(useBinaryProtocol: Boolean = false): HttpCore.RequestBody =
-    HttpUtils.requestBodyFromGson(this, useBinaryProtocol)
-
-internal fun Map<String, String>.toJson() = JsonObject().apply {
-    forEach { (key, value) -> addProperty(key, value) }
+internal fun JsonValue.tryAsString(): String? = when (this) {
+    is JsonString -> this.value
+    is JsonNumber -> this.value.toString()
+    is JsonBoolean -> this.value.toString()
+    else -> null
 }
 
-internal fun JsonElement.toMap() = buildMap<String, String> {
-    requireJsonObject().entrySet().filter { (_, value) -> value.isJsonPrimitive }.forEach { (key, value) -> put(key, value.asString) }
+internal fun JsonValue.tryAsLong(): Long? = when (this) {
+    is JsonString -> safeCastToNumber { this.value.toLong() }
+    is JsonNumber -> this.value.toLong()
+    else -> null
 }
 
-internal fun JsonElement.requireJsonObject(): JsonObject {
-    if (!isJsonObject) {
-        throw AblyException.fromErrorInfo(
+internal fun JsonValue.tryAsInt(): Int? = when (this) {
+    is JsonString -> safeCastToNumber { this.value.toInt() }
+    is JsonNumber -> this.value.toInt()
+    else -> null
+}
+
+internal fun JsonValue.tryAsJsonObject(): JsonObject? = when (this) {
+    is JsonObject -> this
+    else -> null
+}
+
+internal fun JsonValue?.toRequestBody(useBinaryProtocol: Boolean = false): HttpCore.RequestBody =
+    HttpUtils.requestBodyFromGson(this?.toGson(), useBinaryProtocol)
+
+internal fun Map<String, String>.toJson() = jsonObject {
+    forEach { (key, value) -> put(key, value) }
+}
+
+internal fun JsonValue.toMap(): Map<String, String> = when (this) {
+    is JsonObject -> buildMap {
+        this@toMap.forEach {
+            it.value.tryAsString()?.let { value -> put(it.key, value) }
+        }
+    }
+
+    else -> emptyMap()
+}
+
+internal fun JsonValue.requireJsonObject(): JsonObject {
+    return this as? JsonObject
+        ?: throw AblyException.fromErrorInfo(
             ErrorInfo("Response value expected to be JsonObject, got primitive instead", HttpStatusCode.InternalServerError),
         )
-    }
-    return asJsonObject
 }
 
-internal fun JsonElement.requireString(memberName: String): String {
+internal fun JsonValue.requireString(memberName: String): String {
     val memberElement = requireField(memberName)
-    if (!memberElement.isJsonPrimitive) {
-        throw AblyException.fromErrorInfo(
-            ErrorInfo(
-                "Value for \"$memberName\" field expected to be JsonPrimitive, got object instead",
-                HttpStatusCode.InternalServerError,
-            ),
-        )
-    }
-    return memberElement.asString
-}
-
-internal fun JsonElement.requireLong(memberName: String): Long {
-    val memberElement = requireJsonPrimitive(memberName)
-    try {
-        return memberElement.asLong
-    } catch (formatException: NumberFormatException) {
-        throw AblyException.fromErrorInfo(
-            formatException,
-            ErrorInfo("Required numeric field \"$memberName\" is not a valid long", HttpStatusCode.InternalServerError),
-        )
-    }
-}
-
-internal fun JsonElement.requireInt(memberName: String): Int {
-    val memberElement = requireJsonPrimitive(memberName)
-    try {
-        return memberElement.asInt
-    } catch (formatException: NumberFormatException) {
-        throw AblyException.fromErrorInfo(
-            formatException,
-            ErrorInfo("Required numeric field \"$memberName\" is not a valid int", HttpStatusCode.InternalServerError),
-        )
-    }
-}
-
-internal fun JsonElement.requireJsonPrimitive(memberName: String): JsonPrimitive {
-    val memberElement = requireField(memberName)
-    if (!memberElement.isJsonPrimitive) {
-        throw AblyException.fromErrorInfo(
-            ErrorInfo(
-                "Value for \"$memberName\" field expected to be JsonPrimitive, got object instead",
-                HttpStatusCode.InternalServerError,
-            ),
-        )
-    }
-    return memberElement.asJsonPrimitive
-}
-
-internal fun JsonElement.requireField(memberName: String): JsonElement = requireJsonObject().get(memberName)
-    ?: throw AblyException.fromErrorInfo(
-        ErrorInfo("Required field \"$memberName\" is missing", HttpStatusCode.InternalServerError),
+    return memberElement.tryAsString() ?: throw serverError(
+        "Required string field \"$memberName\" is not a valid string",
     )
+}
+
+internal fun JsonValue.requireLong(memberName: String): Long {
+    val memberElement = requireField(memberName)
+    return memberElement.tryAsLong() ?: throw serverError(
+        "Required numeric field \"$memberName\" is not a valid number",
+    )
+}
+
+internal fun JsonValue.requireInt(memberName: String): Int {
+    val memberElement = requireField(memberName)
+    return memberElement.tryAsInt() ?: throw serverError(
+        "Required numeric field \"$memberName\" is not a valid number",
+    )
+}
+
+internal fun JsonValue.requireField(memberName: String): JsonValue = requireJsonObject()[memberName]
+    ?: throw serverError(
+        "Required field \"$memberName\" is missing",
+    )
+
+private inline fun <T : Number> safeCastToNumber(block: () -> T): T? {
+    return try {
+        block()
+    } catch (_: NumberFormatException) {
+        null
+    }
+}

@@ -1,7 +1,7 @@
 package com.ably.chat
 
+import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeClient
-import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.MessageAction
 import io.mockk.mockk
@@ -26,16 +26,17 @@ class ChatApiTest {
         mockMessagesApiResponse(
             realtime,
             listOf(
-                JsonObject().apply {
-                    addProperty("foo", "bar")
-                    add(MessageProperty.Metadata, JsonObject())
-                    addProperty(MessageProperty.Serial, "timeserial")
-                    addProperty(MessageProperty.ClientId, "clientId")
-                    addProperty(MessageProperty.Text, "hello")
-                    addProperty(MessageProperty.CreatedAt, 1_000_000)
-                    addProperty(MessageProperty.Action, "message.create")
-                    addProperty(MessageProperty.Version, "timeserial")
-                    addProperty(MessageProperty.Timestamp, 1_000_000)
+                jsonObject {
+                    put("foo", "bar")
+                    putObject(MessageProperty.Metadata) {
+                    }
+                    put(MessageProperty.Serial, "timeserial")
+                    put(MessageProperty.ClientId, "clientId")
+                    put(MessageProperty.Text, "hello")
+                    put(MessageProperty.CreatedAt, 1_000_000)
+                    put(MessageProperty.Action, "message.create")
+                    put(MessageProperty.Version, "timeserial")
+                    put(MessageProperty.Timestamp, 1_000_000)
                 },
             ),
         )
@@ -68,9 +69,9 @@ class ChatApiTest {
         mockMessagesApiResponse(
             realtime,
             listOf(
-                JsonObject().apply {
-                    addProperty("foo", "bar")
-                    addProperty(MessageProperty.Action, "message.create")
+                jsonObject {
+                    put("foo", "bar")
+                    put(MessageProperty.Action, "message.create")
                 },
             ),
         )
@@ -90,14 +91,14 @@ class ChatApiTest {
         mockMessagesApiResponse(
             realtime,
             listOf(
-                JsonObject().apply {
-                    add(MessageProperty.Metadata, JsonObject())
-                    addProperty(MessageProperty.Serial, "timeserial")
-                    addProperty(MessageProperty.ClientId, "clientId")
-                    addProperty(MessageProperty.CreatedAt, 1_000_000)
-                    addProperty(MessageProperty.Action, "message.delete")
-                    addProperty(MessageProperty.Version, "timeserial")
-                    addProperty(MessageProperty.Timestamp, 1_000_000)
+                jsonObject {
+                    putObject(MessageProperty.Metadata) {}
+                    put(MessageProperty.Serial, "timeserial")
+                    put(MessageProperty.ClientId, "clientId")
+                    put(MessageProperty.CreatedAt, 1_000_000)
+                    put(MessageProperty.Action, "message.delete")
+                    put(MessageProperty.Version, "timeserial")
+                    put(MessageProperty.Timestamp, 1_000_000)
                 },
             ),
         )
@@ -127,10 +128,10 @@ class ChatApiTest {
     fun `sendMessage should ignore unknown fields for Chat Backend`() = runTest {
         mockSendMessageApiResponse(
             realtime,
-            JsonObject().apply {
-                addProperty("foo", "bar")
-                addProperty(MessageProperty.Serial, "timeserial")
-                addProperty(MessageProperty.CreatedAt, 1_000_000)
+            jsonObject {
+                put("foo", "bar")
+                put(MessageProperty.Serial, "timeserial")
+                put(MessageProperty.CreatedAt, 1_000_000)
             },
         )
 
@@ -159,9 +160,9 @@ class ChatApiTest {
     fun `sendMessage should throw exception if 'serial' field is not presented`() = runTest {
         mockSendMessageApiResponse(
             realtime,
-            JsonObject().apply {
-                addProperty("foo", "bar")
-                addProperty(MessageProperty.CreatedAt, 1_000_000)
+            jsonObject {
+                put("foo", "bar")
+                put(MessageProperty.CreatedAt, 1_000_000)
             },
         )
 
@@ -177,8 +178,8 @@ class ChatApiTest {
     fun `getOccupancy should throw exception if 'connections' field is not presented`() = runTest {
         mockOccupancyApiResponse(
             realtime,
-            JsonObject().apply {
-                addProperty("presenceMembers", 1_000)
+            jsonObject {
+                put("presenceMembers", 1_000)
             },
         )
 
