@@ -274,10 +274,13 @@ public final class com/ably/chat/MessagesReactionsKt {
 }
 
 public abstract interface class com/ably/chat/MessagesSubscription : com/ably/chat/Subscription {
+	public abstract fun component2 ()Lcom/ably/chat/MessagesSubscription;
 	public abstract fun historyBeforeSubscribe (Ljava/lang/Long;Ljava/lang/Long;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/ably/chat/MessagesSubscription$DefaultImpls {
+	public static fun component1 (Lcom/ably/chat/MessagesSubscription;)Lkotlin/jvm/functions/Function0;
+	public static fun component2 (Lcom/ably/chat/MessagesSubscription;)Lcom/ably/chat/MessagesSubscription;
 	public static synthetic fun historyBeforeSubscribe$default (Lcom/ably/chat/MessagesSubscription;Ljava/lang/Long;Ljava/lang/Long;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
@@ -582,7 +585,12 @@ public final class com/ably/chat/RoomsKt {
 }
 
 public abstract interface class com/ably/chat/Subscription {
+	public abstract fun component1 ()Lkotlin/jvm/functions/Function0;
 	public abstract fun unsubscribe ()V
+}
+
+public final class com/ably/chat/Subscription$DefaultImpls {
+	public static fun component1 (Lcom/ably/chat/Subscription;)Lkotlin/jvm/functions/Function0;
 }
 
 public abstract interface class com/ably/chat/Typing {

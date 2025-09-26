@@ -21,4 +21,21 @@ public fun interface Subscription {
      * that references to the subscriber are cleaned up.
      */
     public fun unsubscribe()
+
+    /**
+     * Syntactic sugar to allow using custom name for `unsubscribe` handling
+     *
+     * @example
+     * ```kotlin
+     * val (off) = someService.on { println(it) }
+     * off()
+     * val (unsubscribe) = someService.subscribe { println(it) }
+     * unsubscribe()
+     * val (dispose) = someService.addListener { println(it) }
+     * dispose()
+     * ```
+     */
+    public operator fun component1(): () -> Unit = {
+        this.unsubscribe()
+    }
 }
