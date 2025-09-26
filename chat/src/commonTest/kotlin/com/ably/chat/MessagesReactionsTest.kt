@@ -9,6 +9,7 @@ import io.ably.lib.types.AblyException
 import io.ably.lib.types.Annotation
 import io.ably.lib.types.AnnotationAction
 import io.ably.lib.types.MessageAction
+import io.ably.lib.types.MessageAnnotations
 import io.ably.lib.types.Summary
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -74,19 +75,20 @@ class MessagesReactionsTest {
             PubSubMessage().apply {
                 serial = "abcdefghij@1672531200000-123"
                 timestamp = 1000L
-                createdAt = 1000L
-                summary = Summary(
-                    mapOf(
-                        "reaction:distinct.v1" to jsonObject {
-                            putObject("heart") {
-                                put("total", 1)
-                                putArray("clientIds") {
-                                    add("clientId")
+                annotations = MessageAnnotations().apply {
+                    summary = Summary(
+                        mapOf(
+                            "reaction:distinct.v1" to jsonObject {
+                                putObject("heart") {
+                                    put("total", 1)
+                                    putArray("clientIds") {
+                                        add("clientId")
+                                    }
                                 }
-                            }
-                        }.toGson().asJsonObject,
-                    ),
-                )
+                            }.toGson().asJsonObject,
+                        ),
+                    )
+                }
                 action = MessageAction.MESSAGE_SUMMARY
             },
         )

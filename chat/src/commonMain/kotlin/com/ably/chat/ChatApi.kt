@@ -15,10 +15,10 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 private const val PROTOCOL_VERSION_PARAM_NAME = "v"
 
-private const val PUB_SUB_PROTOCOL_VERSION = 3
+private const val PUB_SUB_PROTOCOL_VERSION = 4
 private val pubSubProtocolParam = Param(PROTOCOL_VERSION_PARAM_NAME, PUB_SUB_PROTOCOL_VERSION.toString())
 
-private const val CHAT_PROTOCOL_VERSION = 3
+private const val CHAT_PROTOCOL_VERSION = 4
 private const val CHAT_API_PROTOCOL_VERSION = PROTOCOL_VERSION_PARAM_NAME + CHAT_PROTOCOL_VERSION
 
 internal class ChatApi(
@@ -44,37 +44,7 @@ internal class ChatApi(
             url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages",
             method = HttpMethod.Get,
             params = params,
-        ) {
-            val messageJsonObject = it.tryAsJsonObject()
-            val latestAction = messageJsonObject?.get(
-                MessageProperty.Action,
-            )?.tryAsString()?.let { name -> messageActionNameToAction[name] }
-            val operation = messageJsonObject?.get(MessageProperty.Operation)?.tryAsJsonObject()
-            val reactions = messageJsonObject?.get(MessageProperty.Reactions)?.tryAsJsonObject()
-            latestAction?.let { action ->
-                logger.debug("getMessages();", context = mapOf("roomName" to roomName, "message" to messageJsonObject.toString()))
-
-                val text = if (action == MessageAction.MESSAGE_DELETE) {
-                    ""
-                } else {
-                    messageJsonObject.requireString(MessageProperty.Text)
-                }
-
-                DefaultMessage(
-                    serial = messageJsonObject.requireString(MessageProperty.Serial),
-                    clientId = messageJsonObject.requireString(MessageProperty.ClientId),
-                    text = text,
-                    createdAt = messageJsonObject.requireLong(MessageProperty.CreatedAt),
-                    metadata = messageJsonObject[MessageProperty.Metadata]?.tryAsJsonObject() ?: MessageMetadata(),
-                    headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),
-                    action = action,
-                    version = messageJsonObject.requireString(MessageProperty.Version),
-                    timestamp = messageJsonObject.requireLong(MessageProperty.Timestamp),
-                    reactions = buildMessageReactions(reactions),
-                    operation = buildMessageOperation(operation),
-                )
-            }
-        }
+        ) { tryParseMessageResponse(it) }
     }
 
     /**
@@ -90,20 +60,22 @@ internal class ChatApi(
             body,
         )?.let {
             val serial = it.requireString(MessageProperty.Serial)
-            val createdAt = it.requireLong(MessageProperty.CreatedAt)
+            val timestamp = it.requireLong(MessageProperty.Timestamp)
             logger.debug("sendMessage();", context = mapOf("roomName" to roomName, "response" to it.toString()))
             // CHA-M3a
             DefaultMessage(
                 serial = serial,
                 clientId = clientId,
                 text = params.text,
-                createdAt = createdAt,
+                timestamp = timestamp,
                 metadata = params.metadata ?: MessageMetadata(),
                 headers = params.headers ?: mapOf(),
                 action = MessageAction.MESSAGE_CREATE,
-                version = serial,
-                timestamp = createdAt,
-                operation = null,
+                version = DefaultMessageVersion(
+                    serial = serial,
+                    timestamp = timestamp,
+                    clientId = clientId,
+                ),
             )
         } ?: throw serverError("Send message endpoint returned empty value") // CHA-M3e
     }
@@ -120,22 +92,7 @@ internal class ChatApi(
             HttpMethod.Put,
             body,
         )?.let {
-            val version = it.requireString(MessageProperty.Version)
-            val timestamp = it.requireLong(MessageProperty.Timestamp)
-            logger.debug("updateMessage();", context = mapOf("messageSerial" to message.serial, "response" to it.toString()))
-            // CHA-M8b
-            DefaultMessage(
-                serial = message.serial,
-                clientId = clientId,
-                text = params.message.text,
-                createdAt = message.createdAt,
-                metadata = params.message.metadata ?: MessageMetadata(),
-                headers = params.message.headers ?: mapOf(),
-                action = MessageAction.MESSAGE_UPDATE,
-                version = version,
-                timestamp = timestamp,
-                operation = buildMessageOperation(clientId, params.description, params.metadata),
-            )
+            tryParseMessageResponse(it)
         } ?: throw serverError("Update message endpoint returned empty value") // CHA-M8d
     }
 
@@ -151,23 +108,38 @@ internal class ChatApi(
             HttpMethod.Post,
             body,
         )?.let {
-            val version = it.requireString(MessageProperty.Version)
-            val timestamp = it.requireLong(MessageProperty.Timestamp)
-            logger.debug("deleteMessage();", context = mapOf("messageSerial" to message.serial, "response" to it.toString()))
-            // CHA-M9b
-            DefaultMessage(
-                serial = message.serial,
-                clientId = clientId,
-                text = message.text,
-                createdAt = message.createdAt,
-                metadata = message.metadata,
-                headers = message.headers,
-                action = MessageAction.MESSAGE_DELETE,
-                version = version,
-                timestamp = timestamp,
-                operation = buildMessageOperation(clientId, params.description, params.metadata),
-            )
+            tryParseMessageResponse(it)
         } ?: throw serverError("Delete message endpoint returned empty value") // CHA-M9c
+    }
+
+    private fun tryParseMessageResponse(json: JsonValue): Message? {
+        val messageJsonObject = json.tryAsJsonObject() ?: return null
+        val action = messageJsonObject[MessageProperty.Action]
+            ?.tryAsString()?.let { name -> messageActionNameToAction[name] } ?: MessageAction.MESSAGE_CREATE
+        val version = messageJsonObject[MessageProperty.Version]?.tryAsJsonObject()
+        val reactions = messageJsonObject[MessageProperty.Reactions]?.tryAsJsonObject()
+        val text = messageJsonObject[MessageProperty.Text]?.tryAsString() ?: ""
+        val messageSerial = messageJsonObject[MessageProperty.Serial]?.tryAsString() ?: return null
+        val messageClientId = messageJsonObject[MessageProperty.ClientId]?.tryAsString() ?: return null
+        val messageTimestamp = messageJsonObject[MessageProperty.Timestamp]?.tryAsLong() ?: return null
+
+        return DefaultMessage(
+            serial = messageSerial,
+            clientId = messageClientId,
+            text = text,
+            timestamp = messageTimestamp,
+            metadata = messageJsonObject[MessageProperty.Metadata]?.tryAsJsonObject() ?: MessageMetadata(),
+            headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),
+            action = action,
+            reactions = buildMessageReactions(reactions),
+            version = DefaultMessageVersion(
+                serial = version?.get(MessageVersionProperty.Serial)?.tryAsString() ?: messageSerial,
+                timestamp = version?.get(MessageVersionProperty.Timestamp)?.tryAsLong() ?: messageTimestamp,
+                clientId = version?.get(MessageVersionProperty.ClientId)?.tryAsString() ?: messageClientId,
+                description = version?.get(MessageVersionProperty.Description)?.tryAsString(),
+                metadata = version?.get(MessageVersionProperty.Metadata)?.toMap(),
+            ),
+        )
     }
 
     /**

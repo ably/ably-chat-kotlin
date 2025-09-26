@@ -76,23 +76,21 @@ class MessagesIntegrationTest {
         assertEquals("hello", receivedMessage.text)
         assertEquals("sandbox-client", receivedMessage.clientId)
         assertTrue(receivedMessage.serial.isNotEmpty())
-        assertEquals(receivedMessage.serial, receivedMessage.version)
-        assertEquals(receivedMessage.createdAt, receivedMessage.timestamp)
-        assertEquals(metadata.toString(), receivedMessage.metadata.toString())
+        assertEquals(receivedMessage.serial, receivedMessage.version.serial)
+        assertEquals(receivedMessage.timestamp, receivedMessage.version.timestamp)
+        assertEquals(metadata, receivedMessage.metadata)
         assertEquals(headers, receivedMessage.headers)
-        assertEquals(null, receivedMessage.operation)
 
         // check for sentMessage fields against receivedMessage fields
         assertEquals(sentMessage.serial, receivedMessage.serial)
         assertEquals(sentMessage.clientId, receivedMessage.clientId)
         assertEquals(sentMessage.text, receivedMessage.text)
-        assertEquals(sentMessage.createdAt, receivedMessage.createdAt)
-        assertEquals(sentMessage.metadata.toString(), receivedMessage.metadata.toString())
+        assertEquals(sentMessage.timestamp, receivedMessage.timestamp)
+        assertEquals(sentMessage.metadata, receivedMessage.metadata)
         assertEquals(sentMessage.headers, receivedMessage.headers)
         assertEquals(sentMessage.action, receivedMessage.action)
         assertEquals(sentMessage.version, receivedMessage.version)
         assertEquals(sentMessage.timestamp, receivedMessage.timestamp)
-        assertEquals(sentMessage.operation, receivedMessage.operation)
     }
 
     /**
@@ -126,23 +124,21 @@ class MessagesIntegrationTest {
         assertEquals("hello", historyMessage.text)
         assertEquals("sandbox-client", historyMessage.clientId)
         assertTrue(historyMessage.serial.isNotEmpty())
-        assertEquals(historyMessage.serial, historyMessage.version)
-        assertEquals(historyMessage.createdAt, historyMessage.timestamp)
-        assertEquals(metadata.toString(), historyMessage.metadata.toString())
+        assertEquals(historyMessage.serial, historyMessage.version.serial)
+        assertEquals(historyMessage.timestamp, historyMessage.version.timestamp)
+        assertEquals(metadata, historyMessage.metadata)
         assertEquals(headers, historyMessage.headers)
-        assertEquals(null, historyMessage.operation)
 
         // check for sentMessage fields against historyMessage fields
         assertEquals(sentMessage.serial, historyMessage.serial)
         assertEquals(sentMessage.clientId, historyMessage.clientId)
         assertEquals(sentMessage.text, historyMessage.text)
-        assertEquals(sentMessage.createdAt, historyMessage.createdAt)
-        assertEquals(sentMessage.metadata.toString(), historyMessage.metadata.toString())
+        assertEquals(sentMessage.timestamp, historyMessage.timestamp)
+        assertEquals(sentMessage.metadata, historyMessage.metadata)
         assertEquals(sentMessage.headers, historyMessage.headers)
         assertEquals(sentMessage.action, historyMessage.action)
         assertEquals(sentMessage.version, historyMessage.version)
         assertEquals(sentMessage.timestamp, historyMessage.timestamp)
-        assertEquals(sentMessage.operation, historyMessage.operation)
     }
 
     /**
@@ -185,20 +181,20 @@ class MessagesIntegrationTest {
 
         assertEquals(MessageAction.MESSAGE_UPDATE, updatedMessage.action)
         assertEquals(sentMessage.serial, updatedMessage.serial)
-        assertEquals(sentMessage.createdAt, updatedMessage.createdAt)
+        assertEquals(sentMessage.timestamp, updatedMessage.timestamp)
 
         assertWaiter { receivedMsges.size == 2 }
         val receivedMsg2 = receivedMsges.last()
 
         assertEquals(updatedMessage.text, receivedMsg2.text)
         assertEquals(updatedMessage.metadata.toString(), receivedMsg2.metadata.toString())
-        assertEquals(updatedMessage.operation?.description, receivedMsg2.operation?.description)
-        assertEquals(updatedMessage.operation?.metadata, receivedMsg2.operation?.metadata)
-        assertEquals(updatedMessage.operation?.clientId, receivedMsg2.operation?.clientId)
+        assertEquals(updatedMessage.version.description, receivedMsg2.version.description)
+        assertEquals(updatedMessage.version.metadata, receivedMsg2.version.metadata)
+        assertEquals(updatedMessage.version.clientId, receivedMsg2.version.clientId)
         assertEquals(updatedMessage.headers, receivedMsg2.headers)
         assertEquals(updatedMessage.serial, receivedMsg2.serial)
         assertEquals(updatedMessage.version, receivedMsg2.version)
-        assertEquals(updatedMessage.createdAt, receivedMsg2.createdAt)
+        assertEquals(updatedMessage.timestamp, receivedMsg2.timestamp)
         assertEquals(updatedMessage.timestamp, receivedMsg2.timestamp)
         assertEquals(updatedMessage.clientId, receivedMsg2.clientId)
         assertEquals(updatedMessage.action, receivedMsg2.action)
@@ -237,7 +233,7 @@ class MessagesIntegrationTest {
 
         assertEquals(MessageAction.MESSAGE_DELETE, deletedMessage.action)
         assertEquals(sentMessage.serial, deletedMessage.serial)
-        assertEquals(sentMessage.createdAt, deletedMessage.createdAt)
+        assertEquals(sentMessage.timestamp, deletedMessage.timestamp)
 
         assertWaiter { receivedMsges.size == 2 }
         val receivedMsg2 = receivedMsges.last()
@@ -245,12 +241,12 @@ class MessagesIntegrationTest {
         assertEquals("", receivedMsg2.text)
         assertEquals(jsonObject {}, receivedMsg2.metadata)
         assertEquals(mapOf<String, String>(), receivedMsg2.headers)
-        assertEquals(deletedMessage.operation?.description, receivedMsg2.operation?.description)
-        assertEquals(deletedMessage.operation?.metadata, receivedMsg2.operation?.metadata)
-        assertEquals(deletedMessage.operation?.clientId, receivedMsg2.operation?.clientId)
+        assertEquals(deletedMessage.version.description, receivedMsg2.version.description)
+        assertEquals(deletedMessage.version.metadata, receivedMsg2.version.metadata)
+        assertEquals(deletedMessage.version.clientId, receivedMsg2.version.clientId)
         assertEquals(deletedMessage.serial, receivedMsg2.serial)
         assertEquals(deletedMessage.version, receivedMsg2.version)
-        assertEquals(deletedMessage.createdAt, receivedMsg2.createdAt)
+        assertEquals(deletedMessage.timestamp, receivedMsg2.timestamp)
         assertEquals(deletedMessage.timestamp, receivedMsg2.timestamp)
         assertEquals(deletedMessage.clientId, receivedMsg2.clientId)
         assertEquals(deletedMessage.action, receivedMsg2.action)

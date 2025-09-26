@@ -139,15 +139,13 @@ public final class com/ably/chat/LogLevel : java/lang/Enum {
 public abstract interface class com/ably/chat/Message {
 	public abstract fun getAction ()Lio/ably/lib/types/MessageAction;
 	public abstract fun getClientId ()Ljava/lang/String;
-	public abstract fun getCreatedAt ()J
 	public abstract fun getHeaders ()Ljava/util/Map;
 	public abstract fun getMetadata ()Lcom/ably/chat/json/JsonObject;
-	public abstract fun getOperation ()Lio/ably/lib/types/Message$Operation;
 	public abstract fun getReactions ()Lcom/ably/chat/MessageReactions;
 	public abstract fun getSerial ()Ljava/lang/String;
 	public abstract fun getText ()Ljava/lang/String;
 	public abstract fun getTimestamp ()J
-	public abstract fun getVersion ()Ljava/lang/String;
+	public abstract fun getVersion ()Lcom/ably/chat/MessageVersion;
 }
 
 public final class com/ably/chat/MessageKt {
@@ -219,6 +217,14 @@ public abstract interface class com/ably/chat/MessageReactionsSummary {
 	public abstract fun getMessageSerial ()Ljava/lang/String;
 	public abstract fun getMultiple ()Ljava/util/Map;
 	public abstract fun getUnique ()Ljava/util/Map;
+}
+
+public abstract interface class com/ably/chat/MessageVersion {
+	public abstract fun getClientId ()Ljava/lang/String;
+	public abstract fun getDescription ()Ljava/lang/String;
+	public abstract fun getMetadata ()Ljava/util/Map;
+	public abstract fun getSerial ()Ljava/lang/String;
+	public abstract fun getTimestamp ()J
 }
 
 public abstract interface class com/ably/chat/Messages {

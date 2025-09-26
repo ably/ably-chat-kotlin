@@ -22,7 +22,7 @@ class MessageTest {
             serial = "123",
             version = "2",
             reactions = DefaultMessageReactions(
-                mapOf("heart" to SummaryClientIdList(1, listOf("user1"))),
+                mapOf("heart" to SummaryClientIdList(1, listOf("user1"), false)),
             ),
         )
         val eventMessage = createMessage(
@@ -107,9 +107,9 @@ class MessageTest {
         )
         val summary = DefaultMessageReactionSummary(
             messageSerial = "123",
-            unique = mapOf("like" to SummaryClientIdList(2, listOf("user1", "user2"))),
-            distinct = mapOf("like" to SummaryClientIdList(1, listOf("user1"))),
-            multiple = mapOf("like" to SummaryClientIdCounts(1, mapOf("user1" to 1))),
+            unique = mapOf("like" to SummaryClientIdList(2, listOf("user1", "user2"), false)),
+            distinct = mapOf("like" to SummaryClientIdList(1, listOf("user1"), false)),
+            multiple = mapOf("like" to SummaryClientIdCounts(1, mapOf("user1" to 1), 0, false, 1)),
         )
 
         val event = DefaultMessageReactionSummaryEvent(summary = summary)
@@ -184,12 +184,11 @@ private fun createMessage(
 ) = DefaultMessage(
     text = text,
     serial = serial,
-    version = version,
+    version = DefaultMessageVersion(serial = version, timestamp = System.currentTimeMillis(), clientId = "client1"),
     clientId = "client1",
-    createdAt = System.currentTimeMillis(),
+    timestamp = System.currentTimeMillis(),
     metadata = jsonObject {},
     headers = mapOf(),
     action = action,
-    timestamp = System.currentTimeMillis(),
     reactions = reactions,
 )

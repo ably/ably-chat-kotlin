@@ -1,7 +1,6 @@
 package com.ably.chat
 
 import com.ably.chat.json.JsonObject
-import io.ably.lib.types.Message.Operation
 import io.ably.lib.types.MessageAction
 import io.ably.lib.types.Summary
 import io.ably.lib.types.SummaryClientIdCounts
@@ -40,7 +39,7 @@ public interface Message {
     /**
      * The timestamp at which the message was created.
      */
-    public val createdAt: Long
+    public val timestamp: Long
 
     /**
      * The metadata of a chat message. Allows for attaching extra info to a message,
@@ -81,7 +80,20 @@ public interface Message {
      * A unique identifier for the latest version of this message.
      * Spec: CHA-M10a
      */
-    public val version: String
+    public val version: MessageVersion
+
+    /**
+     * The reactions summary for this message.
+     */
+    public val reactions: MessageReactions
+}
+
+public interface MessageVersion {
+
+    /**
+     * A unique identifier for the latest version of this message.
+     */
+    public val serial: String
 
     /**
      * The timestamp at which this version was updated, deleted, or created.
@@ -89,15 +101,19 @@ public interface Message {
     public val timestamp: Long
 
     /**
-     * The reactions summary for this message.
+     * The optional clientId of the user who performed the update or deletion.
      */
-    public val reactions: MessageReactions
+    public val clientId: String?
 
     /**
-     * The details of the operation that modified the message. This is only set for update and delete actions. It contains
-     * information about the operation: the clientId of the user who performed the operation, a description, and metadata.
+     * The optional description for the update or deletion.
      */
-    public val operation: Operation?
+    public val description: String?
+
+    /**
+     * The optional metadata associated with the update or deletion.
+     */
+    public val metadata: Map<String, String>?
 }
 
 /**
@@ -140,7 +156,7 @@ public fun Message.with(
         throw clientError("MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE")
     }
 
-    if (event.message.version <= this.version) return this
+    if (event.message.version.serial <= this.version.serial) return this
 
     return (event.message as? DefaultMessage)?.copy(
         reactions = reactions,
@@ -172,14 +188,12 @@ internal data class DefaultMessage(
     override val serial: String,
     override val clientId: String,
     override val text: String,
-    override val createdAt: Long,
+    override val timestamp: Long,
     override val metadata: MessageMetadata,
     override val headers: MessageHeaders,
     override val action: MessageAction,
-    override val version: String,
-    override val timestamp: Long,
+    override val version: MessageVersion,
     override val reactions: MessageReactions = DefaultMessageReactions(),
-    override val operation: Operation? = null,
 ) : Message
 
 internal data class DefaultMessageReactions(
@@ -188,36 +202,13 @@ internal data class DefaultMessageReactions(
     override val multiple: Map<String, SummaryClientIdCounts> = mapOf(),
 ) : MessageReactions
 
-internal fun buildMessageOperation(jsonObject: JsonObject?): Operation? {
-    if (jsonObject == null) {
-        return null
-    }
-    val operation = Operation()
-
-    jsonObject[MessageOperationProperty.ClientId]?.tryAsString()?.let { clientId ->
-        operation.clientId = clientId
-    }
-
-    jsonObject[MessageOperationProperty.Description]?.tryAsString()?.let { description ->
-        operation.description = description
-    }
-
-    jsonObject[MessageOperationProperty.Metadata]?.tryAsJsonObject()?.let { metadataObject ->
-        operation.metadata = mutableMapOf()
-        for ((key, value) in metadataObject.entries) {
-            operation.metadata[key] = value.tryAsString()
-        }
-    }
-    return operation
-}
-
-internal fun buildMessageOperation(clientId: String, description: String?, metadata: Map<String, String>?): Operation {
-    val operation = Operation()
-    operation.clientId = clientId
-    operation.description = description
-    operation.metadata = metadata
-    return operation
-}
+internal data class DefaultMessageVersion(
+    override val serial: String,
+    override val timestamp: Long,
+    override val clientId: String,
+    override val description: String? = null,
+    override val metadata: Map<String, String>? = null,
+) : MessageVersion
 
 internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactions {
     if (jsonObject == null) return DefaultMessageReactions()
@@ -240,21 +231,21 @@ internal object MessageProperty {
     const val Serial = "serial"
     const val ClientId = "clientId"
     const val Text = "text"
-    const val CreatedAt = "createdAt"
     const val Metadata = "metadata"
     const val Headers = "headers"
     const val Action = "action"
     const val Version = "version"
     const val Timestamp = "timestamp"
     const val Reactions = "reactions"
-    const val Operation = "operation"
 }
 
 /**
  * MessageOperationProperty object representing the properties of a message operation.
  */
-internal object MessageOperationProperty {
+internal object MessageVersionProperty {
+    const val Serial = "serial"
     const val ClientId = "clientId"
+    const val Timestamp = "timestamp"
     const val Description = "description"
     const val Metadata = "metadata"
 }

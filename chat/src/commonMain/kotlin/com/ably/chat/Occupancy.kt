@@ -201,7 +201,6 @@ internal class DefaultOccupancy(
      * An internal listener that listens for occupancy events from the underlying channel and translates them into
      * occupancy events for the public API.
      */
-    @Suppress("ReturnCount")
     private fun internalChannelListener(message: PubSubMessage) {
         val data = message.data?.tryAsJsonValue()
 
