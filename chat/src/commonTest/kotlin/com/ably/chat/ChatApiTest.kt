@@ -57,7 +57,6 @@ class ChatApiTest {
                     version = DefaultMessageVersion(
                         serial = "timeserial",
                         timestamp = 1_000_000L,
-                        clientId = "clientId",
                     ),
                 ),
             ),
@@ -118,7 +117,6 @@ class ChatApiTest {
                     version = DefaultMessageVersion(
                         serial = "timeserial",
                         timestamp = 1_000_000L,
-                        clientId = "clientId",
                     ),
                 ),
             ),
@@ -154,7 +152,6 @@ class ChatApiTest {
                 version = DefaultMessageVersion(
                     serial = "timeserial",
                     timestamp = 1_000_000L,
-                    clientId = "clientId",
                 ),
             ),
             message,

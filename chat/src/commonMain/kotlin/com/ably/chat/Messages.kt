@@ -441,9 +441,9 @@ internal class DefaultMessages(
                 headers = pubSubMessage.extras?.asJsonObject()?.tryAsJsonValue()?.tryAsJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
                 version = DefaultMessageVersion(
-                    serial = pubSubMessage.version.serial ?: pubSubMessage.serial,
+                    serial = pubSubMessage.version.serial,
                     timestamp = pubSubMessage.version.timestamp,
-                    clientId = pubSubMessage.version.clientId ?: pubSubMessage.clientId,
+                    clientId = pubSubMessage.version.clientId,
                     description = pubSubMessage.version.description,
                     metadata = pubSubMessage.version.metadata,
                 ),

@@ -224,7 +224,7 @@ public abstract interface class com/ably/chat/MessageVersion {
 	public abstract fun getDescription ()Ljava/lang/String;
 	public abstract fun getMetadata ()Ljava/util/Map;
 	public abstract fun getSerial ()Ljava/lang/String;
-	public abstract fun getTimestamp ()J
+	public abstract fun getTimestamp ()Ljava/lang/Long;
 }
 
 public abstract interface class com/ably/chat/Messages {

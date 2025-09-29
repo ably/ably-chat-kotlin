@@ -93,12 +93,12 @@ public interface MessageVersion {
     /**
      * A unique identifier for the latest version of this message.
      */
-    public val serial: String
+    public val serial: String?
 
     /**
      * The timestamp at which this version was updated, deleted, or created.
      */
-    public val timestamp: Long
+    public val timestamp: Long?
 
     /**
      * The optional clientId of the user who performed the update or deletion.
@@ -156,11 +156,21 @@ public fun Message.with(
         throw clientError("MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE")
     }
 
-    if (event.message.version.serial <= this.version.serial) return this
+    if (event.message.version <= this.version) return this
 
     return (event.message as? DefaultMessage)?.copy(
         reactions = reactions,
     ) ?: throw clientError("Message interface is not suitable for inheritance")
+}
+
+internal operator fun MessageVersion.compareTo(other: MessageVersion): Int {
+    // If one our version serials isn't set, cannot compare
+    if (serial == null || other.serial == null) {
+        return -1
+    }
+
+    // Use the comparator to determine the comparison
+    return compareValuesBy(this, other, { it.serial })
 }
 
 public fun Message.with(
@@ -203,9 +213,9 @@ internal data class DefaultMessageReactions(
 ) : MessageReactions
 
 internal data class DefaultMessageVersion(
-    override val serial: String,
-    override val timestamp: Long,
-    override val clientId: String,
+    override val serial: String? = null,
+    override val timestamp: Long? = null,
+    override val clientId: String? = null,
     override val description: String? = null,
     override val metadata: Map<String, String>? = null,
 ) : MessageVersion
@@ -240,7 +250,7 @@ internal object MessageProperty {
 }
 
 /**
- * MessageOperationProperty object representing the properties of a message operation.
+ * MessageVersionProperty object representing the properties of a message version.
  */
 internal object MessageVersionProperty {
     const val Serial = "serial"
@@ -251,7 +261,7 @@ internal object MessageVersionProperty {
 }
 
 /**
- * MessageOperationProperty object representing the properties of a message operation.
+ * MessageReactionsProperty object representing the properties of a message reaction.
  */
 internal object MessageReactionsProperty {
     const val Unique = "unique"

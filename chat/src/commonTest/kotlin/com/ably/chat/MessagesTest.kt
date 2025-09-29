@@ -78,7 +78,6 @@ class MessagesTest {
                 version = DefaultMessageVersion(
                     serial = "abcdefghij@1672531200000-123",
                     timestamp = 1_000_000L,
-                    clientId = "clientId",
                 ),
             ),
             sentMessage,
@@ -141,7 +140,6 @@ class MessagesTest {
                 version = DefaultMessageVersion(
                     serial = "abcdefghij@1672531200000-123",
                     timestamp = 1000L,
-                    clientId = "clientId",
                 ),
             ),
             messageEvent.message,
@@ -184,6 +182,7 @@ class MessagesTest {
                 version = io.ably.lib.types.MessageVersion().apply {
                     serial = "abcdefghij@1672531200000-123"
                     timestamp = 1000L
+                    clientId = "clientId"
                 }
             },
         )
