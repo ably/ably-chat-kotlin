@@ -261,8 +261,8 @@ internal data class UpdateMessageParams(
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
     return jsonObject {
         put("message", message.toJsonObject())
-        description?.let { put(MessageOperationProperty.Description, it) }
-        metadata?.let { put(MessageOperationProperty.Metadata, it.toJson()) }
+        description?.let { put(MessageVersionProperty.Description, it) }
+        metadata?.let { put(MessageVersionProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -282,8 +282,8 @@ internal data class DeleteMessageParams(
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
     return jsonObject {
-        description?.let { put(MessageOperationProperty.Description, it) }
-        metadata?.let { put(MessageOperationProperty.Metadata, it.toJson()) }
+        description?.let { put(MessageVersionProperty.Description, it) }
+        metadata?.let { put(MessageVersionProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -433,16 +433,20 @@ internal class DefaultMessages(
 
             val data = parsePubSubMessageData(eventType, pubSubMessage.data)
             val chatMessage = DefaultMessage(
-                createdAt = pubSubMessage.createdAt,
+                timestamp = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
                 serial = pubSubMessage.serial,
                 text = data.text,
                 metadata = data.metadata ?: MessageMetadata(),
                 headers = pubSubMessage.extras?.asJsonObject()?.tryAsJsonValue()?.tryAsJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
-                version = pubSubMessage.version,
-                timestamp = pubSubMessage.timestamp,
-                operation = pubSubMessage.operation,
+                version = DefaultMessageVersion(
+                    serial = pubSubMessage.version.serial ?: pubSubMessage.serial,
+                    timestamp = pubSubMessage.version.timestamp,
+                    clientId = pubSubMessage.version.clientId,
+                    description = pubSubMessage.version.description,
+                    metadata = pubSubMessage.version.metadata,
+                ),
             )
             listener.onEvent(DefaultChatMessageEvent(type = eventType, message = chatMessage))
         }

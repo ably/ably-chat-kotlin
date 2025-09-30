@@ -55,7 +55,7 @@ class MessagesTest {
             realtimeClient,
             jsonObject {
                 put(MessageProperty.Serial, "abcdefghij@1672531200000-123")
-                put(MessageProperty.CreatedAt, 1_000_000)
+                put(MessageProperty.Timestamp, 1_000_000)
             },
             roomName = "room1",
         )
@@ -71,12 +71,14 @@ class MessagesTest {
                 serial = "abcdefghij@1672531200000-123",
                 clientId = "clientId",
                 text = "lala",
-                createdAt = 1_000_000,
+                timestamp = 1_000_000,
                 metadata = jsonObject { put("meta", "data") },
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
-                version = "abcdefghij@1672531200000-123",
-                timestamp = 1_000_000L,
+                version = DefaultMessageVersion(
+                    serial = "abcdefghij@1672531200000-123",
+                    timestamp = 1_000_000L,
+                ),
             ),
             sentMessage,
         )
@@ -108,7 +110,6 @@ class MessagesTest {
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
                 timestamp = 1000L
-                createdAt = 1000L
                 extras = MessageExtras(
                     jsonObject {
                         putObject("headers") {
@@ -117,7 +118,10 @@ class MessagesTest {
                     }.toGson().asJsonObject,
                 )
                 action = MessageAction.MESSAGE_CREATE
-                version = "abcdefghij@1672531200000-123"
+                version = io.ably.lib.types.MessageVersion().apply {
+                    serial = "abcdefghij@1672531200000-123"
+                    timestamp = 1000L
+                }
             },
         )
 
@@ -126,15 +130,17 @@ class MessagesTest {
         assertEquals(ChatMessageEventType.Created, messageEvent.type)
         assertEquals(
             DefaultMessage(
-                createdAt = 1000L,
+                timestamp = 1000L,
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "some text",
                 metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_CREATE,
-                version = "abcdefghij@1672531200000-123",
-                timestamp = 1000L,
+                version = DefaultMessageVersion(
+                    serial = "abcdefghij@1672531200000-123",
+                    timestamp = 1000L,
+                ),
             ),
             messageEvent.message,
         )
@@ -165,7 +171,6 @@ class MessagesTest {
                 serial = "abcdefghij@1672531200000-123"
                 clientId = "clientId"
                 timestamp = 1000L
-                createdAt = 1000L
                 extras = MessageExtras(
                     jsonObject {
                         putObject("headers") {
@@ -174,7 +179,11 @@ class MessagesTest {
                     }.toGson().asJsonObject,
                 )
                 action = MessageAction.MESSAGE_DELETE
-                version = "abcdefghij@1672531200000-123"
+                version = io.ably.lib.types.MessageVersion().apply {
+                    serial = "abcdefghij@1672531200000-123"
+                    timestamp = 1000L
+                    clientId = "clientId"
+                }
             },
         )
 
@@ -183,15 +192,18 @@ class MessagesTest {
         assertEquals(ChatMessageEventType.Deleted, messageEvent.type)
         assertEquals(
             DefaultMessage(
-                createdAt = 1000L,
+                timestamp = 1000L,
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "",
                 metadata = MessageMetadata(),
                 headers = mapOf("foo" to "bar"),
                 action = MessageAction.MESSAGE_DELETE,
-                version = "abcdefghij@1672531200000-123",
-                timestamp = 1000L,
+                version = DefaultMessageVersion(
+                    serial = "abcdefghij@1672531200000-123",
+                    timestamp = 1000L,
+                    clientId = "clientId",
+                ),
             ),
             messageEvent.message,
         )
@@ -322,10 +334,12 @@ private fun buildDummyPubSubMessage() = PubSubMessage().apply {
     serial = "abcdefghij@1672531200000-123"
     clientId = "dummy"
     timestamp = 1000L
-    createdAt = 1000L
     extras = MessageExtras(
         jsonObject {}.toGson().asJsonObject,
     )
     action = MessageAction.MESSAGE_CREATE
-    version = "abcdefghij@1672531200000-123"
+    version = io.ably.lib.types.MessageVersion().apply {
+        serial = "abcdefghij@1672531200000-123"
+        timestamp = 1000L
+    }
 }

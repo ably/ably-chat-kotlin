@@ -459,7 +459,7 @@ internal class DefaultMessagesReactions(
             return
         }
 
-        if (message.summary == null) {
+        if (message.annotations?.summary == null) {
             // This means the summary is now empty, which is valid.
             // Happens when there are no reactions such as after deleting the last reaction.
             summaryEventBus.tryEmit(
@@ -475,9 +475,12 @@ internal class DefaultMessagesReactions(
             return
         }
 
-        val unique = message.summary.get(MessageReactionType.Unique.type)?.let { Summary.asSummaryUniqueV1(it) } ?: mapOf()
-        val distinct = message.summary.get(MessageReactionType.Distinct.type)?.let { Summary.asSummaryDistinctV1(it) } ?: mapOf()
-        val multiple = message.summary.get(MessageReactionType.Multiple.type)?.let { Summary.asSummaryMultipleV1(it) } ?: mapOf()
+        val unique = message.annotations?.summary?.get(MessageReactionType.Unique.type)
+            ?.let { Summary.asSummaryUniqueV1(it) } ?: mapOf()
+        val distinct = message.annotations?.summary?.get(MessageReactionType.Distinct.type)
+            ?.let { Summary.asSummaryDistinctV1(it) } ?: mapOf()
+        val multiple = message.annotations?.summary?.get(MessageReactionType.Multiple.type)
+            ?.let { Summary.asSummaryMultipleV1(it) } ?: mapOf()
 
         summaryEventBus.tryEmit(
             DefaultMessageReactionSummaryEvent(
@@ -491,7 +494,6 @@ internal class DefaultMessagesReactions(
         )
     }
 
-    @Suppress("ReturnCount")
     private fun internalAnnotationListener(annotation: Annotation) {
         logger.trace("MessagesReactions.internalAnnotationListener();", context = mapOf("annotation" to annotation.toString()))
 

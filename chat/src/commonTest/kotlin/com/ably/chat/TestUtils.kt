@@ -31,7 +31,7 @@ fun buildAsyncHttpPaginatedResponse(items: List<JsonValue>): AsyncHttpPaginatedR
 
 fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<JsonValue>, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v3/rooms/$roomName/messages", any(), HttpMethod.Get, any(), any(), any())
+        realtimeClientMock.requestAsync("/chat/v4/rooms/$roomName/messages", any(), HttpMethod.Get, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -42,7 +42,7 @@ fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<J
 
 fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v3/rooms/$roomName/messages", any(), HttpMethod.Post, any(), any(), any())
+        realtimeClientMock.requestAsync("/chat/v4/rooms/$roomName/messages", any(), HttpMethod.Post, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -55,7 +55,7 @@ fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: Jso
 
 fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v3/rooms/$roomName/occupancy", any(), HttpMethod.Get, any(), any(), any())
+        realtimeClientMock.requestAsync("/chat/v4/rooms/$roomName/occupancy", any(), HttpMethod.Get, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(

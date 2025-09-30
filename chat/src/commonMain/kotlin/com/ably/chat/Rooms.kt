@@ -143,7 +143,6 @@ internal class DefaultRooms(
      * @returns null for released room or non-null existing active room (not in releasing/released state)
      * Spec: CHA-RC1f4, CHA-RC1f5, CHA-RC1f6, CHA-RC1g4
      */
-    @Suppress("ReturnCount")
     private suspend fun getReleasedOrExistingRoom(name: String): Room? {
         // Previous Room Get in progress, because room release in progress
         // So await on same deferred and return null
