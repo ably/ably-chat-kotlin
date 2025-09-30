@@ -1,8 +1,8 @@
 package com.ably.chat
 
 import com.ably.annotations.InternalAPI
+import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
-import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.MessageExtras
@@ -139,15 +139,15 @@ internal class DefaultRoomReactions(
     override suspend fun send(name: String, metadata: ReactionMetadata?, headers: ReactionHeaders?) {
         val pubSubMessage = PubSubMessage().apply {
             this.name = RoomReactionEventType.Reaction.eventName
-            data = JsonObject().apply {
-                addProperty("name", name)
-                metadata?.let { add("metadata", it) }
-            }
+            data = jsonObject {
+                put("name", name)
+                metadata?.let { put("metadata", it) }
+            }.toGson()
             headers?.let {
                 extras = MessageExtras(
-                    JsonObject().apply {
-                        add("headers", it.toJson())
-                    },
+                    jsonObject {
+                        put("headers", it.toJson())
+                    }.toGson().asJsonObject,
                 )
             }
         }
@@ -160,15 +160,15 @@ internal class DefaultRoomReactions(
             val pubSubMessage = it ?: throw AblyException.fromErrorInfo(
                 ErrorInfo("Got empty pubsub channel message", HttpStatusCode.BadRequest, ErrorCode.BadRequest.code),
             )
-            val data = pubSubMessage.data as? JsonObject ?: throw AblyException.fromErrorInfo(
+            val data = pubSubMessage.data.tryAsJsonValue() ?: throw AblyException.fromErrorInfo(
                 ErrorInfo("Unrecognized Pub/Sub channel's message for `roomReaction` event", HttpStatusCode.InternalServerError),
             )
             val reaction = DefaultRoomReaction(
                 name = data.requireString("name"),
                 createdAt = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
-                metadata = data.getAsJsonObject("metadata") ?: ReactionMetadata(),
-                headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.toMap() ?: mapOf(),
+                metadata = data.tryAsJsonObject()?.get("metadata")?.tryAsJsonObject() ?: ReactionMetadata(),
+                headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.tryAsJsonValue()?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )
             listener.onReaction(DefaultRoomReactionEvent(reaction))

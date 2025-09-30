@@ -1,15 +1,14 @@
 package com.ably.chat
 
 import com.ably.annotations.InternalAPI
+import com.ably.chat.json.JsonObject
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Presence.PresenceListener as PubSubPresenceListener
 
-public typealias PresenceData = JsonElement
+public typealias PresenceData = JsonObject
 
 /**
  * This interface is used to interact with presence in a chat room: subscribing to presence events,
@@ -156,7 +155,7 @@ internal class DefaultPresence(
             DefaultPresenceMember(
                 clientId = user.clientId,
                 connectionId = user.connectionId,
-                data = user.data as? JsonElement,
+                data = user.data.tryAsJsonValue()?.tryAsJsonObject(),
                 updatedAt = user.timestamp,
             )
         }
@@ -191,7 +190,7 @@ internal class DefaultPresence(
                 clientId = it.clientId,
                 connectionId = it.connectionId,
                 updatedAt = it.timestamp,
-                data = it.data as? JsonElement,
+                data = it.data.tryAsJsonValue()?.tryAsJsonObject(),
             )
             val presenceEvent = DefaultPresenceEvent(
                 type = PresenceEventType.fromPresenceAction(it.action),

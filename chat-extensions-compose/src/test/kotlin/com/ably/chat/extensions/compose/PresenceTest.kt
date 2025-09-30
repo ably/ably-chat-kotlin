@@ -12,7 +12,7 @@ import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.Subscription
 import com.ably.chat.annotations.ExperimentalChatApi
-import com.google.gson.JsonObject
+import com.ably.chat.json.JsonObject
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.sync.Mutex

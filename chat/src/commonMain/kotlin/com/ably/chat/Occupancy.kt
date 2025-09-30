@@ -2,8 +2,6 @@ package com.ably.chat
 
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
-import com.google.gson.JsonObject
-import com.google.gson.JsonPrimitive
 import io.ably.lib.realtime.Channel
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
@@ -205,7 +203,7 @@ internal class DefaultOccupancy(
      */
     @Suppress("ReturnCount")
     private fun internalChannelListener(message: PubSubMessage) {
-        val data = message.data as? JsonObject
+        val data = message.data?.tryAsJsonValue()
 
         if (data == null) {
             logger.error(
@@ -218,7 +216,7 @@ internal class DefaultOccupancy(
             return
         }
 
-        val metrics = data.get("metrics") as? JsonObject
+        val metrics = data.tryAsJsonObject()?.get("metrics")
 
         if (metrics == null) {
             logger.error(
@@ -231,7 +229,7 @@ internal class DefaultOccupancy(
             return
         }
 
-        val connections = metrics.get("connections") as? JsonPrimitive
+        val connections = metrics.tryAsJsonObject()?.get("connections")?.tryAsInt()
 
         if (connections == null) {
             logger.error(
@@ -244,7 +242,7 @@ internal class DefaultOccupancy(
             return
         }
 
-        val presenceMembers = metrics.get("presenceMembers") as? JsonPrimitive
+        val presenceMembers = metrics.tryAsJsonObject()?.get("presenceMembers")?.tryAsInt()
 
         if (presenceMembers == null) {
             logger.error(
@@ -258,8 +256,8 @@ internal class DefaultOccupancy(
         }
 
         val occupancyData = DefaultOccupancyData(
-            connections = connections.asInt,
-            presenceMembers = presenceMembers.asInt,
+            connections = connections,
+            presenceMembers = presenceMembers,
         )
 
         latestOccupancyData = occupancyData

@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import com.google.gson.JsonElement
+import com.ably.chat.json.JsonValue
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
 import io.ably.lib.types.ErrorInfo
@@ -31,7 +31,7 @@ public interface PaginatedResult<T> {
     public fun hasNext(): Boolean
 }
 
-internal fun <T> AsyncHttpPaginatedResponse?.toPaginatedResult(transform: (JsonElement) -> T?): PaginatedResult<T> =
+internal fun <T> AsyncHttpPaginatedResponse?.toPaginatedResult(transform: (JsonValue) -> T?): PaginatedResult<T> =
     this?.let { AsyncPaginatedResultWrapper(it, transform) } ?: EmptyPaginatedResult()
 
 private class EmptyPaginatedResult<T> : PaginatedResult<T> {
@@ -45,9 +45,11 @@ private class EmptyPaginatedResult<T> : PaginatedResult<T> {
 
 private class AsyncPaginatedResultWrapper<T>(
     val asyncPaginatedResult: AsyncHttpPaginatedResponse,
-    val transform: (JsonElement) -> T?,
+    val transform: (JsonValue) -> T?,
 ) : PaginatedResult<T> {
-    override val items: List<T> = asyncPaginatedResult.items()?.mapNotNull(transform) ?: emptyList()
+    override val items: List<T> = asyncPaginatedResult.items()?.mapNotNull {
+        it.tryAsJsonValue()?.let(transform)
+    } ?: emptyList()
 
     override suspend fun next(): PaginatedResult<T> = suspendCancellableCoroutine { continuation ->
         asyncPaginatedResult.next(object : AsyncHttpPaginatedResponse.Callback {

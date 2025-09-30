@@ -1,11 +1,11 @@
 package com.ably.chat
 
 import app.cash.turbine.test
+import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimeChannel
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.CompletionListener
 import io.ably.lib.realtime.Connection
 import io.ably.lib.realtime.ConnectionState
@@ -61,21 +61,18 @@ class RoomReactionsTest {
 
         pubSubMessageListenerSlot.captured.onMessage(
             PubSubMessage().apply {
-                data = JsonObject().apply {
-                    addProperty("name", "like")
-                    add("metadata", JsonObject())
-                }
+                data = jsonObject {
+                    put("name", "like")
+                    putObject("metadata") {}
+                }.toGson()
                 clientId = "clientId"
                 timestamp = 1000L
                 extras = MessageExtras(
-                    JsonObject().apply {
-                        add(
-                            "headers",
-                            JsonObject().apply {
-                                addProperty("foo", "bar")
-                            },
-                        )
-                    },
+                    jsonObject {
+                        putObject("headers") {
+                            put("foo", "bar")
+                        }
+                    }.toGson().asJsonObject,
                 )
             },
         )

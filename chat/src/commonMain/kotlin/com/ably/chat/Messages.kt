@@ -2,8 +2,9 @@ package com.ably.chat
 
 import com.ably.annotations.InternalAPI
 import com.ably.chat.OrderBy.NewestFirst
+import com.ably.chat.json.JsonObject
+import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
@@ -231,11 +232,11 @@ internal data class SendMessageParams(
 )
 
 internal fun SendMessageParams.toJsonObject(): JsonObject {
-    return JsonObject().apply {
-        addProperty("text", text)
+    return jsonObject {
+        put("text", text)
         // CHA-M3b
-        headers?.let { add("headers", it.toJson()) }
-        metadata?.let { add("metadata", it) }
+        headers?.let { put("headers", it.toJson()) }
+        metadata?.let { put("metadata", it) }
     }
 }
 
@@ -258,10 +259,10 @@ internal data class UpdateMessageParams(
 )
 
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
-    return JsonObject().apply {
-        add("message", message.toJsonObject())
-        description?.let { addProperty(MessageOperationProperty.Description, it) }
-        metadata?.let { add(MessageOperationProperty.Metadata, it.toJson()) }
+    return jsonObject {
+        put("message", message.toJsonObject())
+        description?.let { put(MessageOperationProperty.Description, it) }
+        metadata?.let { put(MessageOperationProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -280,9 +281,9 @@ internal data class DeleteMessageParams(
 )
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
-    return JsonObject().apply {
-        description?.let { addProperty(MessageOperationProperty.Description, it) }
-        metadata?.let { add(MessageOperationProperty.Metadata, it.toJson()) }
+    return jsonObject {
+        description?.let { put(MessageOperationProperty.Description, it) }
+        metadata?.let { put(MessageOperationProperty.Metadata, it.toJson()) }
     }
 }
 
@@ -437,7 +438,7 @@ internal class DefaultMessages(
                 serial = pubSubMessage.serial,
                 text = data.text,
                 metadata = data.metadata ?: MessageMetadata(),
-                headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.toMap() ?: mapOf(),
+                headers = pubSubMessage.extras?.asJsonObject()?.tryAsJsonValue()?.tryAsJsonObject()?.get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
                 version = pubSubMessage.version,
                 timestamp = pubSubMessage.timestamp,
@@ -552,14 +553,15 @@ internal class DefaultMessages(
 private data class PubSubMessageData(val text: String, val metadata: MessageMetadata?)
 
 private fun parsePubSubMessageData(action: ChatMessageEventType, data: Any): PubSubMessageData {
-    if (data !is JsonObject) {
+    val json = data.tryAsJsonValue()
+    if (json == null) {
         throw serverError("Unrecognized Pub/Sub channel's message for `Message.created` event")
     }
 
-    val text = if (action == ChatMessageEventType.Deleted) "" else data.requireString("text")
+    val text = if (action == ChatMessageEventType.Deleted) "" else json.requireString("text")
 
     return PubSubMessageData(
         text = text,
-        metadata = data.getAsJsonObject("metadata"),
+        metadata = json.tryAsJsonObject()?.get("metadata")?.tryAsJsonObject(),
     )
 }

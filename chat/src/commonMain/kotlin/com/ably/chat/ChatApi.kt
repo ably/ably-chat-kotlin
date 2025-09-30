@@ -1,9 +1,9 @@
 package com.ably.chat
 
+import com.ably.chat.json.JsonValue
+import com.ably.chat.json.jsonObject
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
 import io.ably.lib.types.ErrorInfo
@@ -45,10 +45,12 @@ internal class ChatApi(
             method = HttpMethod.Get,
             params = params,
         ) {
-            val messageJsonObject = it.requireJsonObject()
-            val latestAction = messageJsonObject.get(MessageProperty.Action)?.asString?.let { name -> messageActionNameToAction[name] }
-            val operation = messageJsonObject.getAsJsonObject(MessageProperty.Operation)
-            val reactions = messageJsonObject.getAsJsonObject(MessageProperty.Reactions)
+            val messageJsonObject = it.tryAsJsonObject()
+            val latestAction = messageJsonObject?.get(
+                MessageProperty.Action,
+            )?.tryAsString()?.let { name -> messageActionNameToAction[name] }
+            val operation = messageJsonObject?.get(MessageProperty.Operation)?.tryAsJsonObject()
+            val reactions = messageJsonObject?.get(MessageProperty.Reactions)?.tryAsJsonObject()
             latestAction?.let { action ->
                 logger.debug("getMessages();", context = mapOf("roomName" to roomName, "message" to messageJsonObject.toString()))
 
@@ -63,7 +65,7 @@ internal class ChatApi(
                     clientId = messageJsonObject.requireString(MessageProperty.ClientId),
                     text = text,
                     createdAt = messageJsonObject.requireLong(MessageProperty.CreatedAt),
-                    metadata = messageJsonObject.getAsJsonObject(MessageProperty.Metadata) ?: MessageMetadata(),
+                    metadata = messageJsonObject[MessageProperty.Metadata]?.tryAsJsonObject() ?: MessageMetadata(),
                     headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),
                     action = action,
                     version = messageJsonObject.requireString(MessageProperty.Version),
@@ -203,20 +205,20 @@ internal class ChatApi(
         name?.let { add(Param("name", it)) }
     }
 
-    private fun buildMessageReactionsBody(type: MessageReactionType, name: String, count: Int = 1): JsonObject = JsonObject().apply {
-        addProperty("type", type.type)
-        addProperty("name", name)
+    private fun buildMessageReactionsBody(type: MessageReactionType, name: String, count: Int = 1) = jsonObject {
+        put("type", type.type)
+        put("name", name)
         if (type == MessageReactionType.Multiple) {
-            addProperty("count", count)
+            put("count", count)
         }
     }
 
     private suspend fun makeAuthorizedRequest(
         url: String,
         method: HttpMethod,
-        body: JsonElement? = null,
+        body: JsonValue? = null,
         params: List<Param> = listOf(),
-    ): JsonElement? = suspendCancellableCoroutine { continuation ->
+    ): JsonValue? = suspendCancellableCoroutine { continuation ->
         val requestBody = body.toRequestBody()
         realtimeClient.requestAsync(
             path = url,
@@ -226,7 +228,7 @@ internal class ChatApi(
             headers = listOf(),
             callback = object : AsyncHttpPaginatedResponse.Callback {
                 override fun onResponse(response: AsyncHttpPaginatedResponse?) {
-                    continuation.resume(response?.items()?.firstOrNull())
+                    continuation.resume(response?.items()?.firstOrNull()?.tryAsJsonValue())
                 }
 
                 override fun onError(reason: ErrorInfo?) {
@@ -250,7 +252,7 @@ internal class ChatApi(
         url: String,
         method: HttpMethod,
         params: List<Param> = listOf(),
-        transform: (JsonElement) -> T?,
+        transform: (JsonValue) -> T?,
     ): PaginatedResult<T> = suspendCancellableCoroutine { continuation ->
         realtimeClient.requestAsync(
             method = method,

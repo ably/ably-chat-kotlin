@@ -1,10 +1,9 @@
 package com.ably.chat
 
+import com.ably.chat.json.JsonObject
+import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
-import com.google.gson.JsonElement
-import com.google.gson.JsonNull
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.CompletionListener
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ChannelOptions
@@ -72,11 +71,11 @@ internal suspend fun RealtimePresence.getCoroutine(
     get(waitForSync = waitForSync, clientId = clientId, connectionId = connectionId)
 }
 
-internal suspend fun RealtimePresence.enterClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
+internal suspend fun RealtimePresence.enterClientCoroutine(clientId: String, data: JsonObject?) =
     suspendCancellableCoroutine { continuation ->
         enterClient(
             clientId,
-            data,
+            data?.toGson(),
             object : CompletionListener {
                 override fun onSuccess() {
                     continuation.resume(Unit)
@@ -89,11 +88,11 @@ internal suspend fun RealtimePresence.enterClientCoroutine(clientId: String, dat
         )
     }
 
-internal suspend fun RealtimePresence.updateClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
+internal suspend fun RealtimePresence.updateClientCoroutine(clientId: String, data: JsonObject?) =
     suspendCancellableCoroutine { continuation ->
         updateClient(
             clientId,
-            data,
+            data?.toGson(),
             object : CompletionListener {
                 override fun onSuccess() {
                     continuation.resume(Unit)
@@ -106,11 +105,11 @@ internal suspend fun RealtimePresence.updateClientCoroutine(clientId: String, da
         )
     }
 
-internal suspend fun RealtimePresence.leaveClientCoroutine(clientId: String, data: JsonElement? = JsonNull.INSTANCE) =
+internal suspend fun RealtimePresence.leaveClientCoroutine(clientId: String, data: JsonObject?) =
     suspendCancellableCoroutine { continuation ->
         leaveClient(
             clientId,
-            data,
+            data?.toGson(),
             object : CompletionListener {
                 override fun onSuccess() {
                     continuation.resume(Unit)
@@ -140,7 +139,7 @@ internal fun ChatChannelOptions(init: (ChannelOptions.() -> Unit)? = null): Chan
  */
 internal fun Message.asEphemeralMessage(): Message {
     return apply {
-        extras = extras ?: MessageExtras(JsonObject())
+        extras = extras ?: MessageExtras(jsonObject {}.toGson().asJsonObject)
         extras.asJsonObject().addProperty("ephemeral", true)
     }
 }

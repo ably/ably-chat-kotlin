@@ -1,9 +1,8 @@
 package com.ably.chat
 
+import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeClient
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import io.ably.lib.realtime.RealtimeAnnotations
 import io.ably.lib.realtime.buildRealtimeChannel
 import io.ably.lib.types.AblyException
@@ -78,20 +77,14 @@ class MessagesReactionsTest {
                 createdAt = 1000L
                 summary = Summary(
                     mapOf(
-                        "reaction:distinct.v1" to JsonObject().apply {
-                            add(
-                                "heart",
-                                JsonObject().apply {
-                                    addProperty("total", 1)
-                                    add(
-                                        "clientIds",
-                                        JsonArray().apply {
-                                            add("clientId")
-                                        },
-                                    )
-                                },
-                            )
-                        },
+                        "reaction:distinct.v1" to jsonObject {
+                            putObject("heart") {
+                                put("total", 1)
+                                putArray("clientIds") {
+                                    add("clientId")
+                                }
+                            }
+                        }.toGson().asJsonObject,
                     ),
                 )
                 action = MessageAction.MESSAGE_SUMMARY
