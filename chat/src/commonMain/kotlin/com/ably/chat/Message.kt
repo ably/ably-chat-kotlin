@@ -93,12 +93,12 @@ public interface MessageVersion {
     /**
      * A unique identifier for the latest version of this message.
      */
-    public val serial: String?
+    public val serial: String
 
     /**
      * The timestamp at which this version was updated, deleted, or created.
      */
-    public val timestamp: Long?
+    public val timestamp: Long
 
     /**
      * The optional clientId of the user who performed the update or deletion.
@@ -163,15 +163,7 @@ public fun Message.with(
     ) ?: throw clientError("Message interface is not suitable for inheritance")
 }
 
-internal operator fun MessageVersion.compareTo(other: MessageVersion): Int {
-    // If one our version serials isn't set, cannot compare
-    if (serial == null || other.serial == null) {
-        return -1
-    }
-
-    // Use the comparator to determine the comparison
-    return compareValuesBy(this, other, { it.serial })
-}
+internal operator fun MessageVersion.compareTo(other: MessageVersion): Int = compareValuesBy(this, other) { it.serial }
 
 public fun Message.with(
     event: MessageReactionSummaryEvent,
@@ -213,8 +205,8 @@ internal data class DefaultMessageReactions(
 ) : MessageReactions
 
 internal data class DefaultMessageVersion(
-    override val serial: String? = null,
-    override val timestamp: Long? = null,
+    override val serial: String,
+    override val timestamp: Long,
     override val clientId: String? = null,
     override val description: String? = null,
     override val metadata: Map<String, String>? = null,

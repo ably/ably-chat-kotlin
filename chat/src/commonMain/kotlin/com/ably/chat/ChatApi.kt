@@ -132,8 +132,8 @@ internal class ChatApi(
             action = action,
             reactions = buildMessageReactions(reactions),
             version = DefaultMessageVersion(
-                serial = version?.get(MessageVersionProperty.Serial)?.tryAsString(),
-                timestamp = version?.get(MessageVersionProperty.Timestamp)?.tryAsLong(),
+                serial = version?.get(MessageVersionProperty.Serial)?.tryAsString() ?: messageSerial,
+                timestamp = version?.get(MessageVersionProperty.Timestamp)?.tryAsLong() ?: messageTimestamp,
                 clientId = version?.get(MessageVersionProperty.ClientId)?.tryAsString(),
                 description = version?.get(MessageVersionProperty.Description)?.tryAsString(),
                 metadata = version?.get(MessageVersionProperty.Metadata)?.toMap(),
