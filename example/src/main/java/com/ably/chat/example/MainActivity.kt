@@ -51,10 +51,12 @@ import com.ably.chat.RoomReaction
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.asFlow
 import com.ably.chat.copy
+import com.ably.chat.delete
 import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
 import com.ably.chat.extensions.compose.collectAsCurrentlyTyping
 import com.ably.chat.extensions.compose.collectAsPagingMessagesState
+import com.ably.chat.update
 import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.types.ClientOptions
 import java.util.UUID

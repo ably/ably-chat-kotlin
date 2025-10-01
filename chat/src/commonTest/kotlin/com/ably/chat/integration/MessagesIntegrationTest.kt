@@ -8,8 +8,10 @@ import com.ably.chat.PlatformSpecificAgent
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.copy
+import com.ably.chat.delete
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.RoomOptionsWithAllFeatures
+import com.ably.chat.update
 import io.ably.lib.realtime.channelOptions
 import io.ably.lib.types.MessageAction
 import java.util.UUID

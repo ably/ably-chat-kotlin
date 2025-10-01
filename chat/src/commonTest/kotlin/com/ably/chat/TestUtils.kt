@@ -31,7 +31,7 @@ fun buildAsyncHttpPaginatedResponse(items: List<JsonValue>): AsyncHttpPaginatedR
 
 fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<JsonValue>, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v4/rooms/$roomName/messages", any(), HttpMethod.Get, any(), any(), any())
+        realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/messages", any(), HttpMethod.Get, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -42,7 +42,57 @@ fun mockMessagesApiResponse(realtimeClientMock: RealtimeClient, response: List<J
 
 fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v4/rooms/$roomName/messages", any(), HttpMethod.Post, any(), any(), any())
+        realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/messages", any(), HttpMethod.Post, any(), any(), any())
+    } answers {
+        val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
+        callback.onResponse(
+            buildAsyncHttpPaginatedResponse(
+                listOf(response),
+            ),
+        )
+    }
+}
+
+fun mockUpdateMessageApiResponse(
+    realtimeClientMock: RealtimeClient,
+    response: JsonValue,
+    roomName: String = "roomName",
+    serial: String = "timeserial",
+) {
+    every {
+        realtimeClientMock.requestAsync(
+            "/chat/v4/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}",
+            any(),
+            HttpMethod.Put,
+            any(),
+            any(),
+            any(),
+        )
+    } answers {
+        val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
+        callback.onResponse(
+            buildAsyncHttpPaginatedResponse(
+                listOf(response),
+            ),
+        )
+    }
+}
+
+fun mockDeleteMessageApiResponse(
+    realtimeClientMock: RealtimeClient,
+    response: JsonValue,
+    roomName: String = "roomName",
+    serial: String = "timeserial",
+) {
+    every {
+        realtimeClientMock.requestAsync(
+            "/chat/v4/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}/delete",
+            any(),
+            HttpMethod.Post,
+            any(),
+            any(),
+            any(),
+        )
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -55,7 +105,7 @@ fun mockSendMessageApiResponse(realtimeClientMock: RealtimeClient, response: Jso
 
 fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v4/rooms/$roomName/occupancy", any(), HttpMethod.Get, any(), any(), any())
+        realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/occupancy", any(), HttpMethod.Get, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -96,7 +146,7 @@ fun Any.setPrivateField(name: String, value: Any?) {
     valueField.set(this, value)
 }
 
-fun <T>Any.getPrivateField(name: String): T {
+fun <T> Any.getPrivateField(name: String): T {
     val valueField = javaClass.findField(name)
     valueField.isAccessible = true
     @Suppress("UNCHECKED_CAST")
@@ -117,7 +167,7 @@ private fun Class<*>.findField(name: String): Field {
     return result.getOrNull() as Field
 }
 
-suspend fun <T>Any.invokePrivateSuspendMethod(methodName: String, vararg args: Any?) = suspendCancellableCoroutine<T> { cont ->
+suspend fun <T> Any.invokePrivateSuspendMethod(methodName: String, vararg args: Any?) = suspendCancellableCoroutine<T> { cont ->
     val suspendMethod = javaClass.declaredMethods.find { it.name == methodName }
     suspendMethod?.let {
         it.isAccessible = true
