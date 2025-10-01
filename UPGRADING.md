@@ -2,6 +2,61 @@
 
 This guide provides detailed instructions on how to upgrade between versions of the Chat SDK.
 
+## 0.7.x to 0.8.x
+
+### Protocol v4 changes
+
+**Expected Impact: Medium**
+
+The Chat SDK now supports protocol v4, which introduces changes to message structure and handling.
+
+#### Message Structure Changes
+
+**Before**
+
+```kotlin
+val message: Message = getMessage()
+val versionSerial: String = message.serial
+val createdAt: Long = message.createdAt
+val updatedAt: Long = message.timestamp
+```
+
+**After**
+
+```kotlin
+val message: Message = getMessage()
+val versionSerial: String = message.version.serial
+val createdAt: Long = message.timestamp
+val updatedAt: Long = message.version.timestamp
+```
+
+### Custom JSON Implementation
+
+**Expected Impact: Low**
+
+The SDK has replaced Gson with a custom JSON interface to reduce external dependencies.
+
+Affected fields: `Message.metadata`, `RoomReaction.metadata`, `Presence.data`
+
+To build a JSON object to send, use the `jsonObject` builder from `com.ably.chat.json`:
+
+```kotlin
+presence.enter(jsonObject {
+    put("status", "active")
+    putObject("profile") {
+        put("username", "John Doe")
+        put("img", "https://example.com/img")
+    }
+})
+```
+
+### Presence Data JsonObject
+
+**Expected Impact: Low**
+
+Presence data must be a `JsonObject` rather than an arbitrary JSON value.
+The `enter()`, `leave()`, and `update()` methods now accept only a `JsonObject`.
+
 ## 0.4.x to 0.5.x
 
 ### Room Reaction Wire Protocol

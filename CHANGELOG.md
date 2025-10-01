@@ -1,5 +1,27 @@
 # Change Log
 
+## [0.8.0](https://github.com/ably/ably-chat-kotlin/tree/v0.8.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.7.0...v0.8.0)
+
+## What's Changed
+
+The following features have been added in this release:
+
+- **Protocol v4 support** Added support for Chat protocol v4, enabling enhanced message handling. [#161](https://github.com/ably/ably-chat-kotlin/pull/161)
+- **Destructuring syntax** Added destructuring syntax for subscription handling, providing more convenient API usage. [#159](https://github.com/ably/ably-chat-kotlin/pull/159)
+- **Custom JSON implementation** Replaced Gson with custom JSON implementation to reduce dependencies [#160](https://github.com/ably/ably-chat-kotlin/pull/160)
+
+### Breaking changes
+
+This release includes several breaking changes:
+
+- `Message` structure has changed.
+- Replaced `Gson` with a custom JSON interface.
+- Presence Data must be a JsonObject.
+
+For detailed migration instructions, please refer to the [Upgrading Guide](UPGRADING.md).
+
 ## [0.7.0](https://github.com/ably/ably-chat-kotlin/tree/v0.7.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.6.0...v0.7.0)
