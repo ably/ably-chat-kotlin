@@ -167,7 +167,7 @@ internal class DefaultRoomReactions(
                 name = data.requireString("name"),
                 createdAt = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
-                metadata = data.tryAsJsonObject()?.get("metadata")?.tryAsJsonObject() ?: ReactionMetadata(),
+                metadata = data.jsonObjectOrNull()?.get("metadata")?.jsonObjectOrNull() ?: ReactionMetadata(),
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.tryAsJsonValue()?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )

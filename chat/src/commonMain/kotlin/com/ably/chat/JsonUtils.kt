@@ -11,26 +11,31 @@ import io.ably.lib.http.HttpUtils
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.ErrorInfo
 
-internal fun JsonValue.tryAsString(): String? = when (this) {
+internal fun JsonValue.stringOrNull(): String? = when (this) {
     is JsonString -> this.value
     is JsonNumber -> this.value.toString()
     is JsonBoolean -> this.value.toString()
     else -> null
 }
 
-internal fun JsonValue.tryAsLong(): Long? = when (this) {
+internal fun JsonValue.longOrNull(): Long? = when (this) {
     is JsonString -> safeCastToNumber { this.value.toLong() }
     is JsonNumber -> this.value.toLong()
     else -> null
 }
 
-internal fun JsonValue.tryAsInt(): Int? = when (this) {
+internal fun JsonValue.intOrNull(): Int? = when (this) {
     is JsonString -> safeCastToNumber { this.value.toInt() }
     is JsonNumber -> this.value.toInt()
     else -> null
 }
 
-internal fun JsonValue.tryAsJsonObject(): JsonObject? = when (this) {
+internal fun JsonValue.getOrNull(field: String): JsonValue? = when (this) {
+    is JsonObject -> get(field)
+    else -> null
+}
+
+internal fun JsonValue.jsonObjectOrNull(): JsonObject? = when (this) {
     is JsonObject -> this
     else -> null
 }
@@ -45,7 +50,7 @@ internal fun Map<String, String>.toJson() = jsonObject {
 internal fun JsonValue.toMap(): Map<String, String> = when (this) {
     is JsonObject -> buildMap {
         this@toMap.forEach {
-            it.value.tryAsString()?.let { value -> put(it.key, value) }
+            it.value.stringOrNull()?.let { value -> put(it.key, value) }
         }
     }
 
@@ -61,21 +66,14 @@ internal fun JsonValue.requireJsonObject(): JsonObject {
 
 internal fun JsonValue.requireString(memberName: String): String {
     val memberElement = requireField(memberName)
-    return memberElement.tryAsString() ?: throw serverError(
+    return memberElement.stringOrNull() ?: throw serverError(
         "Required string field \"$memberName\" is not a valid string",
     )
 }
 
 internal fun JsonValue.requireLong(memberName: String): Long {
     val memberElement = requireField(memberName)
-    return memberElement.tryAsLong() ?: throw serverError(
-        "Required numeric field \"$memberName\" is not a valid number",
-    )
-}
-
-internal fun JsonValue.requireInt(memberName: String): Int {
-    val memberElement = requireField(memberName)
-    return memberElement.tryAsInt() ?: throw serverError(
+    return memberElement.longOrNull() ?: throw serverError(
         "Required numeric field \"$memberName\" is not a valid number",
     )
 }
