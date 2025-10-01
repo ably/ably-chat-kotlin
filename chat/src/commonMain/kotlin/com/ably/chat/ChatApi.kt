@@ -112,30 +112,30 @@ internal class ChatApi(
     }
 
     private fun tryParseMessageResponse(json: JsonValue): Message? {
-        val messageJsonObject = json.tryAsJsonObject() ?: return null
+        val messageJsonObject = json.jsonObjectOrNull() ?: return null
         val action = messageJsonObject[MessageProperty.Action]
-            ?.tryAsString()?.let { name -> messageActionNameToAction[name] } ?: MessageAction.MESSAGE_CREATE
-        val version = messageJsonObject[MessageProperty.Version]?.tryAsJsonObject()
-        val reactions = messageJsonObject[MessageProperty.Reactions]?.tryAsJsonObject()
-        val text = messageJsonObject[MessageProperty.Text]?.tryAsString() ?: ""
-        val messageSerial = messageJsonObject[MessageProperty.Serial]?.tryAsString() ?: return null
-        val messageClientId = messageJsonObject[MessageProperty.ClientId]?.tryAsString() ?: return null
-        val messageTimestamp = messageJsonObject[MessageProperty.Timestamp]?.tryAsLong() ?: return null
+            ?.stringOrNull()?.let { name -> messageActionNameToAction[name] } ?: MessageAction.MESSAGE_CREATE
+        val version = messageJsonObject[MessageProperty.Version]?.jsonObjectOrNull()
+        val reactions = messageJsonObject[MessageProperty.Reactions]?.jsonObjectOrNull()
+        val text = messageJsonObject[MessageProperty.Text]?.stringOrNull() ?: ""
+        val messageSerial = messageJsonObject[MessageProperty.Serial]?.stringOrNull() ?: return null
+        val messageClientId = messageJsonObject[MessageProperty.ClientId]?.stringOrNull() ?: return null
+        val messageTimestamp = messageJsonObject[MessageProperty.Timestamp]?.longOrNull() ?: return null
 
         return DefaultMessage(
             serial = messageSerial,
             clientId = messageClientId,
             text = text,
             timestamp = messageTimestamp,
-            metadata = messageJsonObject[MessageProperty.Metadata]?.tryAsJsonObject() ?: MessageMetadata(),
+            metadata = messageJsonObject[MessageProperty.Metadata]?.jsonObjectOrNull() ?: MessageMetadata(),
             headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),
             action = action,
             reactions = buildMessageReactions(reactions),
             version = DefaultMessageVersion(
-                serial = version?.get(MessageVersionProperty.Serial)?.tryAsString() ?: messageSerial,
-                timestamp = version?.get(MessageVersionProperty.Timestamp)?.tryAsLong() ?: messageTimestamp,
-                clientId = version?.get(MessageVersionProperty.ClientId)?.tryAsString(),
-                description = version?.get(MessageVersionProperty.Description)?.tryAsString(),
+                serial = version?.get(MessageVersionProperty.Serial)?.stringOrNull() ?: messageSerial,
+                timestamp = version?.get(MessageVersionProperty.Timestamp)?.longOrNull() ?: messageTimestamp,
+                clientId = version?.get(MessageVersionProperty.ClientId)?.stringOrNull(),
+                description = version?.get(MessageVersionProperty.Description)?.stringOrNull(),
                 metadata = version?.get(MessageVersionProperty.Metadata)?.toMap(),
             ),
         )
@@ -149,8 +149,8 @@ internal class ChatApi(
         return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomName" to roomName, "response" to it.toString()))
             DefaultOccupancyData(
-                connections = it.requireInt("connections"),
-                presenceMembers = it.requireInt("presenceMembers"),
+                connections = it.getOrNull("connections")?.intOrNull() ?: 0,
+                presenceMembers = it.getOrNull("presenceMembers")?.intOrNull() ?: 0,
             )
         } ?: throw serverError("Occupancy endpoint returned empty value")
     }

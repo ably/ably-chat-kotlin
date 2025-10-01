@@ -438,7 +438,7 @@ internal class DefaultMessages(
                 serial = pubSubMessage.serial,
                 text = data.text,
                 metadata = data.metadata ?: MessageMetadata(),
-                headers = pubSubMessage.extras?.asJsonObject()?.tryAsJsonValue()?.tryAsJsonObject()?.get("headers")?.toMap() ?: mapOf(),
+                headers = pubSubMessage.extras?.asJsonObject()?.tryAsJsonValue()?.jsonObjectOrNull()?.get("headers")?.toMap() ?: mapOf(),
                 action = pubSubMessage.action,
                 version = DefaultMessageVersion(
                     serial = pubSubMessage.version.serial ?: pubSubMessage.serial,
@@ -566,6 +566,6 @@ private fun parsePubSubMessageData(action: ChatMessageEventType, data: Any): Pub
 
     return PubSubMessageData(
         text = text,
-        metadata = json.tryAsJsonObject()?.get("metadata")?.tryAsJsonObject(),
+        metadata = json.jsonObjectOrNull()?.get("metadata")?.jsonObjectOrNull(),
     )
 }

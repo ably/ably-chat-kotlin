@@ -215,7 +215,7 @@ internal class DefaultOccupancy(
             return
         }
 
-        val metrics = data.tryAsJsonObject()?.get("metrics")
+        val metrics = data.jsonObjectOrNull()?.get("metrics")
 
         if (metrics == null) {
             logger.error(
@@ -228,7 +228,7 @@ internal class DefaultOccupancy(
             return
         }
 
-        val connections = metrics.tryAsJsonObject()?.get("connections")?.tryAsInt()
+        val connections = metrics.jsonObjectOrNull()?.get("connections")?.intOrNull()
 
         if (connections == null) {
             logger.error(
@@ -241,7 +241,7 @@ internal class DefaultOccupancy(
             return
         }
 
-        val presenceMembers = metrics.tryAsJsonObject()?.get("presenceMembers")?.tryAsInt()
+        val presenceMembers = metrics.jsonObjectOrNull()?.get("presenceMembers")?.intOrNull()
 
         if (presenceMembers == null) {
             logger.error(

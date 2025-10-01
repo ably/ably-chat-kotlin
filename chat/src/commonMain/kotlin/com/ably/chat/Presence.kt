@@ -155,7 +155,7 @@ internal class DefaultPresence(
             DefaultPresenceMember(
                 clientId = user.clientId,
                 connectionId = user.connectionId,
-                data = user.data.tryAsJsonValue()?.tryAsJsonObject(),
+                data = user.data.tryAsJsonValue()?.jsonObjectOrNull(),
                 updatedAt = user.timestamp,
             )
         }
@@ -190,7 +190,7 @@ internal class DefaultPresence(
                 clientId = it.clientId,
                 connectionId = it.connectionId,
                 updatedAt = it.timestamp,
-                data = it.data.tryAsJsonValue()?.tryAsJsonObject(),
+                data = it.data.tryAsJsonValue()?.jsonObjectOrNull(),
             )
             val presenceEvent = DefaultPresenceEvent(
                 type = PresenceEventType.fromPresenceAction(it.action),

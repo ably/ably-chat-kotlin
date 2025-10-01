@@ -180,7 +180,7 @@ class ChatApiTest {
      * @nospec
      */
     @Test
-    fun `getOccupancy should throw exception if 'connections' field is not presented`() = runTest {
+    fun `getOccupancy should return 0 if field is not presented`() = runTest {
         mockOccupancyApiResponse(
             realtime,
             jsonObject {
@@ -188,8 +188,9 @@ class ChatApiTest {
             },
         )
 
-        assertThrows(AblyException::class.java) {
-            runBlocking { chatApi.getOccupancy("roomName") }
-        }
+        assertEquals(
+            DefaultOccupancyData(0, 1_000),
+            chatApi.getOccupancy("roomName"),
+        )
     }
 }
