@@ -208,7 +208,7 @@ internal class DefaultOccupancy(
             logger.error(
                 "invalid occupancy event received; data is not an object",
                 context = mapOf(
-                    "message" to message.toString(),
+                    "message" to message,
                 ),
             )
             // (CHA-04d)
@@ -221,7 +221,7 @@ internal class DefaultOccupancy(
             logger.error(
                 "invalid occupancy event received; metrics is missing",
                 context = mapOf(
-                    "data" to data.toString(),
+                    "data" to data,
                 ),
             )
             // (CHA-04d)
@@ -234,7 +234,7 @@ internal class DefaultOccupancy(
             logger.error(
                 "invalid occupancy event received; connections is missing",
                 context = mapOf(
-                    "data" to data.toString(),
+                    "data" to data,
                 ),
             )
             // (CHA-04d)
@@ -247,7 +247,7 @@ internal class DefaultOccupancy(
             logger.error(
                 "invalid occupancy event received; presenceMembers is missing",
                 context = mapOf(
-                    "data" to data.toString(),
+                    "data" to data,
                 ),
             )
             // (CHA-04d)

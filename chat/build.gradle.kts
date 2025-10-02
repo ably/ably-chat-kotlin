@@ -50,6 +50,9 @@ kotlin {
             implementation(libs.nanohttpd)
             implementation(libs.turbine)
         }
+        androidUnitTest.dependencies {
+            implementation(libs.robolectric)
+        }
     }
 }
 

@@ -13,7 +13,7 @@ public final class com/ably/chat/ChatClientKt {
 }
 
 public abstract interface class com/ably/chat/ChatClientOptions {
-	public abstract fun getLogHandler ()Lcom/ably/chat/LogHandler;
+	public abstract fun getLogHandler ()Lkotlin/jvm/functions/Function1;
 	public abstract fun getLogLevel ()Lcom/ably/chat/LogLevel;
 	public abstract fun getStateDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 }
@@ -113,14 +113,13 @@ public final class com/ably/chat/HttpStatusCode {
 	public static final field Unauthorized I
 }
 
-public abstract interface class com/ably/chat/LogContext {
-	public abstract fun getDynamicContext ()Ljava/util/Map;
-	public abstract fun getStaticContext ()Ljava/util/Map;
-	public abstract fun getTag ()Ljava/lang/String;
-}
-
-public abstract interface class com/ably/chat/LogHandler {
-	public abstract fun log (Ljava/lang/String;Lcom/ably/chat/LogLevel;Ljava/lang/Throwable;Lcom/ably/chat/LogContext;)V
+public final class com/ably/chat/LogEntry {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/LogLevel;Ljava/util/Map;Ljava/lang/Throwable;)V
+	public final fun getContext ()Ljava/util/Map;
+	public final fun getLevel ()Lcom/ably/chat/LogLevel;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getTag ()Ljava/lang/String;
+	public final fun getThrowable ()Ljava/lang/Throwable;
 }
 
 public final class com/ably/chat/LogLevel : java/lang/Enum {
@@ -131,7 +130,6 @@ public final class com/ably/chat/LogLevel : java/lang/Enum {
 	public static final field Trace Lcom/ably/chat/LogLevel;
 	public static final field Warn Lcom/ably/chat/LogLevel;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public final fun getLogLevelValue ()I
 	public static fun valueOf (Ljava/lang/String;)Lcom/ably/chat/LogLevel;
 	public static fun values ()[Lcom/ably/chat/LogLevel;
 }
@@ -296,10 +294,10 @@ public final class com/ably/chat/MessagesSubscription$DefaultImpls {
 
 public final class com/ably/chat/MutableChatClientOptions : com/ably/chat/ChatClientOptions {
 	public fun <init> ()V
-	public fun getLogHandler ()Lcom/ably/chat/LogHandler;
+	public fun getLogHandler ()Lkotlin/jvm/functions/Function1;
 	public fun getLogLevel ()Lcom/ably/chat/LogLevel;
 	public fun getStateDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
-	public fun setLogHandler (Lcom/ably/chat/LogHandler;)V
+	public fun setLogHandler (Lkotlin/jvm/functions/Function1;)V
 	public fun setLogLevel (Lcom/ably/chat/LogLevel;)V
 	public fun setStateDispatcher (Lkotlinx/coroutines/CoroutineDispatcher;)V
 }

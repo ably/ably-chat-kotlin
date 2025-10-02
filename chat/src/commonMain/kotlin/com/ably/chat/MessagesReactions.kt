@@ -346,7 +346,7 @@ internal class DefaultMessagesReactions(
                 "messageSerial" to messageSerial,
                 "name" to name,
                 "type" to reactionType.name,
-                "count" to count.toString(),
+                "count" to count,
             ),
         )
 
@@ -447,13 +447,13 @@ internal class DefaultMessagesReactions(
     }
 
     private fun internalMessageSummaryListener(message: PubSubMessage) {
-        logger.trace("MessagesReactions.internalSummaryListener();", context = mapOf("message" to message.toString()))
+        logger.trace("MessagesReactions.internalSummaryListener();", context = mapOf("message" to message))
 
         // only process summary events with the serial
         if (message.action !== MessageAction.MESSAGE_SUMMARY || message.serial == null) {
             message.serial ?: logger.warn(
                 "DefaultMessageReactions.internalSummaryListener(); received summary without serial",
-                context = mapOf("message" to message.toString()),
+                context = mapOf("message" to message),
             )
 
             return
@@ -500,7 +500,7 @@ internal class DefaultMessagesReactions(
         if (annotation.messageSerial == null) {
             logger.warn(
                 "MessagesReactions.internalAnnotationListener(); received event with missing messageSerial",
-                context = mapOf("annotation" to annotation.toString()),
+                context = mapOf("annotation" to annotation),
             )
             return
         }
@@ -508,7 +508,7 @@ internal class DefaultMessagesReactions(
         val reactionType = MessageReactionType.tryFind(annotation.type) ?: run {
             logger.debug(
                 "DefaultMessageReactions.internalAnnotationListener(); received event with unknown type",
-                context = mapOf("annotation" to annotation.toString()),
+                context = mapOf("annotation" to annotation),
             )
             return
         }

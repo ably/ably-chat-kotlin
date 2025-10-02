@@ -12,7 +12,7 @@ public interface ChatClientOptions {
      * A custom log handler that will be used to log messages from the client.
      * @defaultValue The client will log messages to the console.
      */
-    public val logHandler: LogHandler?
+    public val logHandler: ((logEntry: LogEntry) -> Unit)?
 
     /**
      * The minimum log level at which messages will be logged.
@@ -31,7 +31,7 @@ public interface ChatClientOptions {
 
 @ChatDsl
 public class MutableChatClientOptions : ChatClientOptions {
-    override var logHandler: LogHandler? = null
+    override var logHandler: ((logEntry: LogEntry) -> Unit)? = null
     override var logLevel: LogLevel = LogLevel.Error
 
     @ExperimentalChatApi

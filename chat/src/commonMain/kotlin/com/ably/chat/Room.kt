@@ -139,7 +139,7 @@ internal class DefaultRoom(
     internal val clientId: String,
     logger: Logger,
 ) : Room {
-    internal val logger = logger.withContext("Room", mapOf("name" to name))
+    internal val logger = logger.withContext("Room", mapOf("roomName" to name))
 
     /**
      * Spec: CHA-RC3a, CHA-RC3c
