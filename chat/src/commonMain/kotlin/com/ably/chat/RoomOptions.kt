@@ -176,24 +176,34 @@ internal data class EquatableRoomOptions(
     override val reactions: RoomReactionsOptions,
     override val occupancy: OccupancyOptions,
     override val messages: MessageOptions,
-) : RoomOptions
+) : RoomOptions {
+    override fun toString(): String = "{presence=$presence, typing=$typing, occupancy=$occupancy, messages=$messages}"
+}
 
 internal data class EquatablePresenceOptions(
     override val enableEvents: Boolean,
-) : PresenceOptions
+) : PresenceOptions {
+    override fun toString(): String = "{enableEvents=$enableEvents}"
+}
 
 internal data class EquatableTypingOptions(
     override val heartbeatThrottle: Duration,
-) : TypingOptions
+) : TypingOptions {
+    override fun toString(): String = "{heartbeatThrottle=$heartbeatThrottle}"
+}
 
 internal data class EquatableOccupancyOptions(
     override val enableEvents: Boolean,
-) : OccupancyOptions
+) : OccupancyOptions {
+    override fun toString(): String = "{enableEvents=$enableEvents}"
+}
 
 internal data class EquatableMessageOptions(
     override val rawMessageReactions: Boolean,
     override val defaultMessageReactionType: MessageReactionType,
-) : MessageOptions
+) : MessageOptions {
+    override fun toString(): String = "{rawMessageReactions=$rawMessageReactions, defaultMessageReactionType=$defaultMessageReactionType}"
+}
 
 internal data object EquatableRoomReactionsOptions : RoomReactionsOptions
 

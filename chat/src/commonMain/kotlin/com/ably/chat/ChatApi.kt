@@ -36,8 +36,8 @@ internal class ChatApi(
      */
     suspend fun getMessages(roomName: String, options: QueryOptions, fromSerial: String? = null): PaginatedResult<Message> {
         logger.trace(
-            "getMessages();",
-            context = mapOf("roomName" to roomName, "options" to options.toString(), "fromSerial" to fromSerial.toString()),
+            "getMessages()",
+            context = mapOf("roomName" to roomName, "options" to options, "fromSerial" to fromSerial),
         )
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
@@ -52,7 +52,7 @@ internal class ChatApi(
      * Spec: CHA-M3
      */
     suspend fun sendMessage(roomName: String, params: SendMessageParams): Message {
-        logger.trace("sendMessage();", context = mapOf("roomName" to roomName, "params" to params.toString()))
+        logger.trace("sendMessage()", context = mapOf("roomName" to roomName, "params" to params))
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
@@ -62,7 +62,7 @@ internal class ChatApi(
         )?.let {
             val serial = it.requireString(MessageProperty.Serial)
             val timestamp = it.requireLong(MessageProperty.Timestamp)
-            logger.debug("sendMessage();", context = mapOf("roomName" to roomName, "response" to it.toString()))
+            logger.debug("sendMessage()", context = mapOf("roomName" to roomName, "response" to it))
             // CHA-M3a
             DefaultMessage(
                 serial = serial,
@@ -84,7 +84,7 @@ internal class ChatApi(
      * Spec: CHA-M8
      */
     suspend fun updateMessage(roomName: String, serial: String, params: UpdateMessageParams): Message {
-        logger.trace("updateMessage();", context = mapOf("message" to serial, "params" to params.toString()))
+        logger.trace("updateMessage()", context = mapOf("message" to serial, "params" to params))
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
@@ -100,7 +100,7 @@ internal class ChatApi(
      * Spec: CHA-M9
      */
     suspend fun deleteMessage(roomName: String, serial: String, params: DeleteMessageParams): Message {
-        logger.trace("deleteMessage();", context = mapOf("message" to serial, "params" to params.toString()))
+        logger.trace("deleteMessage()", context = mapOf("message" to serial, "params" to params))
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
@@ -146,9 +146,9 @@ internal class ChatApi(
      * return occupancy for specified room
      */
     suspend fun getOccupancy(roomName: String): OccupancyData {
-        logger.trace("getOccupancy();", context = mapOf("roomName" to roomName))
+        logger.trace("getOccupancy()", context = mapOf("roomName" to roomName))
         return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/occupancy", HttpMethod.Get)?.let {
-            logger.debug("getOccupancy();", context = mapOf("roomName" to roomName, "response" to it.toString()))
+            logger.debug("getOccupancy()", context = mapOf("roomName" to roomName, "response" to it))
             DefaultOccupancyData(
                 connections = it.getOrNull("connections")?.intOrNull() ?: 0,
                 presenceMembers = it.getOrNull("presenceMembers")?.intOrNull() ?: 0,
@@ -208,9 +208,9 @@ internal class ChatApi(
                         "ChatApi.makeAuthorizedRequest(); failed to make request",
                         context = mapOf(
                             "url" to url,
-                            "statusCode" to reason?.statusCode.toString(),
-                            "errorCode" to reason?.code.toString(),
-                            "errorMessage" to reason?.message.toString(),
+                            "statusCode" to reason?.statusCode,
+                            "errorCode" to reason?.code,
+                            "errorMessage" to reason?.message,
                         ),
                     )
                     // (CHA-M3e)
@@ -242,9 +242,9 @@ internal class ChatApi(
                         "ChatApi.makeAuthorizedPaginatedRequest(); failed to make request",
                         context = mapOf(
                             "url" to url,
-                            "statusCode" to reason?.statusCode.toString(),
-                            "errorCode" to reason?.code.toString(),
-                            "errorMessage" to reason?.message.toString(),
+                            "statusCode" to reason?.statusCode,
+                            "errorCode" to reason?.code,
+                            "errorMessage" to reason?.message,
                         ),
                     )
                     continuation.resumeWithException(AblyException.fromErrorInfo(reason))

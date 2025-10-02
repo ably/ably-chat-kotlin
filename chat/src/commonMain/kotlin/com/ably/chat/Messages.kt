@@ -385,7 +385,7 @@ internal class DefaultMessagesSubscription(
     internal val fromSerialProvider: () -> CompletableDeferred<String>,
     parentLogger: Logger,
 ) : MessagesSubscription {
-    private val logger = parentLogger.withContext(tag = "DefaultMessagesSubscription")
+    private val logger = parentLogger.withContext(tag = "MessagesSubscription")
 
     override fun unsubscribe() {
         logger.trace("unsubscribe(); roomName=$roomName")
@@ -472,7 +472,7 @@ internal class DefaultMessages(
     override fun subscribe(listener: Messages.Listener): MessagesSubscription {
         logger.trace("subscribe(); roomName=$roomName")
         val messageListener = PubSubMessageListener {
-            logger.debug("subscribe(); received message for roomName=$roomName", context = mapOf("message" to it.toString()))
+            logger.debug("subscribe(); received message for roomName=$roomName", context = mapOf("message" to it))
             val pubSubMessage = it ?: throw clientError("Got empty pubsub channel message")
             val eventType = messageActionToEventType[pubSubMessage.action]
                 ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
@@ -531,7 +531,7 @@ internal class DefaultMessages(
     override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message {
         logger.trace(
             "send(); roomName=$roomName, text=$text",
-            context = mapOf("metadata" to metadata.toString(), "headers" to headers.toString()),
+            context = mapOf("metadata" to metadata, "headers" to headers),
         )
         return chatApi.sendMessage(
             roomName,
@@ -549,7 +549,7 @@ internal class DefaultMessages(
     ): Message {
         logger.trace(
             "update(); roomName=$roomName, serial=$serial",
-            context = mapOf("description" to operationDescription.toString(), "metadata" to operationMetadata.toString()),
+            context = mapOf("description" to operationDescription, "metadata" to operationMetadata),
         )
         return chatApi.updateMessage(
             roomName,
@@ -569,7 +569,7 @@ internal class DefaultMessages(
     ): Message {
         logger.trace(
             "delete(); roomName=$roomName, serial=$serial",
-            context = mapOf("description" to operationDescription.toString(), "metadata" to operationMetadata.toString()),
+            context = mapOf("description" to operationDescription, "metadata" to operationMetadata),
         )
         return chatApi.deleteMessage(
             roomName,
