@@ -103,6 +103,30 @@ fun mockDeleteMessageApiResponse(
     }
 }
 
+fun mockMessageReactionApiResponse(
+    realtimeClientMock: RealtimeClient,
+    roomName: String = "roomName",
+    serial: String = "timeserial",
+) {
+    every {
+        realtimeClientMock.requestAsync(
+            "/chat/v4/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}/reactions",
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+    } answers {
+        val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
+        callback.onResponse(
+            buildAsyncHttpPaginatedResponse(
+                listOf(),
+            ),
+        )
+    }
+}
+
 fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
         realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/occupancy", any(), HttpMethod.Get, any(), any(), any())

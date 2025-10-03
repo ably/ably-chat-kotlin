@@ -158,7 +158,7 @@ internal class ChatApi(
 
     suspend fun sendMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String, count: Int = 1) {
         this.makeAuthorizedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/$messageSerial/reactions",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/${encodePath(messageSerial)}/reactions",
             method = HttpMethod.Post,
             body = buildMessageReactionsBody(type, name, count),
         )
@@ -166,7 +166,7 @@ internal class ChatApi(
 
     suspend fun deleteMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String? = null) {
         this.makeAuthorizedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/$messageSerial/reactions",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/${encodePath(messageSerial)}/reactions",
             method = HttpMethod.Delete,
             params = buildMessageReactionsApiParams(type, name),
         )
