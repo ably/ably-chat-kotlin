@@ -141,8 +141,8 @@ fun mockOccupancyApiResponse(realtimeClientMock: RealtimeClient, response: JsonV
 }
 
 internal class EmptyLogger(override val context: LogContext) : Logger {
-    override fun withContext(tag: String?, staticContext: Map<String, String>, dynamicContext: Map<String, () -> String>): Logger = this
-    override fun log(message: String, level: LogLevel, throwable: Throwable?, tag: String?, context: Map<String, String>) = Unit
+    override fun withContext(tag: String?, staticContext: Map<String, Any?>, dynamicContext: Map<String, () -> Any?>): Logger = this
+    override fun log(message: String, level: LogLevel, throwable: Throwable?, tag: String?, context: Map<String, Any?>) = Unit
 }
 
 fun Occupancy.subscribeOnce(listener: Occupancy.Listener) {

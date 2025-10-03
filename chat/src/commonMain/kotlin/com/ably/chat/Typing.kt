@@ -222,7 +222,7 @@ internal class DefaultTyping(
             val typingEventType = TypingEventType.entries.first { it.eventName == msg.name }
             // CHA-T13a
             if (msg.clientId == null || msg.clientId.isEmpty()) {
-                logger.error("unable to handle typing event; no clientId", context = mapOf("message" to msg.toString()))
+                logger.error("unable to handle typing event; no clientId", context = mapOf("message" to msg))
                 return@PubSubMessageListener
             }
             typingScope.launch { // sequentially launches all events since limitedParallelism is set to 1

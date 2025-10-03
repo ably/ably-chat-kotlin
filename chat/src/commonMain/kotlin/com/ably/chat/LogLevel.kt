@@ -3,7 +3,7 @@ package com.ably.chat
 /**
  * Represents the different levels of logging that can be used.
  */
-public enum class LogLevel(public val logLevelValue: Int) {
+public enum class LogLevel(internal val logLevelValue: Int) {
     /**
      * Something routine and expected has occurred. This level will provide logs for the vast majority of operations
      * and function calls.
