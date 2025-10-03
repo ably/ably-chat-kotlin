@@ -285,6 +285,24 @@ class ChatApiTest {
     }
 
     @Test
+    fun `message reactions should encode path segments with special characters`() = runTest {
+        val roomName = "name/with spaces, slashes and \""
+        val timeserial = "0@0:02"
+        mockMessageReactionApiResponse(realtime, roomName, timeserial)
+        chatApi.deleteMessageReaction(roomName, timeserial, MessageReactionType.Unique)
+        chatApi.sendMessageReaction(roomName, timeserial, MessageReactionType.Unique, "heart")
+        verify(exactly = 2) {
+            realtime.requestAsync(
+                "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages/0%400%3A02/reactions",
+                any(),
+                any(),
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
     fun `getOccupancy should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
         mockOccupancyApiResponse(realtime, jsonObject {}, roomName)
