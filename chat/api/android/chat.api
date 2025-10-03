@@ -228,20 +228,20 @@ public abstract interface class com/ably/chat/MessageVersion {
 }
 
 public abstract interface class com/ably/chat/Messages {
-	public abstract fun delete (Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun delete (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
 	public abstract fun getReactions ()Lcom/ably/chat/MessagesReactions;
 	public abstract fun history (Ljava/lang/Long;Ljava/lang/Long;ILcom/ably/chat/OrderBy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun send (Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun subscribe (Lcom/ably/chat/Messages$Listener;)Lcom/ably/chat/MessagesSubscription;
-	public abstract fun update (Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun update (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/ably/chat/Messages$DefaultImpls {
-	public static synthetic fun delete$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun delete$default (Lcom/ably/chat/Messages;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static synthetic fun history$default (Lcom/ably/chat/Messages;Ljava/lang/Long;Ljava/lang/Long;ILcom/ably/chat/OrderBy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static synthetic fun send$default (Lcom/ably/chat/Messages;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun update$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun update$default (Lcom/ably/chat/Messages;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public abstract interface class com/ably/chat/Messages$Listener {
@@ -250,6 +250,10 @@ public abstract interface class com/ably/chat/Messages$Listener {
 
 public final class com/ably/chat/MessagesKt {
 	public static final fun asFlow (Lcom/ably/chat/Messages;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun delete (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun delete$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun update (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun update$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public abstract interface class com/ably/chat/MessagesReactions {

@@ -9,6 +9,7 @@ import io.ably.lib.types.AsyncHttpPaginatedResponse
 import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.MessageAction
 import io.ably.lib.types.Param
+import java.net.URLEncoder
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -41,7 +42,7 @@ internal class ChatApi(
         val baseParams = options.toParams()
         val params = fromSerial?.let { baseParams + Param("fromSerial", it) } ?: baseParams
         return makeAuthorizedPaginatedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages",
             method = HttpMethod.Get,
             params = params,
         ) { tryParseMessageResponse(it) }
@@ -55,7 +56,7 @@ internal class ChatApi(
         val body = params.toJsonObject() // CHA-M3b
 
         return makeAuthorizedRequest(
-            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages",
             HttpMethod.Post,
             body,
         )?.let {
@@ -82,12 +83,12 @@ internal class ChatApi(
     /**
      * Spec: CHA-M8
      */
-    suspend fun updateMessage(roomName: String, message: Message, params: UpdateMessageParams): Message {
-        logger.trace("updateMessage();", context = mapOf("message" to message.toString(), "params" to params.toString()))
+    suspend fun updateMessage(roomName: String, serial: String, params: UpdateMessageParams): Message {
+        logger.trace("updateMessage();", context = mapOf("message" to serial, "params" to params.toString()))
         val body = params.toJsonObject()
         // CHA-M8c
         return makeAuthorizedRequest(
-            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/${message.serial}",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}",
             HttpMethod.Put,
             body,
         )?.let {
@@ -98,12 +99,12 @@ internal class ChatApi(
     /**
      * Spec: CHA-M9
      */
-    suspend fun deleteMessage(roomName: String, message: Message, params: DeleteMessageParams): Message {
-        logger.trace("deleteMessage();", context = mapOf("message" to message.toString(), "params" to params.toString()))
+    suspend fun deleteMessage(roomName: String, serial: String, params: DeleteMessageParams): Message {
+        logger.trace("deleteMessage();", context = mapOf("message" to serial, "params" to params.toString()))
         val body = params.toJsonObject()
 
         return makeAuthorizedRequest(
-            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/${message.serial}/delete",
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}/delete",
             HttpMethod.Post,
             body,
         )?.let {
@@ -146,7 +147,7 @@ internal class ChatApi(
      */
     suspend fun getOccupancy(roomName: String): OccupancyData {
         logger.trace("getOccupancy();", context = mapOf("roomName" to roomName))
-        return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/occupancy", HttpMethod.Get)?.let {
+        return this.makeAuthorizedRequest("/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/occupancy", HttpMethod.Get)?.let {
             logger.debug("getOccupancy();", context = mapOf("roomName" to roomName, "response" to it.toString()))
             DefaultOccupancyData(
                 connections = it.getOrNull("connections")?.intOrNull() ?: 0,
@@ -157,7 +158,7 @@ internal class ChatApi(
 
     suspend fun sendMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String, count: Int = 1) {
         this.makeAuthorizedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/$messageSerial/reactions",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/$messageSerial/reactions",
             method = HttpMethod.Post,
             body = buildMessageReactionsBody(type, name, count),
         )
@@ -165,7 +166,7 @@ internal class ChatApi(
 
     suspend fun deleteMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String? = null) {
         this.makeAuthorizedRequest(
-            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/$roomName/messages/$messageSerial/reactions",
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/$messageSerial/reactions",
             method = HttpMethod.Delete,
             params = buildMessageReactionsApiParams(type, name),
         )
@@ -267,3 +268,6 @@ private fun QueryOptions.toParams() = buildList {
         ),
     )
 }
+
+internal fun encodePath(path: String): String = URLEncoder.encode(path, Charsets.UTF_8.name())
+    .replace("+", "%20")

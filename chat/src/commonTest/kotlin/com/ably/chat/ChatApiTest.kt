@@ -1,10 +1,12 @@
 package com.ably.chat
 
 import com.ably.chat.json.jsonObject
+import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.types.AblyException
 import io.ably.lib.types.MessageAction
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -192,5 +194,117 @@ class ChatApiTest {
             DefaultOccupancyData(0, 1_000),
             chatApi.getOccupancy("roomName"),
         )
+    }
+
+    @Test
+    fun `getMessages should encode path segments with special characters`() = runTest {
+        val roomName = "name/with spaces, slashes and \""
+        mockMessagesApiResponse(realtime, listOf(), roomName)
+        chatApi.getMessages(roomName, QueryOptions())
+        verify {
+            realtime.requestAsync(
+                "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages",
+                any(),
+                HttpMethod.Get,
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `sendMessage should encode path segments with special characters`() = runTest {
+        val roomName = "name/with spaces, slashes and \""
+        mockSendMessageApiResponse(
+            realtime,
+            jsonObject {
+                put(MessageProperty.Serial, "timeserial")
+                put(MessageProperty.Timestamp, 1_000_000)
+            },
+            roomName,
+        )
+        chatApi.sendMessage(roomName, SendMessageParams(text = "hello"))
+        verify {
+            realtime.requestAsync(
+                "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages",
+                any(),
+                HttpMethod.Post,
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `updateMessage should encode path segments with special characters`() = runTest {
+        val roomName = "name/with spaces, slashes and \""
+        mockUpdateMessageApiResponse(
+            realtime,
+            jsonObject {
+                put(MessageProperty.Serial, "timeserial")
+                put(MessageProperty.Timestamp, 1_000_000)
+                put(MessageProperty.ClientId, "clientId")
+            },
+            roomName,
+        )
+        chatApi.updateMessage(roomName, "timeserial", UpdateMessageParams(SendMessageParams("hello")))
+        verify {
+            realtime.requestAsync(
+                "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages/timeserial",
+                any(),
+                HttpMethod.Put,
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `deleteMessage should encode path segments with special characters`() = runTest {
+        val roomName = "name/with spaces, slashes and \""
+        mockDeleteMessageApiResponse(
+            realtime,
+            jsonObject {
+                put(MessageProperty.Serial, "timeserial")
+                put(MessageProperty.Timestamp, 1_000_000)
+                put(MessageProperty.ClientId, "clientId")
+            },
+            roomName,
+            "0@0:01",
+        )
+        chatApi.deleteMessage(roomName, "0@0:01", DeleteMessageParams())
+        verify {
+            realtime.requestAsync(
+                "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages/0%400%3A01/delete",
+                any(),
+                HttpMethod.Post,
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `getOccupancy should encode path segments with special characters`() = runTest {
+        val roomName = "name/with spaces, slashes and \""
+        mockOccupancyApiResponse(realtime, jsonObject {}, roomName)
+        chatApi.getOccupancy(roomName)
+        verify {
+            realtime.requestAsync(
+                "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/occupancy",
+                any(),
+                HttpMethod.Get,
+                any(),
+                any(),
+            )
+        }
+    }
+
+    @Test
+    fun `encodePath correctly encodes path segments with special characters`() {
+        assertEquals("test%20room%20name%20with%20spaces", encodePath("test room name with spaces"))
+        assertEquals("test%20room%2Fname%2Fwith%2Fslashes", encodePath("test room/name/with/slashes"))
+        assertEquals("test%20room%20name%20with%20%22quotes%22", encodePath("test room name with \"quotes\""))
+        assertEquals("test%20serial%201%401%3A33", encodePath("test serial 1@1:33"))
     }
 }

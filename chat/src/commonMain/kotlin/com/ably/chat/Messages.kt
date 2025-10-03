@@ -85,13 +85,19 @@ public interface Messages {
      * The original message is not modified.
      * Spec: CHA-M8
      *
-     * @param updatedMessage The updated copy of the message created using the `message.copy` method.
-     * @param operationDescription Optional description for the update action.
-     * @param operationMetadata Optional metadata for the update action.
-     * @returns updated message.
+     * @param serial The serial of the message to update.
+     * @param text The updated text for the message.
+     * @param metadata Optional metadata of the message. Allows attaching additional structured data.
+     * @param headers Optional headers for the message. Used for attaching extra context or flags.
+     * @param operationDescription Optional description for the update operation.
+     * @param operationMetadata Optional metadata describing the update operation.
+     * @return The updated message object.
      */
     public suspend fun update(
-        updatedMessage: Message,
+        serial: String,
+        text: String,
+        metadata: MessageMetadata? = null,
+        headers: MessageHeaders? = null,
         operationDescription: String? = null,
         operationMetadata: OperationMetadata? = null,
     ): Message
@@ -108,13 +114,12 @@ public interface Messages {
      * and a deleted message may not be restorable in this way.
      * Spec: CHA-M9
      *
-     * @returns when the message is deleted.
-     * @param message - The message to delete.
+     * @param serial - The message serial to delete.
      * @param operationDescription - Optional description for the delete action.
      * @param operationMetadata - Optional metadata for the delete action.
-     * @return A promise that resolves to the deleted message.
+     * @return The deleted message.
      */
-    public suspend fun delete(message: Message, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
+    public suspend fun delete(serial: String, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
 
     /**
      * An interface for listening to new messaging event
@@ -127,6 +132,47 @@ public interface Messages {
         public fun onEvent(event: ChatMessageEvent)
     }
 }
+
+/**
+ * Delete a message in the chat room.
+ *
+ * @see [Messages.delete]
+ *
+ * @param message - The message to delete.
+ * @param operationDescription - Optional description for the delete action.
+ * @param operationMetadata - Optional metadata for the delete action.
+ * @return The deleted message.
+ */
+public suspend fun Messages.delete(
+    message: Message,
+    operationDescription: String? = null,
+    operationMetadata: OperationMetadata? = null,
+): Message =
+    delete(message.serial, operationDescription, operationMetadata)
+
+/**
+ * Update a message in the chat room.
+ *
+ * @see [Messages.update]
+ *
+ * @param updatedMessage The updated copy of the message created using the `message.copy` method.
+ * @param operationDescription Optional description for the update action.
+ * @param operationMetadata Optional metadata for the update action.
+ * @returns updated message.
+ */
+public suspend fun Messages.update(
+    updatedMessage: Message,
+    operationDescription: String? = null,
+    operationMetadata: OperationMetadata? = null,
+): Message =
+    update(
+        serial = updatedMessage.serial,
+        text = updatedMessage.text,
+        metadata = updatedMessage.metadata,
+        headers = updatedMessage.headers,
+        operationDescription = operationDescription,
+        operationMetadata = operationMetadata,
+    )
 
 /**
  * @return [ChatMessageEvent] events as a [Flow]
@@ -251,11 +297,11 @@ internal data class UpdateMessageParams(
     /**
      * Optional description for the message action.
      */
-    val description: String?,
+    val description: String? = null,
     /**
      * Optional metadata that will be added to the update action. Defaults to empty.
      */
-    val metadata: OperationMetadata?,
+    val metadata: OperationMetadata? = null,
 )
 
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
@@ -273,11 +319,11 @@ internal data class DeleteMessageParams(
     /**
      * Optional description for the message action.
      */
-    val description: String?,
+    val description: String? = null,
     /**
      * Optional metadata that will be added to the delete action. Defaults to empty.
      */
-    val metadata: OperationMetadata?,
+    val metadata: OperationMetadata? = null,
 )
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
@@ -494,19 +540,22 @@ internal class DefaultMessages(
     }
 
     override suspend fun update(
-        updatedMessage: Message,
+        serial: String,
+        text: String,
+        metadata: MessageMetadata?,
+        headers: MessageHeaders?,
         operationDescription: String?,
         operationMetadata: OperationMetadata?,
     ): Message {
         logger.trace(
-            "update(); roomName=$roomName, serial=${updatedMessage.serial}",
+            "update(); roomName=$roomName, serial=$serial",
             context = mapOf("description" to operationDescription.toString(), "metadata" to operationMetadata.toString()),
         )
         return chatApi.updateMessage(
             roomName,
-            updatedMessage,
+            serial,
             UpdateMessageParams(
-                message = SendMessageParams(updatedMessage.text, updatedMessage.metadata, updatedMessage.headers),
+                message = SendMessageParams(text, metadata, headers),
                 description = operationDescription,
                 metadata = operationMetadata,
             ),
@@ -514,17 +563,17 @@ internal class DefaultMessages(
     }
 
     override suspend fun delete(
-        message: Message,
+        serial: String,
         operationDescription: String?,
         operationMetadata: OperationMetadata?,
     ): Message {
         logger.trace(
-            "delete(); roomName=$roomName, serial=${message.serial}",
+            "delete(); roomName=$roomName, serial=$serial",
             context = mapOf("description" to operationDescription.toString(), "metadata" to operationMetadata.toString()),
         )
         return chatApi.deleteMessage(
             roomName,
-            message,
+            serial,
             DeleteMessageParams(
                 description = operationDescription,
                 metadata = operationMetadata,
