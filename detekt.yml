@@ -914,7 +914,7 @@ style:
   OptionalAbstractKeyword:
     active: true
   OptionalUnit:
-    active: true
+    active: false
   PreferToOverPairSyntax:
     active: false
   ProtectedMemberInFinalClass:

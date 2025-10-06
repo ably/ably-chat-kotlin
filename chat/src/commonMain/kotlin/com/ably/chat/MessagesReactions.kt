@@ -224,7 +224,7 @@ public interface MessageReactionsSummary {
 /**
  * @see [MessagesReactions.send]
  */
-public suspend fun MessagesReactions.send(message: Message, name: String, type: MessageReactionType? = null, count: Int = 1) =
+public suspend fun MessagesReactions.send(message: Message, name: String, type: MessageReactionType? = null, count: Int = 1): Unit =
     send(
         messageSerial = message.serial,
         name = name,
@@ -235,7 +235,7 @@ public suspend fun MessagesReactions.send(message: Message, name: String, type: 
 /**
  * @see [MessagesReactions.delete]
  */
-public suspend fun MessagesReactions.delete(message: Message, name: String? = null, type: MessageReactionType? = null) =
+public suspend fun MessagesReactions.delete(message: Message, name: String? = null, type: MessageReactionType? = null): Unit =
     delete(
         messageSerial = message.serial,
         name = name,
