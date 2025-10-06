@@ -16,7 +16,8 @@ activity-compose = "1.9.1"
 compose-bom = "2024.06.00"
 compose-foundation = "1.7.8"
 gson = "2.11.0"
-mockk = "1.13.13"
+mockk = "1.14.6"
+robolectric = "4.16"
 coroutine = "1.9.0"
 build-config = "5.5.1"
 ktor = "3.0.1"
@@ -54,6 +55,7 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 android-mockk = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 coroutine-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutine" }
 coroutine-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutine" }

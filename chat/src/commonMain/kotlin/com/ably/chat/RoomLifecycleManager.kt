@@ -132,7 +132,7 @@ internal class RoomLifecycleManager(
                 // CHA-RL11a
                 logger.debug(
                     "handleChannelStateChanges(); RoomLifecycleManager.channel state changed",
-                    context = mapOf("change" to channelStateChangeEvent.toString()),
+                    context = mapOf("change" to channelStateChangeEvent),
                 )
                 // CHA-RL11b, CHA-RL11c
                 if (!operationInProcess) {
