@@ -2,6 +2,7 @@ package com.ably.chat.room
 
 import com.ably.chat.ChatApi
 import com.ably.chat.ChatException
+import com.ably.chat.ClientIdResolver
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.RoomOptions
@@ -27,20 +28,26 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Assert.assertThrows
+import org.junit.Before
 import org.junit.Test
 
 /**
  * Spec: CHA-RC1f
  */
 class RoomGetTest {
-    private val clientId = "clientId"
+    private val clientIdResolver = mockk<ClientIdResolver>()
     private val logger = createMockLogger()
+
+    @Before
+    fun setUp() {
+        every { clientIdResolver.get() } returns DEFAULT_CLIENT_ID
+    }
 
     @Test
     fun `(CHA-RC1f) Requesting a room from the Chat Client return instance of a room with the provided id and options`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientId, logger)
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger)
         val room = rooms.get("1234")
         Assert.assertNotNull(room)
         Assert.assertEquals("1234", room.name)
@@ -53,7 +60,7 @@ class RoomGetTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms: Rooms = spyk(
-            DefaultRooms(mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
 
@@ -87,7 +94,8 @@ class RoomGetTest {
     fun `(CHA-RC1f2) If the room name already exists, and newly requested with same options, then returns same room`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
+        val rooms =
+            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val room1 = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomNameToRoom.size)
@@ -130,7 +138,8 @@ class RoomGetTest {
     fun `(CHA-RC1f3) If no CHA-RC1g release operation is in progress, a new room instance shall be created, and added to the room map`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
+        val rooms =
+            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
         val roomName = "1234"
 
         // No release op. in progress
@@ -150,10 +159,11 @@ class RoomGetTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
+        val rooms =
+            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
 
@@ -172,7 +182,7 @@ class RoomGetTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger)
+                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger)
             }
             room
         }

@@ -23,10 +23,12 @@ private const val CHAT_API_PROTOCOL_VERSION = PROTOCOL_VERSION_PARAM_NAME + CHAT
 
 internal class ChatApi(
     private val realtimeClient: RealtimeClient,
-    private val clientId: String,
+    private val clientIdResolver: ClientIdResolver,
     parentLogger: Logger,
 ) {
     private val logger = parentLogger.withContext(tag = "ChatApi")
+
+    private val clientId: String get() = clientIdResolver.get()
 
     /**
      * Get messages from the Chat Backend

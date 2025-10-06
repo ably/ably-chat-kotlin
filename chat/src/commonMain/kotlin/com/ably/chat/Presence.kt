@@ -157,17 +157,17 @@ internal class DefaultPresence(
 
     override suspend fun enter(data: JsonObject?) {
         room.ensureAttached(logger) // CHA-PR3e, CHA-PR3d, CHA-PR3h
-        presence.enterClientCoroutine(room.clientId, data)
+        presence.enterClientCoroutine(room.clientIdResolver.get(), data)
     }
 
     override suspend fun update(data: JsonObject?) {
         room.ensureAttached(logger) // CHA-PR10e, CHA-PR10d, CHA-PR10h
-        presence.updateClientCoroutine(room.clientId, data)
+        presence.updateClientCoroutine(room.clientIdResolver.get(), data)
     }
 
     override suspend fun leave(data: JsonObject?) {
         room.ensureAttached(logger) // CHA-PR4d, CHA-PR4b, CHA-PR4c
-        presence.leaveClientCoroutine(room.clientId, data)
+        presence.leaveClientCoroutine(room.clientIdResolver.get(), data)
     }
 
     override fun subscribe(listener: PresenceListener): Subscription {

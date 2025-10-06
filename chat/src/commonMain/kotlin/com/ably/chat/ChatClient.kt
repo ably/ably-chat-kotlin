@@ -28,8 +28,11 @@ public interface ChatClient {
 
     /**
      * The clientId of the current client.
+     *
+     * This will be null if the realtime client uses token-based auth
+     * without specifying `clientId` in `clientOptions` and has not yet been authenticated.
      */
-    public val clientId: String
+    public val clientId: String?
 
     /**
      * The underlying Ably Realtime client.
@@ -83,12 +86,14 @@ internal class DefaultChatClient(
         )
     } ?: DefaultLoggerFactory(clientOptions.logLevel, buildLogContext())
 
-    private val chatApi = ChatApi(realtimeClientWrapper, clientId, logger)
+    private val clientIdResolver = ClientIdResolver(realtimeClientWrapper)
+
+    private val chatApi = ChatApi(realtimeClientWrapper, clientIdResolver, logger)
 
     override val rooms: Rooms = DefaultRooms(
         realtimeClient = realtimeClientWrapper,
         chatApi = chatApi,
-        clientId = clientId,
+        clientIdResolver = clientIdResolver,
         logger = logger,
     )
 
@@ -98,16 +103,16 @@ internal class DefaultChatClient(
         dispatcher = stateDispatcher,
     )
 
-    override val clientId: String
+    override val clientId: String?
         get() = realtimeClientWrapper.auth.clientId
 
     private fun buildLogContext() = DefaultLogContext(
         tag = "ChatClient",
         staticContext = mapOf(
-            "clientId" to clientId,
             "instanceId" to generateUUID(),
         ),
         dynamicContext = mapOf(
+            "clientId" to { clientId },
             "connectionId" to { realtimeClientWrapper.connection.id },
             "connectionState" to { realtimeClientWrapper.connection.state.name },
         ),

@@ -62,7 +62,7 @@ internal fun Sandbox.createSandboxChatClient(chatClientId: String = "sandbox-cli
     return DefaultChatClient(realtime, buildChatClientOptions())
 }
 
-internal fun Sandbox.createSandboxRealtime(chatClientId: String): AblyRealtime =
+internal fun Sandbox.createSandboxRealtime(chatClientId: String? = null): AblyRealtime =
     AblyRealtime(
         io.ably.lib.types.ClientOptions().apply {
             key = apiKey

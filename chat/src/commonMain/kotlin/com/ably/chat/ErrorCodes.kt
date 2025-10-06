@@ -16,6 +16,11 @@ public enum class ErrorCode(public val code: Int) {
     InvalidRequestBody(40_001),
 
     /**
+     * Invalid client id
+     */
+    InvalidClientId(40_012),
+
+    /**
      * The message was rejected before publishing by a rule on the chat room.
      */
     MessageRejectedByBeforePublishRule(42_211),
