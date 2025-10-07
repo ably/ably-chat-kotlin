@@ -21,14 +21,13 @@ internal typealias PubSubMessage = io.ably.lib.types.Message
  * to new messages, fetching history, or sending messages.
  *
  * Get an instance via [Room.messages].
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface Messages {
-    /**
-     * Get the underlying Ably realtime channel used for the messages in this chat room.
-     *
-     * @returns the realtime channel
-     */
-    public val channel: AblyRealtimeChannel
 
     /**
      * Add, delete, and subscribe to message reactions.
@@ -40,7 +39,7 @@ public interface Messages {
      * @param listener callback that will be called
      * @return A response object that allows you to control the subscription.
      */
-    public fun subscribe(listener: Listener): MessagesSubscription
+    public fun subscribe(listener: (ChatMessageEvent) -> Unit): MessagesSubscription
 
     /**
      * Get messages that have been previously sent to the chat room, based on the provided options.
@@ -75,7 +74,7 @@ public interface Messages {
      *
      * @return The message was published.
      */
-    public suspend fun send(text: String, metadata: MessageMetadata? = null, headers: MessageHeaders? = null): Message
+    public suspend fun send(text: String, metadata: JsonObject? = null, headers: Map<String, String>? = null): Message
 
     /**
      * Update a message in the chat room.
@@ -96,10 +95,10 @@ public interface Messages {
     public suspend fun update(
         serial: String,
         text: String,
-        metadata: MessageMetadata? = null,
-        headers: MessageHeaders? = null,
+        metadata: JsonObject? = null,
+        headers: Map<String, String>? = null,
         operationDescription: String? = null,
-        operationMetadata: OperationMetadata? = null,
+        operationMetadata: Map<String, String>? = null,
     ): Message
 
     /**
@@ -119,18 +118,7 @@ public interface Messages {
      * @param operationMetadata - Optional metadata for the delete action.
      * @return The deleted message.
      */
-    public suspend fun delete(serial: String, operationDescription: String? = null, operationMetadata: OperationMetadata? = null): Message
-
-    /**
-     * An interface for listening to new messaging event
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the new messaging event happens.
-         * @param event The event that happened.
-         */
-        public fun onEvent(event: ChatMessageEvent)
-    }
+    public suspend fun delete(serial: String, operationDescription: String? = null, operationMetadata: Map<String, String>? = null): Message
 }
 
 /**
@@ -146,7 +134,7 @@ public interface Messages {
 public suspend fun Messages.delete(
     message: Message,
     operationDescription: String? = null,
-    operationMetadata: OperationMetadata? = null,
+    operationMetadata: Map<String, String>? = null,
 ): Message =
     delete(message.serial, operationDescription, operationMetadata)
 
@@ -163,7 +151,7 @@ public suspend fun Messages.delete(
 public suspend fun Messages.update(
     updatedMessage: Message,
     operationDescription: String? = null,
-    operationMetadata: OperationMetadata? = null,
+    operationMetadata: Map<String, String>? = null,
 ): Message =
     update(
         serial = updatedMessage.serial,
@@ -214,6 +202,11 @@ internal data class QueryOptions(
 
 /**
  * Payload for a message event.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface ChatMessageEvent {
     /**
@@ -256,7 +249,7 @@ internal data class SendMessageParams(
      * The key `ably-chat` is reserved and cannot be used. Ably may populate
      * this with different values in the future.
      */
-    val metadata: MessageMetadata? = null,
+    val metadata: JsonObject? = null,
 
     /**
      * Optional headers of the message.
@@ -274,7 +267,7 @@ internal data class SendMessageParams(
      * The key prefix `ably-chat` is reserved and cannot be used. Ably may add
      * headers prefixed with `ably-chat` in the future.
      */
-    val headers: MessageHeaders? = null,
+    val headers: Map<String, String>? = null,
 )
 
 internal fun SendMessageParams.toJsonObject(): JsonObject {
@@ -301,7 +294,7 @@ internal data class UpdateMessageParams(
     /**
      * Optional metadata that will be added to the update action. Defaults to empty.
      */
-    val metadata: OperationMetadata? = null,
+    val metadata: Map<String, String>? = null,
 )
 
 internal fun UpdateMessageParams.toJsonObject(): JsonObject {
@@ -323,7 +316,7 @@ internal data class DeleteMessageParams(
     /**
      * Optional metadata that will be added to the delete action. Defaults to empty.
      */
-    val metadata: OperationMetadata? = null,
+    val metadata: Map<String, String>? = null,
 )
 
 internal fun DeleteMessageParams.toJsonObject(): JsonObject {
@@ -335,6 +328,11 @@ internal fun DeleteMessageParams.toJsonObject(): JsonObject {
 
 /**
  * A response object that allows you to control a message subscription.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface MessagesSubscription : Subscription {
     /**
@@ -421,7 +419,7 @@ internal class DefaultMessages(
     internal val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
+    internal val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
     private val channelSerialMap = ConcurrentHashMap<PubSubMessageListener, CompletableDeferred<String>>()
 
@@ -469,7 +467,7 @@ internal class DefaultMessages(
         channelSerialMap.replaceAll { _, _ -> deferredChannelSerial }
     }
 
-    override fun subscribe(listener: Messages.Listener): MessagesSubscription {
+    override fun subscribe(listener: (ChatMessageEvent) -> Unit): MessagesSubscription {
         logger.trace("subscribe(); roomName=$roomName")
         val messageListener = PubSubMessageListener {
             logger.debug("subscribe(); received message for roomName=$roomName", context = mapOf("message" to it))
@@ -477,7 +475,8 @@ internal class DefaultMessages(
                 logger.warn("Got empty pubsub channel message")
                 return@PubSubMessageListener
             }
-            val eventType = messageActionToEventType[pubSubMessage.action] ?: run {
+            val action: MessageAction = pubSubMessage.action?.toMessageAction() ?: MessageAction.MessageCreate
+            val eventType = messageActionToEventType[action] ?: run {
                 logger.warn("Received Unknown message action ${pubSubMessage.action}")
                 return@PubSubMessageListener
             }
@@ -491,9 +490,9 @@ internal class DefaultMessages(
                 clientId = pubSubMessage.clientId,
                 serial = pubSubMessage.serial,
                 text = data.text,
-                metadata = data.metadata ?: MessageMetadata(),
+                metadata = data.metadata ?: JsonObject(),
                 headers = pubSubMessage.extras?.asJsonObject()?.tryAsJsonValue()?.jsonObjectOrNull()?.get("headers")?.toMap() ?: mapOf(),
-                action = pubSubMessage.action,
+                action = action,
                 version = DefaultMessageVersion(
                     serial = pubSubMessage.version.serial ?: pubSubMessage.serial,
                     timestamp = pubSubMessage.version.timestamp,
@@ -502,7 +501,7 @@ internal class DefaultMessages(
                     metadata = pubSubMessage.version.metadata,
                 ),
             )
-            listener.onEvent(DefaultChatMessageEvent(type = eventType, message = chatMessage))
+            listener.invoke(DefaultChatMessageEvent(type = eventType, message = chatMessage))
         }
         channelSerialMap[messageListener] = deferredChannelSerial
         // (CHA-M4d)
@@ -536,7 +535,7 @@ internal class DefaultMessages(
         )
     }
 
-    override suspend fun send(text: String, metadata: MessageMetadata?, headers: MessageHeaders?): Message {
+    override suspend fun send(text: String, metadata: JsonObject?, headers: Map<String, String>?): Message {
         logger.trace(
             "send(); roomName=$roomName, text=$text",
             context = mapOf("metadata" to metadata, "headers" to headers),
@@ -550,10 +549,10 @@ internal class DefaultMessages(
     override suspend fun update(
         serial: String,
         text: String,
-        metadata: MessageMetadata?,
-        headers: MessageHeaders?,
+        metadata: JsonObject?,
+        headers: Map<String, String>?,
         operationDescription: String?,
-        operationMetadata: OperationMetadata?,
+        operationMetadata: Map<String, String>?,
     ): Message {
         logger.trace(
             "update(); roomName=$roomName, serial=$serial",
@@ -573,7 +572,7 @@ internal class DefaultMessages(
     override suspend fun delete(
         serial: String,
         operationDescription: String?,
-        operationMetadata: OperationMetadata?,
+        operationMetadata: Map<String, String>?,
     ): Message {
         logger.trace(
             "delete(); roomName=$roomName, serial=$serial",
@@ -611,7 +610,7 @@ internal class DefaultMessages(
 /**
  * Parsed data from the Pub/Sub channel's message data field
  */
-private data class PubSubMessageData(val text: String, val metadata: MessageMetadata?)
+private data class PubSubMessageData(val text: String, val metadata: JsonObject?)
 
 private fun tryParsePubSubMessageData(data: Any): PubSubMessageData? {
     val json = data.tryAsJsonValue() ?: return null

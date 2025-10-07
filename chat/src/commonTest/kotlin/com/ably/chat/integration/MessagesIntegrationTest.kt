@@ -1,9 +1,11 @@
 package com.ably.chat.integration
 
+import com.ably.annotations.InternalAPI
 import com.ably.chat.BuildConfig
 import com.ably.chat.ChatMessageEvent
 import com.ably.chat.MainDispatcherRule
 import com.ably.chat.Message
+import com.ably.chat.MessageAction
 import com.ably.chat.PlatformSpecificAgent
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
@@ -13,7 +15,6 @@ import com.ably.chat.json.jsonObject
 import com.ably.chat.room.RoomOptionsWithAllFeatures
 import com.ably.chat.update
 import io.ably.lib.realtime.channelOptions
-import io.ably.lib.types.MessageAction
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -74,7 +75,7 @@ class MessagesIntegrationTest {
 
         val receivedMessage = messageEvent.await().message
 
-        assertEquals(MessageAction.MESSAGE_CREATE, receivedMessage.action)
+        assertEquals(MessageAction.MessageCreate, receivedMessage.action)
         assertEquals("hello", receivedMessage.text)
         assertEquals("sandbox-client", receivedMessage.clientId)
         assertTrue(receivedMessage.serial.isNotEmpty())
@@ -122,7 +123,7 @@ class MessagesIntegrationTest {
         assertEquals(1, messages.size)
         val historyMessage = messages.first()
 
-        assertEquals(MessageAction.MESSAGE_CREATE, historyMessage.action)
+        assertEquals(MessageAction.MessageCreate, historyMessage.action)
         assertEquals("hello", historyMessage.text)
         assertEquals("sandbox-client", historyMessage.clientId)
         assertTrue(historyMessage.serial.isNotEmpty())
@@ -181,7 +182,7 @@ class MessagesIntegrationTest {
             opMetadata,
         )
 
-        assertEquals(MessageAction.MESSAGE_UPDATE, updatedMessage.action)
+        assertEquals(MessageAction.MessageUpdate, updatedMessage.action)
         assertEquals(sentMessage.serial, updatedMessage.serial)
         assertEquals(sentMessage.timestamp, updatedMessage.timestamp)
 
@@ -233,7 +234,7 @@ class MessagesIntegrationTest {
             operationMetadata = opMetadata,
         )
 
-        assertEquals(MessageAction.MESSAGE_DELETE, deletedMessage.action)
+        assertEquals(MessageAction.MessageDelete, deletedMessage.action)
         assertEquals(sentMessage.serial, deletedMessage.serial)
         assertEquals(sentMessage.timestamp, deletedMessage.timestamp)
 
@@ -254,6 +255,7 @@ class MessagesIntegrationTest {
         assertEquals(deletedMessage.action, receivedMsg2.action)
     }
 
+    @OptIn(InternalAPI::class)
     @Test
     fun `messages channel should include agent channel param`() = runTest {
         val chatClient = sandbox.createSandboxChatClient()
@@ -261,7 +263,7 @@ class MessagesIntegrationTest {
         val room = chatClient.rooms.get(roomName)
         assertEquals(
             "chat-kotlin/${BuildConfig.APP_VERSION} $PlatformSpecificAgent/${BuildConfig.APP_VERSION}",
-            room.messages.channel.channelOptions?.params?.get("agent"),
+            room.channel.javaChannel.channelOptions?.params?.get("agent"),
         )
     }
 

@@ -1,12 +1,12 @@
 package com.ably.chat.room
 
+import com.ably.chat.ChatException
 import com.ably.chat.DefaultRoomStatusChange
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
-import com.ably.chat.Room
 import com.ably.chat.RoomStatus
+import com.ably.chat.RoomStatusChange
 import com.ably.chat.assertWaiter
-import io.ably.lib.types.AblyException
 import io.mockk.every
 import io.mockk.spyk
 import io.mockk.verify
@@ -66,7 +66,7 @@ class RoomEnsureAttachedTest {
             // Check for exception when ensuring room ATTACHED
             val result = kotlin.runCatching { room.ensureAttached(room.logger) }
             Assert.assertTrue(result.isFailure)
-            val exception = result.exceptionOrNull() as AblyException
+            val exception = result.exceptionOrNull() as ChatException
             Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
             Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
             val errMsg = "Can't perform operation; the room '${room.name}' is in an invalid state: $invalidStatus"
@@ -81,10 +81,10 @@ class RoomEnsureAttachedTest {
 
         val statusManager = spyk(room.StatusManager)
         every {
-            statusManager.onChangeOnce(any<Room.Listener>())
+            statusManager.onChangeOnce(any<(RoomStatusChange) -> Unit>())
         } answers {
-            val listener = firstArg<Room.Listener>()
-            listener.roomStatusChanged(DefaultRoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
+            val listener = firstArg<(RoomStatusChange) -> Unit>()
+            listener.invoke(DefaultRoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
         }
         room.StatusManager = statusManager
 
@@ -95,7 +95,7 @@ class RoomEnsureAttachedTest {
         room.ensureAttached(logger)
 
         verify(exactly = 1) {
-            statusManager.onChangeOnce(any<Room.Listener>())
+            statusManager.onChangeOnce(any<(RoomStatusChange) -> Unit>())
         }
     }
 
@@ -159,7 +159,7 @@ class RoomEnsureAttachedTest {
             // Check for exception when ensuring room ATTACHED
             val result = kotlin.runCatching { ensureAttachJob.await() }
             Assert.assertTrue(result.isFailure)
-            val exception = result.exceptionOrNull() as AblyException
+            val exception = result.exceptionOrNull() as ChatException
             Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
             Assert.assertEquals(HttpStatusCode.InternalServerError, exception.errorInfo.statusCode)
             val errMsg = "Can't perform operation; the room '${room.name}' is in an invalid state: $invalidStatus"

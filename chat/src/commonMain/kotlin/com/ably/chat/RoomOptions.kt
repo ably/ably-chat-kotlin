@@ -233,13 +233,13 @@ internal fun MutableMessageOptions.asEquatable() = EquatableMessageOptions(
 )
 
 /**
- * Throws AblyException for invalid room configuration.
+ * Throws ChatException for invalid room configuration.
  * Spec: CHA-RC2a
  */
 internal fun RoomOptions.validateRoomOptions(logger: Logger) {
     if (typing.heartbeatThrottle.inWholeMilliseconds <= 0) {
         logger.error("Typing heartbeatThrottle must be greater than 0, found ${typing.heartbeatThrottle}")
-        throw ablyException("Typing heartbeatThrottle must be greater than 0", ErrorCode.InvalidRequestBody)
+        throw chatException("Typing heartbeatThrottle must be greater than 0", ErrorCode.InvalidRequestBody)
     }
 }
 

@@ -57,16 +57,16 @@ class TypingTest {
 fun EmittingTyping() = EmittingTyping(mockk())
 
 class EmittingTyping(mock: Typing) : Typing by mock {
-    private val listeners = mutableListOf<Typing.Listener>()
+    private val listeners = mutableListOf<(TypingSetEvent) -> Unit>()
 
-    override fun subscribe(listener: Typing.Listener): Subscription {
+    override fun subscribe(listener: (TypingSetEvent) -> Unit): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
 
     fun emit(event: TypingSetEvent) {
         listeners.forEach {
-            it.onEvent(event)
+            it.invoke(event)
         }
     }
 }

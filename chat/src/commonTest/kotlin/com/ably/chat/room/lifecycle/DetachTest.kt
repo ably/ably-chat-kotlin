@@ -1,5 +1,6 @@
 package com.ably.chat.room.lifecycle
 
+import com.ably.chat.ChatException
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.RoomStatus
@@ -15,7 +16,6 @@ import com.ably.chat.room.isExplicitlyDetached
 import com.ably.chat.serverError
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
-import io.ably.lib.types.AblyException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -66,7 +66,7 @@ class DetachTest {
         // Set room status to RELEASED
         statusManager.setStatus(RoomStatus.Released)
 
-        val exception = Assert.assertThrows(AblyException::class.java) {
+        val exception = Assert.assertThrows(ChatException::class.java) {
             runBlocking {
                 roomLifecycle.detach()
             }
@@ -85,7 +85,7 @@ class DetachTest {
         // Set room status to FAILED
         statusManager.setStatus(RoomStatus.Failed)
 
-        val exception = Assert.assertThrows(AblyException::class.java) {
+        val exception = Assert.assertThrows(ChatException::class.java) {
             runBlocking {
                 roomLifecycle.detach()
             }
@@ -134,7 +134,7 @@ class DetachTest {
         Assert.assertTrue(roomLifecycle.atomicCoroutineScope().finishedProcessing)
 
         Assert.assertTrue(result.isFailure)
-        val exception = result.exceptionOrNull() as AblyException
+        val exception = result.exceptionOrNull() as ChatException
 
         Assert.assertEquals("unable to detach room; room is released", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
@@ -225,7 +225,7 @@ class DetachTest {
 
         Assert.assertEquals(RoomStatus.Suspended, room.status)
 
-        val exception = result.exceptionOrNull() as AblyException
+        val exception = result.exceptionOrNull() as ChatException
         Assert.assertEquals("failed to detach room: error detaching channel 1234::\$chat", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
         Assert.assertEquals(500, exception.errorInfo.statusCode)
@@ -257,7 +257,7 @@ class DetachTest {
 
         Assert.assertEquals(RoomStatus.Failed, room.status)
 
-        val exception = result.exceptionOrNull() as AblyException
+        val exception = result.exceptionOrNull() as ChatException
         Assert.assertEquals("failed to detach room: error detaching channel 1234::\$chat", exception.errorInfo.message)
         Assert.assertEquals(ErrorCode.InternalError.code, exception.errorInfo.code)
         Assert.assertEquals(500, exception.errorInfo.statusCode)

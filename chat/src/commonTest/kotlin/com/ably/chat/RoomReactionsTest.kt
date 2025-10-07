@@ -1,6 +1,7 @@
 package com.ably.chat
 
 import app.cash.turbine.test
+import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
@@ -84,7 +85,7 @@ class RoomReactionsTest {
                 name = "like",
                 createdAt = 1000L,
                 clientId = "clientId",
-                metadata = MessageMetadata(),
+                metadata = JsonObject(),
                 headers = mapOf("foo" to "bar"),
                 isSelf = false,
             ),
@@ -96,7 +97,7 @@ class RoomReactionsTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val roomReactions: RoomReactions = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: RoomReactions.Listener
+        lateinit var callback: (RoomReactionEvent) -> Unit
 
         every { roomReactions.subscribe(any()) } answers {
             callback = firstArg()
@@ -105,7 +106,7 @@ class RoomReactionsTest {
 
         roomReactions.asFlow().test {
             val reactionEvent = mockk<RoomReactionEvent>()
-            callback.onReaction(reactionEvent)
+            callback.invoke(reactionEvent)
             assertEquals(reactionEvent, awaitItem())
             cancel()
         }

@@ -1,23 +1,15 @@
 package com.ably.chat
 
 import com.ably.chat.json.JsonObject
-import io.ably.lib.types.MessageAction
-import io.ably.lib.types.Summary
-import io.ably.lib.types.SummaryClientIdCounts
-import io.ably.lib.types.SummaryClientIdList
-
-/**
- * [Headers type for chat messages.
- */
-public typealias MessageHeaders = Headers
-
-/**
- * [Metadata] type for chat messages.
- */
-public typealias MessageMetadata = Metadata
+import io.ably.lib.types.MessageAction as PubSubMessageAction
 
 /**
  * Represents a single message in a chat room.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface Message {
     /**
@@ -53,7 +45,7 @@ public interface Message {
      * Do not use metadata for authoritative information. There is no server-side
      * validation. When reading the metadata treat it like user input.
      */
-    public val metadata: MessageMetadata
+    public val metadata: JsonObject
 
     /**
      * The headers of a chat message. Headers enable attaching extra info to a message,
@@ -68,7 +60,7 @@ public interface Message {
      * Do not use the headers for authoritative information. There is no server-side
      * validation. When reading the headers treat them like user input.
      */
-    public val headers: MessageHeaders
+    public val headers: Map<String, String>
 
     /**
      * The latest action of the message. This can be used to determine if the message was created, updated, or deleted.
@@ -88,6 +80,14 @@ public interface Message {
     public val reactions: MessageReactions
 }
 
+/**
+ * Contains the details regarding the current version of the message - including when it was updated and by whom.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
+ */
 public interface MessageVersion {
 
     /**
@@ -118,6 +118,11 @@ public interface MessageVersion {
 
 /**
  * Represents a summary of all reactions on a message.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface MessageReactions {
     /**
@@ -136,10 +141,56 @@ public interface MessageReactions {
     public val multiple: Map<String, SummaryClientIdCounts>
 }
 
+/**
+ * Represents the latest action of a message.
+ */
+public enum class MessageAction {
+    /**
+     * Represents the action of creating a new message within the system.
+     * This action is used when a new message is initialized and stored.
+     */
+    MessageCreate,
+
+    /**
+     * Represents the action of updating an existing message within the system.
+     * This action is used when modifications are made to a previously stored message.
+     */
+    MessageUpdate,
+
+    /**
+     * Represents the action of deleting an existing message.
+     * This action is used when a message is softly removed.
+     */
+    MessageDelete,
+
+    /**
+     * Message action for a meta-message (a message originating from ably rather than being explicitly
+     * published on a channel), containing eg inband channel occupancy events or some other information
+     * requested by channel param.
+     */
+    Meta,
+
+    /**
+     * Represents the action of updating the message reactions summary.
+     */
+    MessageSummary,
+}
+
+/**
+ * Returns optional to preserve binary compatibility if new enum values are added to the pubsub message action enum.
+ */
+internal fun PubSubMessageAction.toMessageAction(): MessageAction? = when (this) {
+    PubSubMessageAction.MESSAGE_CREATE -> MessageAction.MessageCreate
+    PubSubMessageAction.MESSAGE_UPDATE -> MessageAction.MessageUpdate
+    PubSubMessageAction.MESSAGE_DELETE -> MessageAction.MessageDelete
+    PubSubMessageAction.META -> MessageAction.Meta
+    PubSubMessageAction.MESSAGE_SUMMARY -> MessageAction.MessageSummary
+}
+
 public fun Message.copy(
     text: String = this.text,
-    headers: MessageHeaders = this.headers,
-    metadata: MessageMetadata = this.metadata,
+    headers: Map<String, String> = this.headers,
+    metadata: JsonObject = this.metadata,
 ): Message =
     (this as? DefaultMessage)?.copy(
         text = text,
@@ -191,8 +242,8 @@ internal data class DefaultMessage(
     override val clientId: String,
     override val text: String,
     override val timestamp: Long,
-    override val metadata: MessageMetadata,
-    override val headers: MessageHeaders,
+    override val metadata: JsonObject,
+    override val headers: Map<String, String>,
     override val action: MessageAction,
     override val version: MessageVersion,
     override val reactions: MessageReactions = DefaultMessageReactions(),
@@ -220,9 +271,9 @@ internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactions {
     val multipleJson = jsonObject[MessageReactionsProperty.Multiple]
 
     return DefaultMessageReactions(
-        unique = uniqueJson?.let { Summary.asSummaryUniqueV1(it.toGson().asJsonObject) } ?: mapOf(),
-        distinct = distinctJson?.let { Summary.asSummaryDistinctV1(it.toGson().asJsonObject) } ?: mapOf(),
-        multiple = multipleJson?.let { Summary.asSummaryMultipleV1(it.toGson().asJsonObject) } ?: mapOf(),
+        unique = parseSummaryUniqueV1(uniqueJson),
+        distinct = parseSummaryDistinctV1(distinctJson),
+        multiple = parseSummaryMultipleV1(multipleJson),
     )
 }
 

@@ -2,6 +2,7 @@ package com.ably.chat
 
 import app.cash.turbine.test
 import com.ably.annotations.InternalAPI
+import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
@@ -10,9 +11,7 @@ import com.ably.chat.room.createTestRoom
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.realtime.buildChannelStateChange
-import io.ably.lib.types.AblyException
 import io.ably.lib.types.ChannelProperties
-import io.ably.lib.types.MessageAction
 import io.ably.lib.types.MessageExtras
 import io.mockk.every
 import io.mockk.mockk
@@ -25,6 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
+import io.ably.lib.types.MessageAction as PubSubMessageAction
 
 class MessagesTest {
 
@@ -74,7 +74,7 @@ class MessagesTest {
                 timestamp = 1_000_000,
                 metadata = jsonObject { put("meta", "data") },
                 headers = mapOf("foo" to "bar"),
-                action = MessageAction.MESSAGE_CREATE,
+                action = MessageAction.MessageCreate,
                 version = DefaultMessageVersion(
                     serial = "abcdefghij@1672531200000-123",
                     timestamp = 1_000_000L,
@@ -117,7 +117,7 @@ class MessagesTest {
                         }
                     }.toGson().asJsonObject,
                 )
-                action = MessageAction.MESSAGE_CREATE
+                action = PubSubMessageAction.MESSAGE_CREATE
                 version = io.ably.lib.types.MessageVersion().apply {
                     serial = "abcdefghij@1672531200000-123"
                     timestamp = 1000L
@@ -134,9 +134,9 @@ class MessagesTest {
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "some text",
-                metadata = MessageMetadata(),
+                metadata = JsonObject(),
                 headers = mapOf("foo" to "bar"),
-                action = MessageAction.MESSAGE_CREATE,
+                action = MessageAction.MessageCreate,
                 version = DefaultMessageVersion(
                     serial = "abcdefghij@1672531200000-123",
                     timestamp = 1000L,
@@ -178,7 +178,7 @@ class MessagesTest {
                         }
                     }.toGson().asJsonObject,
                 )
-                action = MessageAction.MESSAGE_DELETE
+                action = PubSubMessageAction.MESSAGE_DELETE
                 version = io.ably.lib.types.MessageVersion().apply {
                     serial = "abcdefghij@1672531200000-123"
                     timestamp = 1000L
@@ -196,9 +196,9 @@ class MessagesTest {
                 clientId = "clientId",
                 serial = "abcdefghij@1672531200000-123",
                 text = "",
-                metadata = MessageMetadata(),
+                metadata = JsonObject(),
                 headers = mapOf("foo" to "bar"),
-                action = MessageAction.MESSAGE_DELETE,
+                action = MessageAction.MessageDelete,
                 version = DefaultMessageVersion(
                     serial = "abcdefghij@1672531200000-123",
                     timestamp = 1000L,
@@ -218,7 +218,7 @@ class MessagesTest {
 
         unsubscribe()
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             runBlocking { subscription.historyBeforeSubscribe() }
         }
 
@@ -279,8 +279,8 @@ class MessagesTest {
 
     @Test
     fun `subscription should invoke once for each incoming message`() = runTest {
-        val listener1 = mockk<Messages.Listener>(relaxed = true)
-        val listener2 = mockk<Messages.Listener>(relaxed = true)
+        val listener1 = mockk<(ChatMessageEvent) -> Unit>(relaxed = true)
+        val listener2 = mockk<(ChatMessageEvent) -> Unit>(relaxed = true)
 
         val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
 
@@ -291,22 +291,22 @@ class MessagesTest {
 
         capturedSlots.forEach { it.onMessage(buildDummyPubSubMessage()) }
 
-        verify(exactly = 1) { listener1.onEvent(any()) }
+        verify(exactly = 1) { listener1.invoke(any()) }
 
         messages.subscribe(listener2)
         capturedSlots.add(pubSubMessageListenerSlot.captured)
 
         capturedSlots.forEach { it.onMessage(buildDummyPubSubMessage()) }
 
-        verify(exactly = 2) { listener1.onEvent(any()) }
-        verify(exactly = 1) { listener2.onEvent(any()) }
+        verify(exactly = 2) { listener1.invoke(any()) }
+        verify(exactly = 1) { listener2.invoke(any()) }
     }
 
     @Test
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val messages: Messages = mockk()
         val subscription: MessagesSubscription = mockk()
-        lateinit var callback: Messages.Listener
+        lateinit var callback: (ChatMessageEvent) -> Unit
 
         every { messages.subscribe(any()) } answers {
             callback = firstArg()
@@ -315,7 +315,7 @@ class MessagesTest {
 
         messages.asFlow().test {
             val event = mockk<ChatMessageEvent>()
-            callback.onEvent(event)
+            callback.invoke(event)
             assertEquals(event, awaitItem())
             cancel()
         }
@@ -337,7 +337,7 @@ private fun buildDummyPubSubMessage() = PubSubMessage().apply {
     extras = MessageExtras(
         jsonObject {}.toGson().asJsonObject,
     )
-    action = MessageAction.MESSAGE_CREATE
+    action = PubSubMessageAction.MESSAGE_CREATE
     version = io.ably.lib.types.MessageVersion().apply {
         serial = "abcdefghij@1672531200000-123"
         timestamp = 1000L

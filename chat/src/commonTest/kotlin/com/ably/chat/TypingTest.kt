@@ -501,7 +501,7 @@ class TypingTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val typing: Typing = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: Typing.Listener
+        lateinit var callback: (TypingSetEvent) -> Unit
 
         every { typing.subscribe(any()) } answers {
             callback = firstArg()
@@ -510,7 +510,7 @@ class TypingTest {
 
         typing.asFlow().test {
             val event = mockk<TypingSetEvent>()
-            callback.onEvent(event)
+            callback.invoke(event)
             assertEquals(event, awaitItem())
             cancel()
         }

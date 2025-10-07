@@ -1,6 +1,5 @@
 package com.ably.chat
 
-import io.ably.lib.types.MessageAction
 import io.ably.lib.types.PresenceMessage
 
 /**
@@ -28,22 +27,22 @@ public object PubSubEventName {
 internal val messageActionNameToAction = mapOf(
 
     /** Action applied to a new message. */
-    "message.create" to MessageAction.MESSAGE_CREATE,
+    "message.create" to MessageAction.MessageCreate,
 
     /** Action applied to an updated message. */
-    "message.update" to MessageAction.MESSAGE_UPDATE,
+    "message.update" to MessageAction.MessageUpdate,
 
     /** Action applied to a deleted message. */
-    "message.delete" to MessageAction.MESSAGE_DELETE,
+    "message.delete" to MessageAction.MessageDelete,
 
     /** Action applied to a message summary. */
-    "message.summary" to MessageAction.MESSAGE_SUMMARY,
+    "message.summary" to MessageAction.MessageSummary,
 )
 
 internal val messageActionToEventType = mapOf(
-    MessageAction.MESSAGE_CREATE to ChatMessageEventType.Created,
-    MessageAction.MESSAGE_UPDATE to ChatMessageEventType.Updated,
-    MessageAction.MESSAGE_DELETE to ChatMessageEventType.Deleted,
+    MessageAction.MessageCreate to ChatMessageEventType.Created,
+    MessageAction.MessageUpdate to ChatMessageEventType.Updated,
+    MessageAction.MessageDelete to ChatMessageEventType.Deleted,
 )
 
 /**

@@ -1,14 +1,6 @@
 package com.ably.chat
 
-/**
- * [Headers] type for chat messages.
- */
-public typealias ReactionHeaders = Headers
-
-/**
- * [Metadata] type for chat messages.
- */
-public typealias ReactionMetadata = Metadata
+import com.ably.chat.json.JsonObject
 
 /**
  * Represents a room-level reaction.
@@ -22,12 +14,12 @@ public interface RoomReaction {
     /**
      * Metadata of the reaction. If no metadata was set this is an empty object.
      */
-    public val metadata: ReactionMetadata
+    public val metadata: JsonObject
 
     /**
      * Headers of the reaction. If no headers were set this is an empty object.
      */
-    public val headers: ReactionHeaders
+    public val headers: Map<String, String>
 
     /**
      * The timestamp at which the reaction was sent.
@@ -47,8 +39,8 @@ public interface RoomReaction {
 
 internal data class DefaultRoomReaction(
     override val name: String,
-    override val metadata: ReactionMetadata,
-    override val headers: ReactionHeaders,
+    override val metadata: JsonObject,
+    override val headers: Map<String, String>,
     override val createdAt: Long,
     override val clientId: String,
     override val isSelf: Boolean,

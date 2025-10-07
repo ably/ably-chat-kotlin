@@ -8,7 +8,6 @@ import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimePresence
 import io.ably.lib.realtime.Presence.PresenceListener
-import io.ably.lib.types.AblyException
 import io.ably.lib.types.PresenceMessage
 import io.mockk.every
 import io.mockk.mockk
@@ -171,7 +170,7 @@ class PresenceTest {
         }
         val presence = DefaultPresence(room)
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             presence.subscribe { }
         }
         val errorInfo = exception.errorInfo
@@ -184,7 +183,7 @@ class PresenceTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val presence: Presence = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: Presence.Listener
+        lateinit var callback: (PresenceEvent) -> Unit
 
         every { presence.subscribe(any()) } answers {
             callback = firstArg()
@@ -193,7 +192,7 @@ class PresenceTest {
 
         presence.asFlow().test {
             val event = mockk<PresenceEvent>()
-            callback.onEvent(event)
+            callback.invoke(event)
             assertEquals(event, awaitItem())
             cancel()
         }

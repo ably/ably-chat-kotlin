@@ -37,18 +37,18 @@ class RoomTest {
 fun EmittingRoom() = EmittingRoom(mockk())
 
 class EmittingRoom(mock: Room) : Room by mock {
-    private val listeners = mutableListOf<Room.Listener>()
+    private val listeners = mutableListOf<(RoomStatusChange) -> Unit>()
 
     override val status: RoomStatus = RoomStatus.Initialized
 
-    override fun onStatusChange(listener: Room.Listener): Subscription {
+    override fun onStatusChange(listener: (RoomStatusChange) -> Unit): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
 
     fun emit(event: RoomStatusChange) {
         listeners.forEach {
-            it.roomStatusChanged(event)
+            it.invoke(event)
         }
     }
 }

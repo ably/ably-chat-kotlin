@@ -1,15 +1,19 @@
 package com.ably.chat
 
 import com.ably.chat.json.JsonValue
-import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
-import io.ably.lib.types.ErrorInfo
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
 
 /**
  * Represents the result of a paginated query.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface PaginatedResult<T> {
 
@@ -57,8 +61,8 @@ private class AsyncPaginatedResultWrapper<T>(
                 continuation.resume(response.toPaginatedResult(transform))
             }
 
-            override fun onError(reason: ErrorInfo?) {
-                continuation.resumeWithException(AblyException.fromErrorInfo(reason))
+            override fun onError(reason: PubSubErrorInfo?) {
+                continuation.resumeWithException(ChatException(reason))
             }
         })
     }

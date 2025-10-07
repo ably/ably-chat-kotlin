@@ -23,6 +23,10 @@ public final class com/ably/chat/ChatClientOptionsKt {
 	public static synthetic fun buildChatClientOptions$default (Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/ably/chat/ChatClientOptions;
 }
 
+public final class com/ably/chat/ChatException : java/lang/RuntimeException {
+	public final fun getErrorInfo ()Lcom/ably/chat/ErrorInfo;
+}
+
 public abstract interface class com/ably/chat/ChatMessageEvent {
 	public abstract fun getMessage ()Lcom/ably/chat/Message;
 	public abstract fun getType ()Lcom/ably/chat/ChatMessageEventType;
@@ -39,13 +43,9 @@ public final class com/ably/chat/ChatMessageEventType : java/lang/Enum {
 }
 
 public abstract interface class com/ably/chat/Connection {
-	public abstract fun getError ()Lio/ably/lib/types/ErrorInfo;
+	public abstract fun getError ()Lcom/ably/chat/ErrorInfo;
 	public abstract fun getStatus ()Lcom/ably/chat/ConnectionStatus;
-	public abstract fun onStatusChange (Lcom/ably/chat/Connection$Listener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/Connection$Listener {
-	public abstract fun connectionStatusChanged (Lcom/ably/chat/ConnectionStatusChange;)V
+	public abstract fun onStatusChange (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public final class com/ably/chat/ConnectionKt {
@@ -67,17 +67,13 @@ public final class com/ably/chat/ConnectionStatus : java/lang/Enum {
 
 public abstract interface class com/ably/chat/ConnectionStatusChange {
 	public abstract fun getCurrent ()Lcom/ably/chat/ConnectionStatus;
-	public abstract fun getError ()Lio/ably/lib/types/ErrorInfo;
+	public abstract fun getError ()Lcom/ably/chat/ErrorInfo;
 	public abstract fun getPrevious ()Lcom/ably/chat/ConnectionStatus;
 	public abstract fun getRetryIn ()Ljava/lang/Long;
 }
 
 public abstract interface class com/ably/chat/Discontinuity {
-	public abstract fun onDiscontinuity (Lcom/ably/chat/Discontinuity$Listener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/Discontinuity$Listener {
-	public abstract fun discontinuityEmitted (Lio/ably/lib/types/ErrorInfo;)V
+	public abstract fun onDiscontinuity (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public final class com/ably/chat/DiscontinuityKt {
@@ -100,6 +96,17 @@ public final class com/ably/chat/ErrorCode : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/ably/chat/ErrorCode;
 	public static fun values ()[Lcom/ably/chat/ErrorCode;
+}
+
+public final class com/ably/chat/ErrorInfo {
+	public fun <init> (Ljava/lang/String;IILjava/lang/String;Lcom/ably/chat/ErrorInfo;Ljava/lang/String;)V
+	public final fun getCause ()Lcom/ably/chat/ErrorInfo;
+	public final fun getCode ()I
+	public final fun getHref ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getRequestId ()Ljava/lang/String;
+	public final fun getStatusCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/ably/chat/HttpStatusCode {
@@ -135,7 +142,7 @@ public final class com/ably/chat/LogLevel : java/lang/Enum {
 }
 
 public abstract interface class com/ably/chat/Message {
-	public abstract fun getAction ()Lio/ably/lib/types/MessageAction;
+	public abstract fun getAction ()Lcom/ably/chat/MessageAction;
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getHeaders ()Ljava/util/Map;
 	public abstract fun getMetadata ()Lcom/ably/chat/json/JsonObject;
@@ -144,6 +151,17 @@ public abstract interface class com/ably/chat/Message {
 	public abstract fun getText ()Ljava/lang/String;
 	public abstract fun getTimestamp ()J
 	public abstract fun getVersion ()Lcom/ably/chat/MessageVersion;
+}
+
+public final class com/ably/chat/MessageAction : java/lang/Enum {
+	public static final field MessageCreate Lcom/ably/chat/MessageAction;
+	public static final field MessageDelete Lcom/ably/chat/MessageAction;
+	public static final field MessageSummary Lcom/ably/chat/MessageAction;
+	public static final field MessageUpdate Lcom/ably/chat/MessageAction;
+	public static final field Meta Lcom/ably/chat/MessageAction;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/ably/chat/MessageAction;
+	public static fun values ()[Lcom/ably/chat/MessageAction;
 }
 
 public final class com/ably/chat/MessageKt {
@@ -228,19 +246,14 @@ public abstract interface class com/ably/chat/MessageVersion {
 public abstract interface class com/ably/chat/Messages {
 	public abstract fun delete (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun delete$default (Lcom/ably/chat/Messages;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
 	public abstract fun getReactions ()Lcom/ably/chat/MessagesReactions;
 	public abstract fun history (Ljava/lang/Long;Ljava/lang/Long;ILcom/ably/chat/OrderBy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun history$default (Lcom/ably/chat/Messages;Ljava/lang/Long;Ljava/lang/Long;ILcom/ably/chat/OrderBy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public abstract fun send (Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun send$default (Lcom/ably/chat/Messages;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun subscribe (Lcom/ably/chat/Messages$Listener;)Lcom/ably/chat/MessagesSubscription;
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/MessagesSubscription;
 	public abstract fun update (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun update$default (Lcom/ably/chat/Messages;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-}
-
-public abstract interface class com/ably/chat/Messages$Listener {
-	public abstract fun onEvent (Lcom/ably/chat/ChatMessageEvent;)V
 }
 
 public final class com/ably/chat/MessagesKt {
@@ -256,16 +269,8 @@ public abstract interface class com/ably/chat/MessagesReactions {
 	public static synthetic fun delete$default (Lcom/ably/chat/MessagesReactions;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public abstract fun send (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun send$default (Lcom/ably/chat/MessagesReactions;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun subscribe (Lcom/ably/chat/MessagesReactions$Listener;)Lcom/ably/chat/Subscription;
-	public abstract fun subscribeRaw (Lcom/ably/chat/MessagesReactions$MessageRawReactionListener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/MessagesReactions$Listener {
-	public abstract fun onReactionSummary (Lcom/ably/chat/MessageReactionSummaryEvent;)V
-}
-
-public abstract interface class com/ably/chat/MessagesReactions$MessageRawReactionListener {
-	public abstract fun onRawReaction (Lcom/ably/chat/MessageReactionRawEvent;)V
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
+	public abstract fun subscribeRaw (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public final class com/ably/chat/MessagesReactionsKt {
@@ -343,12 +348,7 @@ public final class com/ably/chat/MutableTypingOptions : com/ably/chat/TypingOpti
 public abstract interface class com/ably/chat/Occupancy {
 	public abstract fun current ()Lcom/ably/chat/OccupancyData;
 	public abstract fun get (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
-	public abstract fun subscribe (Lcom/ably/chat/Occupancy$Listener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/Occupancy$Listener {
-	public abstract fun onEvent (Lcom/ably/chat/OccupancyEvent;)V
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public abstract interface class com/ably/chat/OccupancyData {
@@ -396,17 +396,12 @@ public abstract interface class com/ably/chat/Presence {
 	public static synthetic fun enter$default (Lcom/ably/chat/Presence;Lcom/ably/chat/json/JsonObject;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public abstract fun get (ZLjava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun get$default (Lcom/ably/chat/Presence;ZLjava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
 	public abstract fun isUserPresent (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun leave (Lcom/ably/chat/json/JsonObject;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun leave$default (Lcom/ably/chat/Presence;Lcom/ably/chat/json/JsonObject;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun subscribe (Lcom/ably/chat/Presence$Listener;)Lcom/ably/chat/Subscription;
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 	public abstract fun update (Lcom/ably/chat/json/JsonObject;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun update$default (Lcom/ably/chat/Presence;Lcom/ably/chat/json/JsonObject;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-}
-
-public abstract interface class com/ably/chat/Presence$Listener {
-	public abstract fun onEvent (Lcom/ably/chat/PresenceEvent;)V
 }
 
 public abstract interface class com/ably/chat/PresenceEvent {
@@ -450,7 +445,7 @@ public abstract interface class com/ably/chat/Room : com/ably/chat/Discontinuity
 	public abstract fun attach (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun detach (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getChannel ()Lcom/ably/pubsub/RealtimeChannel;
-	public abstract fun getError ()Lio/ably/lib/types/ErrorInfo;
+	public abstract fun getError ()Lcom/ably/chat/ErrorInfo;
 	public abstract fun getMessages ()Lcom/ably/chat/Messages;
 	public abstract fun getName ()Ljava/lang/String;
 	public abstract fun getOccupancy ()Lcom/ably/chat/Occupancy;
@@ -459,11 +454,7 @@ public abstract interface class com/ably/chat/Room : com/ably/chat/Discontinuity
 	public abstract fun getReactions ()Lcom/ably/chat/RoomReactions;
 	public abstract fun getStatus ()Lcom/ably/chat/RoomStatus;
 	public abstract fun getTyping ()Lcom/ably/chat/Typing;
-	public abstract fun onStatusChange (Lcom/ably/chat/Room$Listener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/Room$Listener {
-	public abstract fun roomStatusChanged (Lcom/ably/chat/RoomStatusChange;)V
+	public abstract fun onStatusChange (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public final class com/ably/chat/RoomEvent : java/lang/Enum {
@@ -522,14 +513,9 @@ public final class com/ably/chat/RoomReactionEventType : java/lang/Enum {
 }
 
 public abstract interface class com/ably/chat/RoomReactions {
-	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
 	public abstract fun send (Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun send$default (Lcom/ably/chat/RoomReactions;Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun subscribe (Lcom/ably/chat/RoomReactions$Listener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/RoomReactions$Listener {
-	public abstract fun onReaction (Lcom/ably/chat/RoomReactionEvent;)V
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public final class com/ably/chat/RoomReactionsKt {
@@ -557,7 +543,7 @@ public final class com/ably/chat/RoomStatus : java/lang/Enum {
 
 public abstract interface class com/ably/chat/RoomStatusChange {
 	public abstract fun getCurrent ()Lcom/ably/chat/RoomStatus;
-	public abstract fun getError ()Lio/ably/lib/types/ErrorInfo;
+	public abstract fun getError ()Lcom/ably/chat/ErrorInfo;
 	public abstract fun getPrevious ()Lcom/ably/chat/RoomStatus;
 }
 
@@ -576,16 +562,28 @@ public abstract interface class com/ably/chat/Subscription {
 	public abstract fun unsubscribe ()V
 }
 
+public final class com/ably/chat/SummaryClientIdCounts {
+	public final fun getClientIds ()Ljava/util/Map;
+	public final fun getClipped ()Z
+	public final fun getTotal ()I
+	public final fun getTotalClientIds ()I
+	public final fun getTotalUnidentified ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/ably/chat/SummaryClientIdList {
+	public final fun getClientIds ()Ljava/util/List;
+	public final fun getClipped ()Z
+	public final fun getTotal ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class com/ably/chat/Typing {
 	public abstract fun current ()Ljava/util/Set;
 	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
 	public abstract fun keystroke (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun stop (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun subscribe (Lcom/ably/chat/Typing$Listener;)Lcom/ably/chat/Subscription;
-}
-
-public abstract interface class com/ably/chat/Typing$Listener {
-	public abstract fun onEvent (Lcom/ably/chat/TypingSetEvent;)V
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
 public final class com/ably/chat/TypingEventType : java/lang/Enum {

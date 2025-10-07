@@ -8,27 +8,25 @@ import io.ably.lib.realtime.Channel
 import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Presence.PresenceListener as PubSubPresenceListener
 
-public typealias PresenceData = JsonObject
-
 /**
  * This interface is used to interact with presence in a chat room: subscribing to presence events,
  * fetching presence members, or sending presence events (join,update,leave).
  *
  * Get an instance via [Room.presence].
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface Presence {
-    /**
-     * Get the underlying Ably realtime channel used for presence in this chat room.
-     * @returns The realtime channel.
-     */
-    public val channel: Channel
 
     /**
      *  Method to get list of the current online users and returns the latest presence messages associated to it.
      *  @param waitForSync when false, the current list of members is returned without waiting for a complete synchronization.
      *  @param clientId when provided, will filter array of members returned that match the provided `clientId` string.
      *  @param connectionId when provided, will filter array of members returned that match the provided `connectionId`.
-     *  @throws [io.ably.lib.types.AblyException] object which explains the error.
+     *  @throws [ChatException] object which explains the error.
      *  @return list of the current online users
      */
     public suspend fun get(waitForSync: Boolean = true, clientId: String? = null, connectionId: String? = null): List<PresenceMember>
@@ -43,40 +41,29 @@ public interface Presence {
     /**
      * Method to join room presence, will emit an enter event to all subscribers. Repeat calls will trigger more enter events.
      * @param data The users data, a JSON serializable object that will be sent to all subscribers.
-     * @throws [io.ably.lib.types.AblyException] object which explains the error.
+     * @throws [ChatException] object which explains the error.
      */
-    public suspend fun enter(data: PresenceData? = null)
+    public suspend fun enter(data: JsonObject? = null)
 
     /**
      * Method to update room presence, will emit an update event to all subscribers. If the user is not present, it will be treated as a join event.
      * @param data The users data, a JSON serializable object that will be sent to all subscribers.
-     * @throws [io.ably.lib.types.AblyException] object which explains the error.
+     * @throws [ChatException] object which explains the error.
      */
-    public suspend fun update(data: PresenceData? = null)
+    public suspend fun update(data: JsonObject? = null)
 
     /**
      * Method to leave room presence, will emit a leave event to all subscribers. If the user is not present, it will be treated as a no-op.
      * @param data The users data, a JSON serializable object that will be sent to all subscribers.
-     * @throws [io.ably.lib.types.AblyException] object which explains the error.
+     * @throws [ChatException] object which explains the error.
      */
-    public suspend fun leave(data: PresenceData? = null)
+    public suspend fun leave(data: JsonObject? = null)
 
     /**
      * Subscribe the given listener to all presence events.
      * @param listener listener to subscribe
      */
-    public fun subscribe(listener: Listener): Subscription
-
-    /**
-     * An interface for listening to new presence event
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the new presence event happens.
-         * @param event The event that happened.
-         */
-        public fun onEvent(event: PresenceEvent)
-    }
+    public fun subscribe(listener: (PresenceEvent) -> Unit): Subscription
 }
 
 /**
@@ -103,7 +90,7 @@ public interface PresenceMember {
     /**
      * The data associated with the presence member.
      */
-    public val data: PresenceData?
+    public val data: JsonObject?
 
     /**
      * The timestamp of when the last change in state occurred for this presence member.
@@ -124,7 +111,7 @@ public interface PresenceEvent {
 internal data class DefaultPresenceMember(
     override val clientId: String,
     override val connectionId: String,
-    override val data: PresenceData?,
+    override val data: JsonObject?,
     override val updatedAt: Long,
     override val extras: JsonObject = JsonObject(),
 ) : PresenceMember
@@ -143,7 +130,7 @@ internal class DefaultPresence(
     private val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel
+    internal val channel: Channel = channelWrapper.javaChannel
 
     private val logger = room.logger.withContext(tag = "Presence")
 
@@ -163,22 +150,22 @@ internal class DefaultPresence(
 
     override suspend fun isUserPresent(clientId: String): Boolean = presence.getCoroutine(clientId = clientId).isNotEmpty()
 
-    override suspend fun enter(data: PresenceData?) {
+    override suspend fun enter(data: JsonObject?) {
         room.ensureAttached(logger) // CHA-PR3e, CHA-PR3d, CHA-PR3h
         presence.enterClientCoroutine(room.clientId, data)
     }
 
-    override suspend fun update(data: PresenceData?) {
+    override suspend fun update(data: JsonObject?) {
         room.ensureAttached(logger) // CHA-PR10e, CHA-PR10d, CHA-PR10h
         presence.updateClientCoroutine(room.clientId, data)
     }
 
-    override suspend fun leave(data: PresenceData?) {
+    override suspend fun leave(data: JsonObject?) {
         room.ensureAttached(logger) // CHA-PR4d, CHA-PR4b, CHA-PR4c
         presence.leaveClientCoroutine(room.clientId, data)
     }
 
-    override fun subscribe(listener: Presence.Listener): Subscription {
+    override fun subscribe(listener: (PresenceEvent) -> Unit): Subscription {
         logger.trace("Presence.subscribe()")
         // CHA-PR7d - Check if presence events are enabled
         if (!room.options.presence.enableEvents) {
@@ -196,7 +183,7 @@ internal class DefaultPresence(
                 type = PresenceEventType.fromPresenceAction(it.action),
                 member = presenceMember,
             )
-            listener.onEvent(presenceEvent)
+            listener.invoke(presenceEvent)
         }
 
         return presence.subscribe(presenceListener).asChatSubscription()

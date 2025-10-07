@@ -3,6 +3,7 @@ package com.ably.chat.room.lifecycle
 import com.ably.annotations.InternalAPI
 import com.ably.chat.DefaultRoom
 import com.ably.chat.ErrorCode
+import com.ably.chat.ErrorInfo
 import com.ably.chat.RoomStatus
 import com.ably.chat.assertWaiter
 import com.ably.chat.attachCoroutine
@@ -21,7 +22,6 @@ import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener
 import io.ably.lib.types.ChannelOptions
-import io.ably.lib.types.ErrorInfo
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -36,6 +36,7 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
 
 class MonitoringTest {
 
@@ -177,7 +178,7 @@ class MonitoringTest {
             val channelDiscontinuityEvent = constructChannelStateChangeEvent(
                 ChannelState.attached,
                 ChannelState.attached,
-                ErrorInfo("publish rate limit exceeded", ErrorCode.InternalError.code),
+                PubSubErrorInfo("publish rate limit exceeded", ErrorCode.InternalError.code),
             )
             lifecycleListener.onChannelStateChanged(channelDiscontinuityEvent)
 

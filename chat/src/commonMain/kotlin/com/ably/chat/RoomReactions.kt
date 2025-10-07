@@ -1,6 +1,7 @@
 package com.ably.chat
 
 import com.ably.annotations.InternalAPI
+import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.types.MessageExtras
@@ -13,13 +14,6 @@ import io.ably.lib.realtime.Channel as AblyRealtimeChannel
  * Get an instance via [Room.reactions].
  */
 public interface RoomReactions {
-    /**
-     * Returns an instance of the Ably realtime channel used for room-level reactions.
-     * Avoid using this directly unless special features that cannot otherwise be implemented are needed.
-     *
-     * @return The Ably realtime channel instance.
-     */
-    public val channel: AblyRealtimeChannel
 
     /**
      * Sends a reaction to the specified room along with optional metadata.
@@ -35,7 +29,7 @@ public interface RoomReactions {
      * possible to receive your own reaction via the reactions listener before
      * this method completes.
      */
-    public suspend fun send(name: String, metadata: ReactionMetadata? = null, headers: ReactionHeaders? = null)
+    public suspend fun send(name: String, metadata: JsonObject? = null, headers: Map<String, String>? = null)
 
     /**
      * Subscribe to receive room-level reactions.
@@ -43,18 +37,7 @@ public interface RoomReactions {
      * @param listener The listener function to be called when a reaction is received.
      * @returns A response object that allows you to control the subscription.
      */
-    public fun subscribe(listener: Listener): Subscription
-
-    /**
-     * An interface for listening to new reaction events
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the new reaction happens.
-         * @param event The event that happened.
-         */
-        public fun onReaction(event: RoomReactionEvent)
-    }
+    public fun subscribe(listener: (RoomReactionEvent) -> Unit): Subscription
 }
 
 public interface RoomReactionEvent {
@@ -99,7 +82,7 @@ internal data class SendRoomReactionParams(
      * The key `ably-chat` is reserved and cannot be used. Ably may populate this
      * with different values in the future.
      */
-    val metadata: ReactionMetadata? = null,
+    val metadata: JsonObject? = null,
 
     /**
      * Optional headers of the room reaction.
@@ -117,7 +100,7 @@ internal data class SendRoomReactionParams(
      * The key prefix `ably-chat` is reserved and cannot be used. Ably may add
      * headers prefixed with `ably-chat` in the future.
      */
-    val headers: ReactionHeaders? = null,
+    val headers: Map<String, String>? = null,
 )
 
 internal class DefaultRoomReactions(
@@ -129,12 +112,12 @@ internal class DefaultRoomReactions(
     val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC3
+    internal val channel: AblyRealtimeChannel = channelWrapper.javaChannel // CHA-RC3
 
     private val logger = room.logger.withContext(tag = "Reactions")
 
     // (CHA-ER3) Ephemeral room reactions are sent to Ably via the Realtime connection via a send method.
-    override suspend fun send(name: String, metadata: ReactionMetadata?, headers: ReactionHeaders?) {
+    override suspend fun send(name: String, metadata: JsonObject?, headers: Map<String, String>?) {
         val pubSubMessage = PubSubMessage().apply {
             this.name = RoomReactionEventType.Reaction.eventName
             data = jsonObject {
@@ -153,7 +136,7 @@ internal class DefaultRoomReactions(
         channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage()) // CHA-ER3d
     }
 
-    override fun subscribe(listener: RoomReactions.Listener): Subscription {
+    override fun subscribe(listener: (RoomReactionEvent) -> Unit): Subscription {
         val messageListener = PubSubMessageListener {
             val pubSubMessage = it ?: run {
                 logger.warn("Got empty pubsub channel message")
@@ -175,7 +158,7 @@ internal class DefaultRoomReactions(
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.tryAsJsonValue()?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )
-            listener.onReaction(DefaultRoomReactionEvent(reaction))
+            listener.invoke(DefaultRoomReactionEvent(reaction))
         }
         return channelWrapper.subscribe(RoomReactionEventType.Reaction.eventName, messageListener).asChatSubscription()
     }

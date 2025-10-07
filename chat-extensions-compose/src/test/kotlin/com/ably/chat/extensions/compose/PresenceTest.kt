@@ -4,7 +4,6 @@ import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.ably.chat.Presence
-import com.ably.chat.PresenceData
 import com.ably.chat.PresenceEvent
 import com.ably.chat.PresenceEventType
 import com.ably.chat.PresenceMember
@@ -105,11 +104,11 @@ class PresenceTest {
 fun EmittingPresence() = EmittingPresence(mockk())
 
 class EmittingPresence(val mock: Presence) : Presence by mock {
-    private val listeners = mutableListOf<Presence.Listener>()
+    private val listeners = mutableListOf<(PresenceEvent) -> Unit>()
     private val clientIdToPresenceMember = mutableMapOf<String, PresenceMember>()
     private val mutex = Mutex(locked = false)
 
-    override fun subscribe(listener: Presence.Listener): Subscription {
+    override fun subscribe(listener: (PresenceEvent) -> Unit): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
@@ -129,7 +128,7 @@ class EmittingPresence(val mock: Presence) : Presence by mock {
     fun emit(event: PresenceEvent) {
         clientIdToPresenceMember[event.member.clientId] = event.member
         listeners.forEach {
-            it.onEvent(event)
+            it.invoke(event)
         }
     }
 }
@@ -137,7 +136,7 @@ class EmittingPresence(val mock: Presence) : Presence by mock {
 fun PresenceEvent(
     type: PresenceEventType,
     clientId: String,
-    data: PresenceData?,
+    data: JsonObject?,
     updatedAt: Long,
     extras: JsonObject = JsonObject(),
 ): PresenceEvent = mockk {
@@ -147,7 +146,7 @@ fun PresenceEvent(
 
 fun PresenceMember(
     clientId: String,
-    data: PresenceData?,
+    data: JsonObject?,
     updatedAt: Long,
     extras: JsonObject,
 ): PresenceMember = mockk {

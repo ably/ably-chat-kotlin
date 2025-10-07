@@ -37,18 +37,18 @@ class ConnectionTest {
 fun EmittingConnection() = EmittingConnection(mockk())
 
 class EmittingConnection(mock: Connection) : Connection by mock {
-    private val listeners = mutableListOf<Connection.Listener>()
+    private val listeners = mutableListOf<(ConnectionStatusChange) -> Unit>()
 
     override val status: ConnectionStatus = ConnectionStatus.Initialized
 
-    override fun onStatusChange(listener: Connection.Listener): Subscription {
+    override fun onStatusChange(listener: (ConnectionStatusChange) -> Unit): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
 
     fun emit(event: ConnectionStatusChange) {
         listeners.forEach {
-            it.connectionStatusChanged(event)
+            it.invoke(event)
         }
     }
 }

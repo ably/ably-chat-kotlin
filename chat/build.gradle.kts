@@ -21,6 +21,10 @@ kotlin {
 
     jvmToolchain(17)
 
+    compilerOptions {
+        optIn.add("com.ably.chat.annotations.ExperimentalChatApi")
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_1_8)

@@ -62,11 +62,11 @@ class OccupancyTest {
 fun EmittingOccupancy() = EmittingOccupancy(mockk())
 
 class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
-    private val listeners = mutableListOf<Occupancy.Listener>()
+    private val listeners = mutableListOf<(OccupancyEvent) -> Unit>()
     private var currentOccupancyEvent = OccupancyEvent(0, 0)
     private val mutex = Mutex(locked = false)
 
-    override fun subscribe(listener: Occupancy.Listener): Subscription {
+    override fun subscribe(listener: (OccupancyEvent) -> Unit): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
@@ -86,7 +86,7 @@ class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
     fun emit(event: OccupancyEvent) {
         currentOccupancyEvent = event
         listeners.forEach {
-            it.onEvent(event)
+            it.invoke(event)
         }
     }
 }

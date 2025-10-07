@@ -5,10 +5,8 @@ import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeClient
 import io.ably.lib.realtime.RealtimeAnnotations
 import io.ably.lib.realtime.buildRealtimeChannel
-import io.ably.lib.types.AblyException
 import io.ably.lib.types.Annotation
 import io.ably.lib.types.AnnotationAction
-import io.ably.lib.types.MessageAction
 import io.ably.lib.types.MessageAnnotations
 import io.ably.lib.types.Summary
 import io.mockk.coEvery
@@ -24,6 +22,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
+import io.ably.lib.types.MessageAction as PubSubMessageAction
 
 class MessagesReactionsTest {
     private val realtimeClient = createMockRealtimeClient()
@@ -89,7 +88,7 @@ class MessagesReactionsTest {
                         ),
                     )
                 }
-                action = MessageAction.MESSAGE_SUMMARY
+                action = PubSubMessageAction.MESSAGE_SUMMARY
             },
         )
 
@@ -155,7 +154,7 @@ class MessagesReactionsTest {
     fun `send should throw an exception if messageSerial is empty string`() = runTest {
         val messagesReactions = createMessagesReaction()
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 messagesReactions.send("", "heart")
             }
@@ -171,7 +170,7 @@ class MessagesReactionsTest {
     fun `delete should throw an exception if messageSerial is empty string`() = runTest {
         val messagesReactions = createMessagesReaction()
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 messagesReactions.delete("", "heart")
             }
@@ -191,7 +190,7 @@ class MessagesReactionsTest {
             },
         )
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             messagesReactions.subscribeRaw { }
         }
         assertEquals(exception.errorInfo.code, 40_000)
@@ -205,7 +204,7 @@ class MessagesReactionsTest {
     fun `send should throw exception if count specified for any type other than multiple`() = runTest {
         val messagesReactions = createMessagesReaction()
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 messagesReactions.send("abcdefghij@1672531200000-123", "heart", count = 3)
             }
@@ -222,7 +221,7 @@ class MessagesReactionsTest {
         val messagesReactions = createMessagesReaction()
 
         messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 1)
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 0)
             }
@@ -238,7 +237,7 @@ class MessagesReactionsTest {
     fun `send should throw exception if reaction name is empty`() = runTest {
         val messagesReactions = createMessagesReaction()
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 messagesReactions.send("abcdefghij@1672531200000-123", "")
             }

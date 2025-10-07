@@ -1,6 +1,5 @@
 package com.ably.chat
 
-import io.ably.lib.types.ErrorInfo
 import io.ably.lib.util.EventEmitter
 
 /**
@@ -66,6 +65,11 @@ public enum class RoomStatus(public val stateName: String) {
 /**
  * Represents a change in the status of the room.
  * (CHA-RS4)
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for client implementation or extension. The interface definition may evolve over time
+ * with additional properties or methods to support new features, which could break
+ * client implementations.
  */
 public interface RoomStatusChange {
     /**
@@ -112,22 +116,22 @@ internal interface RoomLifecycle {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    fun onChange(listener: Room.Listener): Subscription
+    fun onChange(listener: (RoomStatusChange) -> Unit): Subscription
 
     /**
      * Registers a listener that will be called once when the room status changes.
      * @param listener The function to call when the status changes.
      */
-    fun onChangeOnce(listener: Room.Listener)
+    fun onChangeOnce(listener: (RoomStatusChange) -> Unit)
 }
 
-internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, Room.Listener>() {
+internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, (RoomStatusChange) -> Unit>() {
     private val logger = logger.withContext("RoomStatusEventEmitter")
 
-    override fun apply(listener: Room.Listener?, event: RoomStatus?, vararg args: Any?) {
+    override fun apply(listener: ((RoomStatusChange) -> Unit)?, event: RoomStatus?, vararg args: Any?) {
         try {
             if (args.isNotEmpty() && args[0] is RoomStatusChange) {
-                listener?.roomStatusChanged(args[0] as RoomStatusChange)
+                listener?.invoke(args[0] as RoomStatusChange)
             } else {
                 logger.error("Invalid arguments received in apply method")
             }
@@ -152,7 +156,7 @@ internal class DefaultRoomStatusManager(logger: Logger) : RoomLifecycle {
     private val externalEmitter = RoomStatusEventEmitter(logger)
     private val internalEmitter = RoomStatusEventEmitter(logger)
 
-    override fun onChange(listener: Room.Listener): Subscription {
+    override fun onChange(listener: (RoomStatusChange) -> Unit): Subscription {
         externalEmitter.on(listener)
         return Subscription {
             externalEmitter.off(listener)
@@ -163,7 +167,7 @@ internal class DefaultRoomStatusManager(logger: Logger) : RoomLifecycle {
         externalEmitter.off()
     }
 
-    override fun onChangeOnce(listener: Room.Listener) {
+    override fun onChangeOnce(listener: (RoomStatusChange) -> Unit) {
         internalEmitter.once(listener)
     }
 

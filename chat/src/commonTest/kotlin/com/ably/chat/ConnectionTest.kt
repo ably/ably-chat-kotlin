@@ -5,7 +5,6 @@ import io.ably.lib.realtime.ConnectionState
 import io.ably.lib.realtime.ConnectionStateListener
 import io.ably.lib.realtime.ConnectionStateListener.ConnectionStateChange
 import io.ably.lib.realtime.buildRealtimeConnection
-import io.ably.lib.types.ErrorInfo
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -18,6 +17,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import io.ably.lib.realtime.Connection as PubSubConnection
+import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
 
 class ConnectionTest {
 
@@ -39,12 +39,13 @@ class ConnectionTest {
      */
     @Test
     fun `initial status and error of the connection must be whatever status the realtime client returns`() = runTest {
-        pubSubConnection.reason = ErrorInfo("some error", 400)
+        pubSubConnection.reason = PubSubErrorInfo("some error", 400)
         pubSubConnection.state = ConnectionState.disconnected
 
         val connection = DefaultConnection(pubSubConnection, EmptyLogger(DefaultLogContext(tag = "TEST")))
         assertEquals(ConnectionStatus.Disconnected, connection.status)
-        assertEquals(pubSubConnection.reason, connection.error)
+        assertEquals(400, connection.error?.code)
+        assertEquals("some error", connection.error?.message)
     }
 
     /**
@@ -83,7 +84,7 @@ class ConnectionTest {
     fun `statusAsFlow() should automatically unsubscribe then it's done`() = runTest {
         val connection: Connection = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: Connection.Listener
+        lateinit var callback: (ConnectionStatusChange) -> Unit
 
         every { connection.onStatusChange(any()) } answers {
             callback = firstArg()
@@ -92,7 +93,7 @@ class ConnectionTest {
 
         connection.statusAsFlow().test {
             val event = mockk<ConnectionStatusChange>()
-            callback.connectionStatusChanged(event)
+            callback.invoke(event)
             assertEquals(event, awaitItem())
             cancel()
         }

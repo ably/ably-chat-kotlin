@@ -12,7 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.ably.chat.ChatException
 import com.ably.chat.ChatMessageEventType
+import com.ably.chat.ErrorInfo
 import com.ably.chat.Message
 import com.ably.chat.MessagesSubscription
 import com.ably.chat.PaginatedResult
@@ -20,8 +22,6 @@ import com.ably.chat.Room
 import com.ably.chat.RoomStatus.Attached
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.discontinuityAsFlow
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.ErrorInfo
 
 /**
  * Fetches the next page of messages when the user scrolls close to the last visible message.
@@ -92,7 +92,7 @@ public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSiz
         val receivedPaginatedResult = try {
             lastReceivedPaginatedResult?.next()
                 ?: subscription!!.historyBeforeSubscribe(limit = fetchSize)
-        } catch (exception: AblyException) {
+        } catch (exception: ChatException) {
             error = exception.errorInfo
             return@LaunchedEffect
         }
