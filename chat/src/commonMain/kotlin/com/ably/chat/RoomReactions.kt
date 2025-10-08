@@ -3,8 +3,6 @@ package com.ably.chat
 import com.ably.annotations.InternalAPI
 import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.MessageExtras
 import kotlinx.coroutines.flow.Flow
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
@@ -157,17 +155,23 @@ internal class DefaultRoomReactions(
 
     override fun subscribe(listener: RoomReactions.Listener): Subscription {
         val messageListener = PubSubMessageListener {
-            val pubSubMessage = it ?: throw AblyException.fromErrorInfo(
-                ErrorInfo("Got empty pubsub channel message", HttpStatusCode.BadRequest, ErrorCode.BadRequest.code),
-            )
-            val data = pubSubMessage.data.tryAsJsonValue() ?: throw AblyException.fromErrorInfo(
-                ErrorInfo("Unrecognized Pub/Sub channel's message for `roomReaction` event", HttpStatusCode.InternalServerError),
-            )
+            val pubSubMessage = it ?: run {
+                logger.warn("Got empty pubsub channel message")
+                return@PubSubMessageListener
+            }
+            val data = pubSubMessage.data.tryAsJsonValue() ?: run {
+                logger.warn("Received message with invalid data", context = mapOf("message" to pubSubMessage))
+                return@PubSubMessageListener
+            }
+            val name = data.getOrNull("name")?.stringOrNull() ?: run {
+                logger.warn("Received message with invalid data", context = mapOf("message" to pubSubMessage))
+                return@PubSubMessageListener
+            }
             val reaction = DefaultRoomReaction(
-                name = data.requireString("name"),
+                name = name,
                 createdAt = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
-                metadata = data.jsonObjectOrNull()?.get("metadata")?.jsonObjectOrNull() ?: ReactionMetadata(),
+                metadata = data.jsonObjectOrNull()?.get("metadata")?.jsonObjectOrNull() ?: jsonObject {},
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.tryAsJsonValue()?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientId,
             )

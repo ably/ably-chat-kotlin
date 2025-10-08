@@ -473,11 +473,19 @@ internal class DefaultMessages(
         logger.trace("subscribe(); roomName=$roomName")
         val messageListener = PubSubMessageListener {
             logger.debug("subscribe(); received message for roomName=$roomName", context = mapOf("message" to it))
-            val pubSubMessage = it ?: throw clientError("Got empty pubsub channel message")
-            val eventType = messageActionToEventType[pubSubMessage.action]
-                ?: throw clientError("Received Unknown message action ${pubSubMessage.action}")
+            val pubSubMessage = it ?: run {
+                logger.warn("Got empty pubsub channel message")
+                return@PubSubMessageListener
+            }
+            val eventType = messageActionToEventType[pubSubMessage.action] ?: run {
+                logger.warn("Received Unknown message action ${pubSubMessage.action}")
+                return@PubSubMessageListener
+            }
 
-            val data = parsePubSubMessageData(eventType, pubSubMessage.data)
+            val data = tryParsePubSubMessageData(pubSubMessage.data) ?: run {
+                logger.warn("Received message with invalid data", context = mapOf("message" to pubSubMessage))
+                return@PubSubMessageListener
+            }
             val chatMessage = DefaultMessage(
                 timestamp = pubSubMessage.timestamp,
                 clientId = pubSubMessage.clientId,
@@ -605,13 +613,10 @@ internal class DefaultMessages(
  */
 private data class PubSubMessageData(val text: String, val metadata: MessageMetadata?)
 
-private fun parsePubSubMessageData(action: ChatMessageEventType, data: Any): PubSubMessageData {
-    val json = data.tryAsJsonValue()
-    if (json == null) {
-        throw serverError("Unrecognized Pub/Sub channel's message for `Message.created` event")
-    }
+private fun tryParsePubSubMessageData(data: Any): PubSubMessageData? {
+    val json = data.tryAsJsonValue() ?: return null
 
-    val text = if (action == ChatMessageEventType.Deleted) "" else json.requireString("text")
+    val text = json.getOrNull("text")?.stringOrNull() ?: ""
 
     return PubSubMessageData(
         text = text,
