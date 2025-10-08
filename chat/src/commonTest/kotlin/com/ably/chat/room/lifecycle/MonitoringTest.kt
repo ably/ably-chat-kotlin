@@ -199,7 +199,6 @@ class MonitoringTest {
                 ChannelState.detached -> RoomStatus.Detached
                 ChannelState.failed -> RoomStatus.Failed
                 ChannelState.suspended -> RoomStatus.Suspended
-                else -> null
             }
             Assert.assertEquals(expectedRoomStatus, roomStatus)
         }

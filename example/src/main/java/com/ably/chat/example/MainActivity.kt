@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -152,7 +153,7 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
     val updating = edited != null
     val coroutineScope = rememberCoroutineScope()
     val paginatedMessages = room.collectAsPagingMessagesState(scrollThreshold = 10, fetchSize = 15)
-    val receivedReactions = remember { mutableListOf<RoomReaction>() }
+    val receivedReactions = remember { mutableStateListOf<RoomReaction>() }
 
     LaunchedEffect(Unit) {
         room.reactions.asFlow().collect {

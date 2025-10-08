@@ -1,7 +1,7 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -19,14 +19,21 @@ val version = property("VERSION_NAME")
 kotlin {
     explicitApi()
 
+    jvmToolchain(17)
+
     androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_1_8)
+            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
         }
     }
 
-    jvm()
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_1_8)
+            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
