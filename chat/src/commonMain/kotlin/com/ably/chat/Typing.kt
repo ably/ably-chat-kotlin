@@ -3,8 +3,6 @@ package com.ably.chat
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.Channel
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.ErrorInfo
 import io.ably.lib.types.Message
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration
@@ -26,6 +24,11 @@ import kotlinx.coroutines.launch
  * fetching the current set of typing clients.
  *
  * Get an instance via [Room.typing].
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for client implementation or extension. The interface definition may evolve over time
+ * with additional properties or methods to support new features, which could break
+ * client implementations.
  */
 public interface Typing {
 
@@ -41,7 +44,7 @@ public interface Typing {
      * @param listener A listener to be called when the typing state of a user in the room changes.
      * @returns A response object that allows you to control the subscription to typing events.
      */
-    public fun subscribe(listener: Listener): Subscription
+    public fun subscribe(listener: TypingListener): Subscription
 
     /**
      * Current typing members.
@@ -63,10 +66,10 @@ public interface Typing {
      * - The most recent operation (`keystroke()` or `stop()`) will always determine the final state, ensuring operations
      *   resolve to a consistent and correct state.
      *
-     * @returns when there is a success or throws AblyException upon its failure.
-     * @throws AblyException if the `RoomStatus` is not either `Attached` or `Attaching`.
-     * @throws AblyException if the operation fails to send the event to the server.
-     * @throws AblyException if there is a problem acquiring the mutex that controls serialization.
+     * @returns when there is a success or throws ChatException upon its failure.
+     * @throws ChatException if the `RoomStatus` is not either `Attached` or `Attaching`.
+     * @throws ChatException if the operation fails to send the event to the server.
+     * @throws ChatException if there is a problem acquiring the mutex that controls serialization.
      */
     public suspend fun keystroke()
 
@@ -82,24 +85,18 @@ public interface Typing {
      * - The most recent operation (`keystroke()` or `stop()`) will always determine the final state, ensuring operations
      *   resolve to a consistent and correct state.
      *
-     * @returns when there is a success or throws AblyException upon its failure.
-     * @throws AblyException if the `RoomStatus` is not either `Attached` or `Attaching`.
-     * @throws AblyException if the operation fails to send the event to the server.
-     * @throws AblyException if there is a problem acquiring the mutex that controls serialization.
+     * @returns when there is a success or throws ChatException upon its failure.
+     * @throws ChatException if the `RoomStatus` is not either `Attached` or `Attaching`.
+     * @throws ChatException if the operation fails to send the event to the server.
+     * @throws ChatException if there is a problem acquiring the mutex that controls serialization.
      */
     public suspend fun stop()
-
-    /**
-     * An interface for listening to changes for Typing
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the new typing event happens.
-         * @param event The event that happened.
-         */
-        public fun onEvent(event: TypingSetEvent)
-    }
 }
+
+/**
+ * A listener which listens for typing events.
+ */
+public typealias TypingListener = (TypingSetEvent) -> Unit
 
 /**
  * @return [TypingSetEvent] events as a [Flow]
@@ -110,6 +107,11 @@ public fun Typing.asFlow(): Flow<TypingSetEvent> = transformCallbackAsFlow {
 
 /**
  * Represents a typing event.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface TypingSetEvent {
     /**
@@ -169,7 +171,7 @@ internal class DefaultTyping(
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
-    private val listeners: MutableList<Typing.Listener> = CopyOnWriteArrayList()
+    private val listeners: MutableList<TypingListener> = CopyOnWriteArrayList()
 
     private var currentlyTypingMembers: MutableSet<String> = mutableSetOf()
 
@@ -187,12 +189,7 @@ internal class DefaultTyping(
      * and allows another typing.started to be sent.
      * Spec: CHA-T10
      */
-    private val heartbeatThrottle: Duration = room.options.typing?.heartbeatThrottle ?: throw AblyException.fromErrorInfo(
-        ErrorInfo(
-            "Typing options hasn't been initialized",
-            ErrorCode.BadRequest.code,
-        ),
-    )
+    private val heartbeatThrottle: Duration = room.options.typing.heartbeatThrottle
 
     /**
      * Defines how long to wait before marking a user as stopped typing.
@@ -236,7 +233,7 @@ internal class DefaultTyping(
     /**
      * Spec: CHA-T6a
      */
-    override fun subscribe(listener: Typing.Listener): Subscription {
+    override fun subscribe(listener: TypingListener): Subscription {
         logger.trace("DefaultTyping.subscribe()")
         listeners.add(listener)
         // CHA-T6b
@@ -355,7 +352,7 @@ internal class DefaultTyping(
     private fun emit(eventType: TypingEventType, clientId: String) {
         val typingEventChange = DefaultTypingEventChange(eventType, clientId)
         listeners.forEach {
-            it.onEvent(DefaultTypingEvent(current(), typingEventChange))
+            it.invoke(DefaultTypingEvent(current(), typingEventChange))
         }
     }
 }

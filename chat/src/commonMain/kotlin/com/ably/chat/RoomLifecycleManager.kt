@@ -4,8 +4,6 @@ import com.ably.annotations.InternalAPI
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.ErrorInfo
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -137,19 +135,20 @@ internal class RoomLifecycleManager(
                 // CHA-RL11b, CHA-RL11c
                 if (!operationInProcess) {
                     val newStatus = mapChannelStateToRoomStatus(channelStateChangeEvent.current)
-                    statusManager.setStatus(newStatus, channelStateChangeEvent.reason)
+                    statusManager.setStatus(newStatus, channelStateChangeEvent.reason.toErrorInfo())
                 }
                 val attached = channelStateChangeEvent.current == ChannelState.attached
                 val notResumed = !channelStateChangeEvent.resumed
                 // CHA-RL12a, CHA-RL12b
                 if (attached && notResumed && hasAttachedOnce && !isExplicitlyDetached) {
                     val updatedErrorInfo = channelStateChangeEvent.reason?.let { originalErrorInfo ->
-                        ErrorInfo().apply {
-                            message = "Discontinuity detected, ${originalErrorInfo.message}"
-                            code = ErrorCode.RoomDiscontinuity.code
-                            statusCode = originalErrorInfo.statusCode
-                            href = originalErrorInfo.href
-                        }
+                        createErrorInfo(
+                            message = "Discontinuity detected, ${originalErrorInfo.message}",
+                            code = ErrorCode.RoomDiscontinuity.code,
+                            statusCode = originalErrorInfo.statusCode,
+                            href = originalErrorInfo.href,
+                            cause = originalErrorInfo.toErrorInfo(),
+                        )
                     }
                     val errorContext = updatedErrorInfo?.toString() ?: "no error info"
                     logger.warn("handleChannelStateChanges(); discontinuity detected", context = mapOf("error" to errorContext))
@@ -193,16 +192,14 @@ internal class RoomLifecycleManager(
                 // CHA-RL1k1
                 statusManager.setStatus(RoomStatus.Attached)
                 logger.debug("attach(): room attached successfully")
-            } catch (attachException: AblyException) { // CHA-RL1k2, CHA-RL1k3
+            } catch (attachException: ChatException) { // CHA-RL1k2, CHA-RL1k3
                 awaitInternalChannelEventsCompletion() // await on internal channel state changes to be processed
                 val errorMessage = "failed to attach room: ${attachException.errorInfo.message}"
                 logger.error(errorMessage)
-                attachException.errorInfo?.let {
-                    it.message = errorMessage
-                }
+                val errorInfo = attachException.errorInfo.copy(message = errorMessage)
                 val newStatus = mapChannelStateToRoomStatus(roomChannel.state)
-                statusManager.setStatus(newStatus, attachException.errorInfo)
-                throw attachException
+                statusManager.setStatus(newStatus, errorInfo)
+                throw ChatException(errorInfo, attachException)
             }
         }
         deferredAttach.await()
@@ -249,16 +246,14 @@ internal class RoomLifecycleManager(
                 isExplicitlyDetached = true
                 statusManager.setStatus(RoomStatus.Detached)
                 logger.debug("detach(): room detached successfully")
-            } catch (detachException: AblyException) { // CHA-RL2k2, CHA-RL2k3
+            } catch (detachException: ChatException) { // CHA-RL2k2, CHA-RL2k3
                 awaitInternalChannelEventsCompletion() // await on internal channel state changes to be processed
                 val errorMessage = "failed to detach room: ${detachException.errorInfo.message}"
                 logger.error(errorMessage)
-                detachException.errorInfo?.let {
-                    it.message = errorMessage
-                }
+                val errorInfo = detachException.errorInfo.copy(message = errorMessage)
                 val newStatus = mapChannelStateToRoomStatus(roomChannel.state)
-                statusManager.setStatus(newStatus, detachException.errorInfo)
-                throw detachException
+                statusManager.setStatus(newStatus, errorInfo)
+                throw ChatException(errorInfo, detachException)
             }
         }
         deferredDetach.await()

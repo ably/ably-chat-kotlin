@@ -1,10 +1,9 @@
 package com.ably.chat
 
-import com.ably.chat.Discontinuity.Listener
+import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.types.ErrorInfo
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +20,7 @@ public interface Room : Discontinuity {
      * Get the underlying Ably realtime channel used for the room.
      * @returns The realtime channel.
      */
+    @ExperimentalChatApi
     public val channel: RealtimeChannel
 
     /**
@@ -93,18 +93,7 @@ public interface Room : Discontinuity {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    public fun onStatusChange(listener: Listener): Subscription
-
-    /**
-     * An interface for listening to changes for the room status
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the room status changes.
-         * @param change The change in status.
-         */
-        public fun roomStatusChanged(change: RoomStatusChange)
-    }
+    public fun onStatusChange(listener: RoomStatusListener): Subscription
 
     /**
      * Attaches to the room to receive events in realtime.
@@ -144,6 +133,7 @@ internal class DefaultRoom(
     /**
      * Spec: CHA-RC3a, CHA-RC3c
      */
+    @ExperimentalChatApi
     override val channel: RealtimeChannel = realtimeClient.channels.get("$name::\$chat", options.channelOptions())
 
     /**
@@ -186,7 +176,7 @@ internal class DefaultRoom(
         this.logger.debug("Initialized with features: ${roomFeatures.map { it.featureName }.joinWithBrackets}")
     }
 
-    override fun onStatusChange(listener: Room.Listener): Subscription =
+    override fun onStatusChange(listener: RoomStatusListener): Subscription =
         statusManager.onChange(listener)
 
     override suspend fun attach() {
@@ -199,7 +189,7 @@ internal class DefaultRoom(
         lifecycleManager.detach()
     }
 
-    override fun onDiscontinuity(listener: Listener): Subscription {
+    override fun onDiscontinuity(listener: DiscontinuityListener): Subscription {
         logger.trace("onDiscontinuity();")
         return lifecycleManager.onDiscontinuity(listener)
     }

@@ -145,10 +145,10 @@ internal class EmptyLogger(override val context: LogContext) : Logger {
     override fun log(message: String, level: LogLevel, throwable: Throwable?, tag: String?, context: Map<String, Any?>) = Unit
 }
 
-fun Occupancy.subscribeOnce(listener: Occupancy.Listener) {
+fun Occupancy.subscribeOnce(listener: OccupancyListener) {
     lateinit var subscription: Subscription
     subscription = subscribe {
-        listener.onEvent(it)
+        listener.invoke(it)
         subscription.unsubscribe()
     }
 }

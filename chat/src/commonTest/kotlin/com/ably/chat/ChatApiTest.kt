@@ -1,10 +1,9 @@
 package com.ably.chat
 
+import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.MessageAction
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -53,9 +52,9 @@ class ChatApiTest {
                     clientId = "clientId",
                     text = "hello",
                     timestamp = 1_000_000L,
-                    metadata = MessageMetadata(),
+                    metadata = JsonObject(),
                     headers = mapOf(),
-                    action = MessageAction.MESSAGE_CREATE,
+                    action = MessageAction.MessageCreate,
                     version = DefaultMessageVersion(
                         serial = "timeserial",
                         timestamp = 1_000_000L,
@@ -113,9 +112,9 @@ class ChatApiTest {
                     clientId = "clientId",
                     text = "",
                     timestamp = 1_000_000L,
-                    metadata = MessageMetadata(),
+                    metadata = JsonObject(),
                     headers = mapOf(),
-                    action = MessageAction.MESSAGE_DELETE,
+                    action = MessageAction.MessageDelete,
                     version = DefaultMessageVersion(
                         serial = "timeserial",
                         timestamp = 1_000_000L,
@@ -149,8 +148,8 @@ class ChatApiTest {
                 text = "hello",
                 timestamp = 1_000_000L,
                 headers = mapOf(),
-                metadata = MessageMetadata(),
-                action = MessageAction.MESSAGE_CREATE,
+                metadata = JsonObject(),
+                action = MessageAction.MessageCreate,
                 version = DefaultMessageVersion(
                     serial = "timeserial",
                     timestamp = 1_000_000L,
@@ -173,7 +172,7 @@ class ChatApiTest {
             },
         )
 
-        assertThrows(AblyException::class.java) {
+        assertThrows(ChatException::class.java) {
             runBlocking { chatApi.sendMessage("roomName", SendMessageParams(text = "hello")) }
         }
     }

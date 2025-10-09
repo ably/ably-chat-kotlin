@@ -16,7 +16,7 @@ public final class com/ably/chat/extensions/compose/OccupancyKt {
 }
 
 public abstract interface class com/ably/chat/extensions/compose/PagingMessagesState {
-	public abstract fun getError ()Lio/ably/lib/types/ErrorInfo;
+	public abstract fun getError ()Lcom/ably/chat/ErrorInfo;
 	public abstract fun getHasMore ()Z
 	public abstract fun getListState ()Landroidx/compose/foundation/lazy/LazyListState;
 	public abstract fun getLoaded ()Landroidx/compose/runtime/snapshots/SnapshotStateList;

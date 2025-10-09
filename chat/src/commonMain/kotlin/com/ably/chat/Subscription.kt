@@ -12,6 +12,10 @@ package com.ably.chat
  * // Later when done with the subscription
  * s.unsubscribe();
  * ```
+ * ### Not suitable for inheritance
+ * This interface is not designed for client implementation or extension. The interface definition may evolve over time
+ * with additional properties or methods to support new features, which could break
+ * client implementations.
  */
 public fun interface Subscription {
 

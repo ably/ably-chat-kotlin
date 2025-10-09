@@ -18,21 +18,20 @@ import kotlinx.coroutines.launch
  * fetching the current room occupancy metrics.
  *
  * Get an instance via [Room.occupancy].
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface Occupancy {
-    /**
-     * Get underlying Ably channel for occupancy events.
-     *
-     * @returns The underlying Ably channel for occupancy events.
-     */
-    public val channel: Channel
 
     /**
      * Subscribe a given listener to occupancy updates of the chat room.
      *
      * @param listener A listener to be called when the occupancy of the room changes.
      */
-    public fun subscribe(listener: Listener): Subscription
+    public fun subscribe(listener: OccupancyListener): Subscription
 
     /**
      * Get the current occupancy of the chat room.
@@ -45,21 +44,15 @@ public interface Occupancy {
      * Get the latest occupancy data received from realtime events.
      *
      * @return The latest occupancy data, or undefined if no realtime events have been received yet.
-     * @throws [io.ably.lib.types.AblyException] If occupancy events are not enabled for this room.
+     * @throws [ChatException] If occupancy events are not enabled for this room.
      */
     public fun current(): OccupancyData?
-
-    /**
-     * An interface for listening to new occupancy event
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the new occupancy event happens.
-         * @param event The event that happened.
-         */
-        public fun onEvent(event: OccupancyEvent)
-    }
 }
+
+/**
+ * A listener that is called when the occupancy of a chat room changes.
+ */
+public typealias OccupancyListener = (event: OccupancyEvent) -> Unit
 
 /**
  * @return [OccupancyEvent] events as a [Flow]
@@ -72,6 +65,11 @@ public fun Occupancy.asFlow(): Flow<OccupancyEvent> = transformCallbackAsFlow {
  * Represents the occupancy event.
  *
  * (CHA-O2)
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface OccupancyEvent {
     /**
@@ -95,6 +93,11 @@ public enum class OccupancyEventType(public val eventName: String) {
  * Represents the occupancy of a chat room.
  *
  * (CHA-O2)
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface OccupancyData {
     /**
@@ -131,11 +134,11 @@ internal class DefaultOccupancy(
     val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel
+    internal val channel: Channel = channelWrapper.javaChannel
 
     private var latestOccupancyData: OccupancyData? = null
 
-    private val listeners: MutableList<Occupancy.Listener> = CopyOnWriteArrayList()
+    private val listeners: MutableList<OccupancyListener> = CopyOnWriteArrayList()
 
     private val eventBus = MutableSharedFlow<OccupancyEvent>(
         extraBufferCapacity = 1,
@@ -149,7 +152,7 @@ internal class DefaultOccupancy(
         occupancyScope.launch {
             eventBus.collect { occupancyEvent ->
                 listeners.forEach {
-                    it.onEvent(occupancyEvent)
+                    it.invoke(occupancyEvent)
                 }
             }
         }
@@ -162,7 +165,7 @@ internal class DefaultOccupancy(
     }
 
     // Spec: CHA-O4
-    override fun subscribe(listener: Occupancy.Listener): Subscription {
+    override fun subscribe(listener: OccupancyListener): Subscription {
         logger.trace("Occupancy.subscribe()")
         if (!room.options.occupancy.enableEvents) { // CHA-O4e
             throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")

@@ -10,6 +10,11 @@ import kotlinx.coroutines.launch
 
 /**
  * Manages the lifecycle of chat rooms.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for client implementation or extension. The interface definition may evolve over time
+ * with additional properties or methods to support new features, which could break
+ * client implementations.
  */
 public interface Rooms {
     /**
@@ -27,7 +32,7 @@ public interface Rooms {
      *
      * @param name The ID of the room.
      * @param options The options for the room.
-     * @throws [io.ably.lib.types.ErrorInfo] if a room with the same ID but different options already exists.
+     * @throws [ChatException] if a room with the same ID but different options already exists.
      * @returns Room A new or existing Room object.
      * Spec: CHA-RC1f, CHA-RC4
      */
@@ -84,7 +89,7 @@ internal class DefaultRooms(
             val existingRoom = getReleasedOrExistingRoom(name)
             existingRoom?.let {
                 if (options != existingRoom.options) { // CHA-RC1f1
-                    throw ablyException("room already exists with different options", ErrorCode.BadRequest)
+                    throw chatException("room already exists with different options", ErrorCode.BadRequest)
                 }
                 logger.debug("get(); returning existing room with name: $name")
                 return@async existingRoom // CHA-RC1f2
@@ -103,7 +108,7 @@ internal class DefaultRooms(
             // CHA-RC1g4 - Previous Room Get in progress, cancel all of them
             roomGetDeferredMap[name]?.let {
                 logger.debug("release(); cancelling existing rooms.get() for name: $name")
-                val exception = ablyException(
+                val exception = chatException(
                     "room released before get operation could complete",
                     ErrorCode.RoomReleasedBeforeOperationCompleted,
                 )

@@ -1,6 +1,7 @@
 package com.ably.chat.room
 
 import com.ably.chat.ChatApi
+import com.ably.chat.ChatException
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.MainDispatcherRule
@@ -10,7 +11,6 @@ import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
 import com.ably.chat.presence
 import com.ably.chat.typing
-import io.ably.lib.types.AblyException
 import io.mockk.mockk
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -53,7 +53,7 @@ class ConfigureRoomOptionsTest {
 
         // Room failure when negative timeout
         roomOpts = buildRoomOptions { typing { heartbeatThrottle = 1.seconds.unaryMinus() } }
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             DefaultRoom(
                 "1234",
                 roomOpts,

@@ -8,8 +8,6 @@ import com.ably.chat.json.JsonValue
 import com.ably.chat.json.jsonObject
 import io.ably.lib.http.HttpCore
 import io.ably.lib.http.HttpUtils
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.ErrorInfo
 
 internal fun JsonValue.stringOrNull(): String? = when (this) {
     is JsonString -> this.value
@@ -59,9 +57,7 @@ internal fun JsonValue.toMap(): Map<String, String> = when (this) {
 
 internal fun JsonValue.requireJsonObject(): JsonObject {
     return this as? JsonObject
-        ?: throw AblyException.fromErrorInfo(
-            ErrorInfo("Response value expected to be JsonObject, got primitive instead", HttpStatusCode.InternalServerError),
-        )
+        ?: throw serverError("Response value expected to be JsonObject, got primitive instead")
 }
 
 internal fun JsonValue.requireString(memberName: String): String {

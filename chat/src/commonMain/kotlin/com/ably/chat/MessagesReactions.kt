@@ -4,10 +4,6 @@ import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.RealtimeAnnotations
 import io.ably.lib.types.Annotation
 import io.ably.lib.types.AnnotationAction
-import io.ably.lib.types.MessageAction
-import io.ably.lib.types.Summary
-import io.ably.lib.types.SummaryClientIdCounts
-import io.ably.lib.types.SummaryClientIdList
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,9 +13,15 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import io.ably.lib.types.MessageAction as PubSubMessageAction
 
 /**
  * Add, delete, and subscribe to message reactions.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface MessagesReactions {
     /**
@@ -50,7 +52,7 @@ public interface MessagesReactions {
      * @param listener The listener to call when a message reaction summary is received
      * @return A subscription object that should be used to unsubscribe
      */
-    public fun subscribe(listener: Listener): Subscription
+    public fun subscribe(listener: MessageReactionListener): Subscription
 
     /**
      * Subscribe to individual reaction events.
@@ -60,28 +62,6 @@ public interface MessagesReactions {
      * @return A subscription object that should be used to unsubscribe
      */
     public fun subscribeRaw(listener: MessageRawReactionListener): Subscription
-
-    /**
-     * An interface for listening to new messaging reaction event
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the new messaging event happens.
-         * @param event The event that happened.
-         */
-        public fun onReactionSummary(event: MessageReactionSummaryEvent)
-    }
-
-    /**
-     * An interface for listening to new messaging reaction event
-     */
-    public fun interface MessageRawReactionListener {
-        /**
-         * A function that can be called when the new messaging event happens.
-         * @param event The event that happened.
-         */
-        public fun onRawReaction(event: MessageReactionRawEvent)
-    }
 }
 
 public enum class MessageReactionEventType(public val eventName: String) {
@@ -142,6 +122,24 @@ public enum class MessageReactionType(public val type: String) {
     }
 }
 
+/**
+ * A listener for summary message reaction events.
+ */
+public typealias MessageReactionListener = (MessageReactionSummaryEvent) -> Unit
+
+/**
+ * A listener for individual message reaction events.
+ */
+public typealias MessageRawReactionListener = (MessageReactionRawEvent) -> Unit
+
+/**
+ * Represents a raw message reaction event, such as when a reaction is added or removed from a message.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
+ */
 public interface MessageReactionRawEvent {
     /**
      * Whether reaction was added or removed
@@ -161,6 +159,11 @@ public interface MessageReactionRawEvent {
 
 /**
  * The message reaction that was received.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface MessageReaction {
     /**
@@ -192,6 +195,11 @@ public interface MessageReaction {
 /**
  * Event interface representing a summary of message reactions.
  * This event aggregates different types of reactions (single, distinct, counter) for a specific message.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface MessageReactionSummaryEvent {
     /** The type of the event */
@@ -206,6 +214,11 @@ public interface MessageReactionSummaryEvent {
  *
  * This interface provides detailed information about the different types of reactions
  * applied to a message, categorized into unique, distinct, and multiple types.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface MessageReactionsSummary {
     /** Reference to the original message's serial number */
@@ -281,8 +294,8 @@ internal class DefaultMessagesReactions(
 
     private val reactionsScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + SupervisorJob())
 
-    private val listeners: MutableList<MessagesReactions.Listener> = CopyOnWriteArrayList()
-    private val rawEventlisteners: MutableList<MessagesReactions.MessageRawReactionListener> = CopyOnWriteArrayList()
+    private val listeners: MutableList<MessageReactionListener> = CopyOnWriteArrayList()
+    private val rawEventlisteners: MutableList<MessageRawReactionListener> = CopyOnWriteArrayList()
 
     private val summaryEventBus = MutableSharedFlow<MessageReactionSummaryEvent>(
         extraBufferCapacity = 1,
@@ -301,7 +314,7 @@ internal class DefaultMessagesReactions(
         reactionsScope.launch {
             summaryEventBus.collect { summaryEvent ->
                 listeners.forEach {
-                    it.onReactionSummary(summaryEvent)
+                    it.invoke(summaryEvent)
                 }
             }
         }
@@ -309,7 +322,7 @@ internal class DefaultMessagesReactions(
         reactionsScope.launch {
             rawEventBus.collect { rawEvent ->
                 rawEventlisteners.forEach {
-                    it.onRawReaction(rawEvent)
+                    it.invoke(rawEvent)
                 }
             }
         }
@@ -411,7 +424,7 @@ internal class DefaultMessagesReactions(
         )
     }
 
-    override fun subscribe(listener: MessagesReactions.Listener): Subscription {
+    override fun subscribe(listener: MessageReactionListener): Subscription {
         logger.trace("MessagesReactions.subscribe()")
         listeners.add(listener)
         return Subscription {
@@ -420,7 +433,7 @@ internal class DefaultMessagesReactions(
         }
     }
 
-    override fun subscribeRaw(listener: MessagesReactions.MessageRawReactionListener): Subscription {
+    override fun subscribeRaw(listener: MessageRawReactionListener): Subscription {
         logger.trace("MessagesReactions.subscribeRaw()")
 
         if (!options.rawMessageReactions) {
@@ -450,7 +463,7 @@ internal class DefaultMessagesReactions(
         logger.trace("MessagesReactions.internalSummaryListener();", context = mapOf("message" to message))
 
         // only process summary events with the serial
-        if (message.action !== MessageAction.MESSAGE_SUMMARY || message.serial == null) {
+        if (message.action !== PubSubMessageAction.MESSAGE_SUMMARY || message.serial == null) {
             message.serial ?: logger.warn(
                 "DefaultMessageReactions.internalSummaryListener(); received summary without serial",
                 context = mapOf("message" to message),
@@ -476,11 +489,11 @@ internal class DefaultMessagesReactions(
         }
 
         val unique = message.annotations?.summary?.get(MessageReactionType.Unique.type)
-            ?.let { Summary.asSummaryUniqueV1(it) } ?: mapOf()
+            .let { parseSummaryUniqueV1(it.tryAsJsonValue()) }
         val distinct = message.annotations?.summary?.get(MessageReactionType.Distinct.type)
-            ?.let { Summary.asSummaryDistinctV1(it) } ?: mapOf()
+            .let { parseSummaryDistinctV1(it.tryAsJsonValue()) }
         val multiple = message.annotations?.summary?.get(MessageReactionType.Multiple.type)
-            ?.let { Summary.asSummaryMultipleV1(it) } ?: mapOf()
+            .let { parseSummaryMultipleV1(it.tryAsJsonValue()) }
 
         summaryEventBus.tryEmit(
             DefaultMessageReactionSummaryEvent(

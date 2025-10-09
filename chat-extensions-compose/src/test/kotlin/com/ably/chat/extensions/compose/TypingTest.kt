@@ -7,6 +7,7 @@ import com.ably.chat.Room
 import com.ably.chat.Subscription
 import com.ably.chat.Typing
 import com.ably.chat.TypingEventType
+import com.ably.chat.TypingListener
 import com.ably.chat.TypingSetEvent
 import com.ably.chat.TypingSetEventType
 import com.ably.chat.annotations.ExperimentalChatApi
@@ -57,16 +58,16 @@ class TypingTest {
 fun EmittingTyping() = EmittingTyping(mockk())
 
 class EmittingTyping(mock: Typing) : Typing by mock {
-    private val listeners = mutableListOf<Typing.Listener>()
+    private val listeners = mutableListOf<TypingListener>()
 
-    override fun subscribe(listener: Typing.Listener): Subscription {
+    override fun subscribe(listener: TypingListener): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
 
     fun emit(event: TypingSetEvent) {
         listeners.forEach {
-            it.onEvent(event)
+            it.invoke(event)
         }
     }
 }

@@ -6,6 +6,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 
 /**
  * Configuration options for the chat client.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface ChatClientOptions {
     /**

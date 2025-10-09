@@ -6,7 +6,6 @@ import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
-import io.ably.lib.types.AblyException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -159,7 +158,7 @@ class OccupancyTest {
         }
         val occupancy = DefaultOccupancy(room)
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             occupancy.subscribe { }
         }
         val errorInfo = exception.errorInfo
@@ -172,7 +171,7 @@ class OccupancyTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val occupancy: Occupancy = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: Occupancy.Listener
+        lateinit var callback: OccupancyListener
 
         every { occupancy.subscribe(any()) } answers {
             callback = firstArg()
@@ -181,7 +180,7 @@ class OccupancyTest {
 
         occupancy.asFlow().test {
             val event = DefaultOccupancyEvent(DefaultOccupancyData(connections = 2, presenceMembers = 1))
-            callback.onEvent(event)
+            callback.invoke(event)
             assertEquals(event, awaitItem())
             cancel()
         }

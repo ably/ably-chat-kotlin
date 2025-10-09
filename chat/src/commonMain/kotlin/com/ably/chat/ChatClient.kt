@@ -8,6 +8,11 @@ import io.ably.lib.realtime.RealtimeClient
 
 /**
  * This is the core client for Ably chat. It provides access to chat rooms.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface ChatClient {
     /**
@@ -29,6 +34,7 @@ public interface ChatClient {
     /**
      * The underlying Ably Realtime client.
      */
+    @ExperimentalChatApi
     public val realtime: AblyRealtime
 
     /**
@@ -58,7 +64,6 @@ internal class DefaultChatClient(
     override val clientOptions: ChatClientOptions,
 ) : ChatClient {
 
-    @OptIn(ExperimentalChatApi::class)
     val stateDispatcher get() = clientOptions.stateDispatcher
 
     private val realtimeClientWrapper = RealtimeClient(realtime).createWrapperSdkProxy(

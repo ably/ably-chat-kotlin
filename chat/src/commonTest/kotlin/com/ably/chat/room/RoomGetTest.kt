@@ -1,6 +1,7 @@
 package com.ably.chat.room
 
 import com.ably.chat.ChatApi
+import com.ably.chat.ChatException
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.RoomOptions
@@ -12,7 +13,6 @@ import com.ably.chat.get
 import com.ably.chat.occupancy
 import com.ably.chat.presence
 import com.ably.chat.typing
-import io.ably.lib.types.AblyException
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -63,7 +63,7 @@ class RoomGetTest {
         Assert.assertEquals(room, rooms.RoomNameToRoom["1234"])
 
         // Throws exception for requesting room for different roomOptions
-        var exception = assertThrows(AblyException::class.java) {
+        var exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 rooms.get("1234") { presence { enableEvents = false } }
             }
@@ -73,7 +73,7 @@ class RoomGetTest {
         Assert.assertEquals("room already exists with different options", exception.errorInfo.message)
 
         // Throws exception for requesting room for different roomOptions
-        exception = assertThrows(AblyException::class.java) {
+        exception = assertThrows(ChatException::class.java) {
             runBlocking {
                 rooms.get("1234") { occupancy { enableEvents = true } }
             }

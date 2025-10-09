@@ -1,6 +1,5 @@
 package com.ably.chat
 
-import io.ably.lib.types.AblyException
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -48,7 +47,7 @@ class AtomicCoroutineScopeTest {
         }
         assertWaiter { !atomicCoroutineScope.finishedProcessing }
 
-        val ex = Assert.assertThrows(AblyException::class.java) {
+        val ex = Assert.assertThrows(ChatException::class.java) {
             runBlocking {
                 deferredResult1.await()
             }

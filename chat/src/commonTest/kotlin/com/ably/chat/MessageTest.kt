@@ -1,10 +1,6 @@
 package com.ably.chat
 
 import com.ably.chat.json.jsonObject
-import io.ably.lib.types.AblyException
-import io.ably.lib.types.MessageAction
-import io.ably.lib.types.SummaryClientIdCounts
-import io.ably.lib.types.SummaryClientIdList
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -29,7 +25,7 @@ class MessageTest {
             text = "Hello",
             serial = "123",
             version = "1",
-            action = MessageAction.MESSAGE_UPDATE,
+            action = MessageAction.MessageUpdate,
         )
         val event = DefaultChatMessageEvent(
             type = ChatMessageEventType.Updated,
@@ -87,7 +83,7 @@ class MessageTest {
             message = eventMessage,
         )
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
         }
         assertEquals(exception.errorInfo.code, 40_000)
@@ -143,7 +139,7 @@ class MessageTest {
 
         val event = DefaultMessageReactionSummaryEvent(summary = summary)
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
         }
         assertEquals(exception.errorInfo.code, 40_000)
@@ -167,7 +163,7 @@ class MessageTest {
 
         val event = DefaultMessageReactionSummaryEvent(summary = summary)
 
-        val exception = assertThrows(AblyException::class.java) {
+        val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
         }
         assertEquals(exception.errorInfo.code, 40_000)
@@ -179,7 +175,7 @@ private fun createMessage(
     text: String,
     serial: String,
     version: String,
-    action: MessageAction = MessageAction.MESSAGE_CREATE,
+    action: MessageAction = MessageAction.MessageCreate,
     reactions: MessageReactions = DefaultMessageReactions(),
 ) = DefaultMessage(
     text = text,

@@ -1,7 +1,6 @@
 package com.ably.chat
 
 import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.types.ErrorInfo
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +47,11 @@ public enum class ConnectionStatus(public val stateName: String) {
 
 /**
  * Represents a change in the status of the connection.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface ConnectionStatusChange {
     /**
@@ -81,6 +85,11 @@ internal data class DefaultConnectionStatusChange(
 
 /**
  * Represents a connection to Ably.
+ *
+ * ### Not suitable for inheritance
+ * This interface is not designed for implementation or extension outside this SDK.
+ * The interface definition may evolve over time with additional properties or methods to support new features,
+ * which could break implementations.
  */
 public interface Connection {
     /**
@@ -98,19 +107,16 @@ public interface Connection {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    public fun onStatusChange(listener: Listener): Subscription
-
-    /**
-     * An interface for listening to changes for the connection status
-     */
-    public fun interface Listener {
-        /**
-         * A function that can be called when the connection status changes.
-         * @param change The change in status.
-         */
-        public fun connectionStatusChanged(change: ConnectionStatusChange)
-    }
+    public fun onStatusChange(listener: ConnectionStatusListener): Subscription
 }
+
+/**
+ * A type alias representing a listener function that reacts to changes in connection status.
+ * The listener receives a [ConnectionStatusChange] object, which contains details about the
+ * status transition, including the current and previous connection statuses, any associated
+ * error information, and a possible retry delay.
+ */
+public typealias ConnectionStatusListener = (ConnectionStatusChange) -> Unit
 
 /**
  * @return [ConnectionStatusChange] events as a [Flow]
@@ -127,23 +133,23 @@ internal class DefaultConnection(
 
     private val connectionScope = CoroutineScope(dispatcher + SupervisorJob())
 
-    private val listeners: MutableList<Connection.Listener> = CopyOnWriteArrayList()
+    private val listeners: MutableList<ConnectionStatusListener> = CopyOnWriteArrayList()
 
     // (CHA-CS3)
     override var status: ConnectionStatus = mapPubSubStatusToChat(pubSubConnection.state)
         private set
 
-    override var error: ErrorInfo? = pubSubConnection.reason
+    override var error: ErrorInfo? = pubSubConnection.reason.toErrorInfo()
         private set
 
     init {
         pubSubConnection.on { stateChange ->
             val nextStatus = mapPubSubStatusToChat(stateChange.current)
-            applyStatusChange(nextStatus, stateChange.reason, stateChange.retryIn)
+            applyStatusChange(nextStatus, stateChange.reason.toErrorInfo(), stateChange.retryIn)
         }
     }
 
-    override fun onStatusChange(listener: Connection.Listener): Subscription {
+    override fun onStatusChange(listener: ConnectionStatusListener): Subscription {
         logger.trace("Connection.onStatusChange()")
         listeners.add(listener)
 
@@ -169,7 +175,7 @@ internal class DefaultConnection(
     }
 
     private fun emitStateChange(statusChange: ConnectionStatusChange) {
-        listeners.forEach { it.connectionStatusChanged(statusChange) }
+        listeners.forEach { it.invoke(statusChange) }
     }
 }
 

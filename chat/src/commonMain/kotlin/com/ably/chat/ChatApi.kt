@@ -1,18 +1,17 @@
 package com.ably.chat
 
+import com.ably.chat.json.JsonObject
 import com.ably.chat.json.JsonValue
 import com.ably.chat.json.jsonObject
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
-import io.ably.lib.types.AblyException
 import io.ably.lib.types.AsyncHttpPaginatedResponse
-import io.ably.lib.types.ErrorInfo
-import io.ably.lib.types.MessageAction
 import io.ably.lib.types.Param
 import java.net.URLEncoder
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
 
 private const val PROTOCOL_VERSION_PARAM_NAME = "v"
 
@@ -69,9 +68,9 @@ internal class ChatApi(
                 clientId = clientId,
                 text = params.text,
                 timestamp = timestamp,
-                metadata = params.metadata ?: MessageMetadata(),
+                metadata = params.metadata ?: JsonObject(),
                 headers = params.headers ?: mapOf(),
-                action = MessageAction.MESSAGE_CREATE,
+                action = MessageAction.MessageCreate,
                 version = DefaultMessageVersion(
                     serial = serial,
                     timestamp = timestamp,
@@ -115,7 +114,7 @@ internal class ChatApi(
     private fun tryParseMessageResponse(json: JsonValue): Message? {
         val messageJsonObject = json.jsonObjectOrNull() ?: return null
         val action = messageJsonObject[MessageProperty.Action]
-            ?.stringOrNull()?.let { name -> messageActionNameToAction[name] } ?: MessageAction.MESSAGE_CREATE
+            ?.stringOrNull()?.let { name -> messageActionNameToAction[name] } ?: MessageAction.MessageCreate
         val version = messageJsonObject[MessageProperty.Version]?.jsonObjectOrNull()
         val reactions = messageJsonObject[MessageProperty.Reactions]?.jsonObjectOrNull()
         val text = messageJsonObject[MessageProperty.Text]?.stringOrNull() ?: ""
@@ -128,7 +127,7 @@ internal class ChatApi(
             clientId = messageClientId,
             text = text,
             timestamp = messageTimestamp,
-            metadata = messageJsonObject[MessageProperty.Metadata]?.jsonObjectOrNull() ?: MessageMetadata(),
+            metadata = messageJsonObject[MessageProperty.Metadata]?.jsonObjectOrNull() ?: JsonObject(),
             headers = messageJsonObject.get(MessageProperty.Headers)?.toMap() ?: mapOf(),
             action = action,
             reactions = buildMessageReactions(reactions),
@@ -203,7 +202,7 @@ internal class ChatApi(
                     continuation.resume(response?.items()?.firstOrNull()?.tryAsJsonValue())
                 }
 
-                override fun onError(reason: ErrorInfo?) {
+                override fun onError(reason: PubSubErrorInfo?) {
                     logger.error(
                         "ChatApi.makeAuthorizedRequest(); failed to make request",
                         context = mapOf(
@@ -214,7 +213,7 @@ internal class ChatApi(
                         ),
                     )
                     // (CHA-M3e)
-                    continuation.resumeWithException(AblyException.fromErrorInfo(reason))
+                    continuation.resumeWithException(ChatException(reason))
                 }
             },
         )
@@ -237,7 +236,7 @@ internal class ChatApi(
                     continuation.resume(response.toPaginatedResult(transform))
                 }
 
-                override fun onError(reason: ErrorInfo?) {
+                override fun onError(reason: PubSubErrorInfo?) {
                     logger.error(
                         "ChatApi.makeAuthorizedPaginatedRequest(); failed to make request",
                         context = mapOf(
@@ -247,7 +246,7 @@ internal class ChatApi(
                             "errorMessage" to reason?.message,
                         ),
                     )
-                    continuation.resumeWithException(AblyException.fromErrorInfo(reason))
+                    continuation.resumeWithException(ChatException(reason))
                 }
             },
         )
