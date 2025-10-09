@@ -66,15 +66,15 @@ class MessageReactionsIntegrationTest {
         val event1Deferred = room.messages.reactions.subscribeOnce()
         room.messages.reactions.send(message.serial, "like")
         val event1 = event1Deferred.await()
-        assertEquals(message.serial, event1.summary.messageSerial)
-        assertEquals(1, event1.summary.distinct["like"]?.total)
-        assertEquals(listOf("sandbox-client"), event1.summary.distinct["like"]?.clientIds)
+        assertEquals(message.serial, event1.messageSerial)
+        assertEquals(1, event1.reactions.distinct["like"]?.total)
+        assertEquals(listOf("sandbox-client"), event1.reactions.distinct["like"]?.clientIds)
 
         val event2Deferred = room.messages.reactions.subscribeOnce()
         room.messages.reactions.delete(message.serial, "like")
         val event2 = event2Deferred.await()
-        assertEquals(message.serial, event2.summary.messageSerial)
-        assertEquals(null, event2.summary.distinct["like"])
+        assertEquals(message.serial, event2.messageSerial)
+        assertEquals(null, event2.reactions.distinct["like"])
     }
 
     /**
@@ -90,17 +90,17 @@ class MessageReactionsIntegrationTest {
         val event1Deferred = room.messages.reactions.subscribeOnce()
         room.messages.reactions.send(message.serial, "like", MessageReactionType.Multiple)
         val event1 = event1Deferred.await()
-        assertEquals(1, event1.summary.multiple["like"]?.total)
+        assertEquals(1, event1.reactions.multiple["like"]?.total)
 
         val event2 = room.messages.reactions.subscribeOnce()
         room.messages.reactions.send(message.serial, "like", MessageReactionType.Multiple, 2)
-        assertEquals(3, event2.await().summary.multiple["like"]?.total)
+        assertEquals(3, event2.await().reactions.multiple["like"]?.total)
 
         val event3Deferred = room.messages.reactions.subscribeOnce()
         room.messages.reactions.delete(message.serial, "like", MessageReactionType.Multiple)
         val event3 = event3Deferred.await()
-        assertEquals(message.serial, event3.summary.messageSerial)
-        assertEquals(null, event3.summary.multiple["like"])
+        assertEquals(message.serial, event3.messageSerial)
+        assertEquals(null, event3.reactions.multiple["like"])
     }
 
     /**
@@ -122,9 +122,9 @@ class MessageReactionsIntegrationTest {
         val event1Deferred = room.messages.reactions.subscribeOnce()
         room.messages.reactions.send(message.serial, "like")
         val event1 = event1Deferred.await()
-        assertEquals(message.serial, event1.summary.messageSerial)
-        assertEquals(1, event1.summary.unique["like"]?.total)
-        assertEquals(listOf("sandbox-client"), event1.summary.unique["like"]?.clientIds)
+        assertEquals(message.serial, event1.messageSerial)
+        assertEquals(1, event1.reactions.unique["like"]?.total)
+        assertEquals(listOf("sandbox-client"), event1.reactions.unique["like"]?.clientIds)
     }
 
     private fun waitForRawReactions(room: Room, size: Int): CompletableDeferred<List<String>> {

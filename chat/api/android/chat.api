@@ -147,7 +147,7 @@ public abstract interface class com/ably/chat/Message {
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getHeaders ()Ljava/util/Map;
 	public abstract fun getMetadata ()Lcom/ably/chat/json/JsonObject;
-	public abstract fun getReactions ()Lcom/ably/chat/MessageReactions;
+	public abstract fun getReactions ()Lcom/ably/chat/MessageReactionSummary;
 	public abstract fun getSerial ()Ljava/lang/String;
 	public abstract fun getText ()Ljava/lang/String;
 	public abstract fun getTimestamp ()J
@@ -200,8 +200,15 @@ public abstract interface class com/ably/chat/MessageReactionRawEvent {
 	public abstract fun getType ()Lcom/ably/chat/MessageReactionEventType;
 }
 
+public abstract interface class com/ably/chat/MessageReactionSummary {
+	public abstract fun getDistinct ()Ljava/util/Map;
+	public abstract fun getMultiple ()Ljava/util/Map;
+	public abstract fun getUnique ()Ljava/util/Map;
+}
+
 public abstract interface class com/ably/chat/MessageReactionSummaryEvent {
-	public abstract fun getSummary ()Lcom/ably/chat/MessageReactionsSummary;
+	public abstract fun getMessageSerial ()Ljava/lang/String;
+	public abstract fun getReactions ()Lcom/ably/chat/MessageReactionSummary;
 	public abstract fun getType ()Lcom/ably/chat/MessageReactionSummaryEventType;
 }
 
@@ -221,19 +228,6 @@ public final class com/ably/chat/MessageReactionType : java/lang/Enum {
 	public final fun getType ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lcom/ably/chat/MessageReactionType;
 	public static fun values ()[Lcom/ably/chat/MessageReactionType;
-}
-
-public abstract interface class com/ably/chat/MessageReactions {
-	public abstract fun getDistinct ()Ljava/util/Map;
-	public abstract fun getMultiple ()Ljava/util/Map;
-	public abstract fun getUnique ()Ljava/util/Map;
-}
-
-public abstract interface class com/ably/chat/MessageReactionsSummary {
-	public abstract fun getDistinct ()Ljava/util/Map;
-	public abstract fun getMessageSerial ()Ljava/lang/String;
-	public abstract fun getMultiple ()Ljava/util/Map;
-	public abstract fun getUnique ()Ljava/util/Map;
 }
 
 public abstract interface class com/ably/chat/MessageVersion {
