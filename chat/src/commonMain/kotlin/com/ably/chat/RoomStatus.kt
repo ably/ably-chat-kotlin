@@ -89,6 +89,11 @@ public interface RoomStatusChange {
     public val error: ErrorInfo?
 }
 
+/**
+ * A function that can be called when the room status changes.
+ */
+public typealias RoomStatusListener = (RoomStatusChange) -> Unit
+
 internal data class DefaultRoomStatusChange(
     override val current: RoomStatus,
     override val previous: RoomStatus,
@@ -116,19 +121,19 @@ internal interface RoomLifecycle {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    fun onChange(listener: (RoomStatusChange) -> Unit): Subscription
+    fun onChange(listener: RoomStatusListener): Subscription
 
     /**
      * Registers a listener that will be called once when the room status changes.
      * @param listener The function to call when the status changes.
      */
-    fun onChangeOnce(listener: (RoomStatusChange) -> Unit)
+    fun onChangeOnce(listener: RoomStatusListener)
 }
 
-internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, (RoomStatusChange) -> Unit>() {
+internal class RoomStatusEventEmitter(logger: Logger) : EventEmitter<RoomStatus, RoomStatusListener>() {
     private val logger = logger.withContext("RoomStatusEventEmitter")
 
-    override fun apply(listener: ((RoomStatusChange) -> Unit)?, event: RoomStatus?, vararg args: Any?) {
+    override fun apply(listener: (RoomStatusListener)?, event: RoomStatus?, vararg args: Any?) {
         try {
             if (args.isNotEmpty() && args[0] is RoomStatusChange) {
                 listener?.invoke(args[0] as RoomStatusChange)
@@ -156,7 +161,7 @@ internal class DefaultRoomStatusManager(logger: Logger) : RoomLifecycle {
     private val externalEmitter = RoomStatusEventEmitter(logger)
     private val internalEmitter = RoomStatusEventEmitter(logger)
 
-    override fun onChange(listener: (RoomStatusChange) -> Unit): Subscription {
+    override fun onChange(listener: RoomStatusListener): Subscription {
         externalEmitter.on(listener)
         return Subscription {
             externalEmitter.off(listener)
@@ -167,7 +172,7 @@ internal class DefaultRoomStatusManager(logger: Logger) : RoomLifecycle {
         externalEmitter.off()
     }
 
-    override fun onChangeOnce(listener: (RoomStatusChange) -> Unit) {
+    override fun onChangeOnce(listener: RoomStatusListener) {
         internalEmitter.once(listener)
     }
 

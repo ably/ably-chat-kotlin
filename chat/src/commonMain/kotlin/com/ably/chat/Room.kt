@@ -93,7 +93,7 @@ public interface Room : Discontinuity {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    public fun onStatusChange(listener: (RoomStatusChange) -> Unit): Subscription
+    public fun onStatusChange(listener: RoomStatusListener): Subscription
 
     /**
      * Attaches to the room to receive events in realtime.
@@ -176,7 +176,7 @@ internal class DefaultRoom(
         this.logger.debug("Initialized with features: ${roomFeatures.map { it.featureName }.joinWithBrackets}")
     }
 
-    override fun onStatusChange(listener: (RoomStatusChange) -> Unit): Subscription =
+    override fun onStatusChange(listener: RoomStatusListener): Subscription =
         statusManager.onChange(listener)
 
     override suspend fun attach() {
@@ -189,7 +189,7 @@ internal class DefaultRoom(
         lifecycleManager.detach()
     }
 
-    override fun onDiscontinuity(listener: (ErrorInfo) -> Unit): Subscription {
+    override fun onDiscontinuity(listener: DiscontinuityListener): Subscription {
         logger.trace("onDiscontinuity();")
         return lifecycleManager.onDiscontinuity(listener)
     }

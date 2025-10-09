@@ -31,7 +31,7 @@ public interface Occupancy {
      *
      * @param listener A listener to be called when the occupancy of the room changes.
      */
-    public fun subscribe(listener: (OccupancyEvent) -> Unit): Subscription
+    public fun subscribe(listener: OccupancyListener): Subscription
 
     /**
      * Get the current occupancy of the chat room.
@@ -48,6 +48,11 @@ public interface Occupancy {
      */
     public fun current(): OccupancyData?
 }
+
+/**
+ * A listener that is called when the occupancy of a chat room changes.
+ */
+public typealias OccupancyListener = (event: OccupancyEvent) -> Unit
 
 /**
  * @return [OccupancyEvent] events as a [Flow]
@@ -133,7 +138,7 @@ internal class DefaultOccupancy(
 
     private var latestOccupancyData: OccupancyData? = null
 
-    private val listeners: MutableList<(OccupancyEvent) -> Unit> = CopyOnWriteArrayList()
+    private val listeners: MutableList<OccupancyListener> = CopyOnWriteArrayList()
 
     private val eventBus = MutableSharedFlow<OccupancyEvent>(
         extraBufferCapacity = 1,
@@ -160,7 +165,7 @@ internal class DefaultOccupancy(
     }
 
     // Spec: CHA-O4
-    override fun subscribe(listener: (OccupancyEvent) -> Unit): Subscription {
+    override fun subscribe(listener: OccupancyListener): Subscription {
         logger.trace("Occupancy.subscribe()")
         if (!room.options.occupancy.enableEvents) { // CHA-O4e
             throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")

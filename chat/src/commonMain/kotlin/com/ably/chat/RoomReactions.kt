@@ -37,8 +37,13 @@ public interface RoomReactions {
      * @param listener The listener function to be called when a reaction is received.
      * @returns A response object that allows you to control the subscription.
      */
-    public fun subscribe(listener: (RoomReactionEvent) -> Unit): Subscription
+    public fun subscribe(listener: RoomReactionListener): Subscription
 }
+
+/**
+ * The listener function type for room-level reactions.
+ */
+public typealias RoomReactionListener = (RoomReactionEvent) -> Unit
 
 public interface RoomReactionEvent {
     public val type: RoomReactionEventType
@@ -136,7 +141,7 @@ internal class DefaultRoomReactions(
         channelWrapper.publishCoroutine(pubSubMessage.asEphemeralMessage()) // CHA-ER3d
     }
 
-    override fun subscribe(listener: (RoomReactionEvent) -> Unit): Subscription {
+    override fun subscribe(listener: RoomReactionListener): Subscription {
         val messageListener = PubSubMessageListener {
             val pubSubMessage = it ?: run {
                 logger.warn("Got empty pubsub channel message")

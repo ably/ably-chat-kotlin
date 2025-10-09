@@ -84,7 +84,7 @@ class ConnectionTest {
     fun `statusAsFlow() should automatically unsubscribe then it's done`() = runTest {
         val connection: Connection = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: (ConnectionStatusChange) -> Unit
+        lateinit var callback: ConnectionStatusListener
 
         every { connection.onStatusChange(any()) } answers {
             callback = firstArg()

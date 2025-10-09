@@ -107,8 +107,16 @@ public interface Connection {
      * @param listener The function to call when the status changes.
      * @returns An object that can be used to unregister the listener.
      */
-    public fun onStatusChange(listener: (ConnectionStatusChange) -> Unit): Subscription
+    public fun onStatusChange(listener: ConnectionStatusListener): Subscription
 }
+
+/**
+ * A type alias representing a listener function that reacts to changes in connection status.
+ * The listener receives a [ConnectionStatusChange] object, which contains details about the
+ * status transition, including the current and previous connection statuses, any associated
+ * error information, and a possible retry delay.
+ */
+public typealias ConnectionStatusListener = (ConnectionStatusChange) -> Unit
 
 /**
  * @return [ConnectionStatusChange] events as a [Flow]
@@ -125,7 +133,7 @@ internal class DefaultConnection(
 
     private val connectionScope = CoroutineScope(dispatcher + SupervisorJob())
 
-    private val listeners: MutableList<(ConnectionStatusChange) -> Unit> = CopyOnWriteArrayList()
+    private val listeners: MutableList<ConnectionStatusListener> = CopyOnWriteArrayList()
 
     // (CHA-CS3)
     override var status: ConnectionStatus = mapPubSubStatusToChat(pubSubConnection.state)
@@ -141,7 +149,7 @@ internal class DefaultConnection(
         }
     }
 
-    override fun onStatusChange(listener: (ConnectionStatusChange) -> Unit): Subscription {
+    override fun onStatusChange(listener: ConnectionStatusListener): Subscription {
         logger.trace("Connection.onStatusChange()")
         listeners.add(listener)
 

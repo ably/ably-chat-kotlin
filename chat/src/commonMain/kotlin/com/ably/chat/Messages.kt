@@ -39,7 +39,7 @@ public interface Messages {
      * @param listener callback that will be called
      * @return A response object that allows you to control the subscription.
      */
-    public fun subscribe(listener: (ChatMessageEvent) -> Unit): MessagesSubscription
+    public fun subscribe(listener: MessageListener): MessagesSubscription
 
     /**
      * Get messages that have been previously sent to the chat room, based on the provided options.
@@ -270,6 +270,11 @@ internal data class SendMessageParams(
     val headers: Map<String, String>? = null,
 )
 
+/**
+ * A listener for message events in a chat room.
+ */
+public typealias MessageListener = (ChatMessageEvent) -> Unit
+
 internal fun SendMessageParams.toJsonObject(): JsonObject {
     return jsonObject {
         put("text", text)
@@ -467,7 +472,7 @@ internal class DefaultMessages(
         channelSerialMap.replaceAll { _, _ -> deferredChannelSerial }
     }
 
-    override fun subscribe(listener: (ChatMessageEvent) -> Unit): MessagesSubscription {
+    override fun subscribe(listener: MessageListener): MessagesSubscription {
         logger.trace("subscribe(); roomName=$roomName")
         val messageListener = PubSubMessageListener {
             logger.debug("subscribe(); received message for roomName=$roomName", context = mapOf("message" to it))

@@ -171,7 +171,7 @@ class OccupancyTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val occupancy: Occupancy = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: (OccupancyEvent) -> Unit
+        lateinit var callback: OccupancyListener
 
         every { occupancy.subscribe(any()) } answers {
             callback = firstArg()

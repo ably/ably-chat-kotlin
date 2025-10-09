@@ -5,7 +5,7 @@ import com.ably.chat.DefaultRoomStatusChange
 import com.ably.chat.ErrorCode
 import com.ably.chat.HttpStatusCode
 import com.ably.chat.RoomStatus
-import com.ably.chat.RoomStatusChange
+import com.ably.chat.RoomStatusListener
 import com.ably.chat.assertWaiter
 import io.mockk.every
 import io.mockk.spyk
@@ -81,9 +81,9 @@ class RoomEnsureAttachedTest {
 
         val statusManager = spyk(room.StatusManager)
         every {
-            statusManager.onChangeOnce(any<(RoomStatusChange) -> Unit>())
+            statusManager.onChangeOnce(any<RoomStatusListener>())
         } answers {
-            val listener = firstArg<(RoomStatusChange) -> Unit>()
+            val listener = firstArg<RoomStatusListener>()
             listener.invoke(DefaultRoomStatusChange(RoomStatus.Attached, RoomStatus.Attaching))
         }
         room.StatusManager = statusManager
@@ -95,7 +95,7 @@ class RoomEnsureAttachedTest {
         room.ensureAttached(logger)
 
         verify(exactly = 1) {
-            statusManager.onChangeOnce(any<(RoomStatusChange) -> Unit>())
+            statusManager.onChangeOnce(any<RoomStatusListener>())
         }
     }
 

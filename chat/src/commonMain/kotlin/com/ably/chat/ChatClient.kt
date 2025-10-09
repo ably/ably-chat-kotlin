@@ -60,7 +60,6 @@ public fun ChatClient(realtimeClient: AblyRealtime, init: MutableChatClientOptio
     ChatClient(realtimeClient, buildChatClientOptions(init))
 
 internal class DefaultChatClient(
-    @OptIn(ExperimentalChatApi::class)
     override val realtime: AblyRealtime,
     override val clientOptions: ChatClientOptions,
 ) : ChatClient {

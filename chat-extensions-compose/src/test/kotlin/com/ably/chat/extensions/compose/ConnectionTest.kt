@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.ably.chat.Connection
 import com.ably.chat.ConnectionStatus
 import com.ably.chat.ConnectionStatusChange
+import com.ably.chat.ConnectionStatusListener
 import com.ably.chat.Subscription
 import com.ably.chat.annotations.ExperimentalChatApi
 import io.mockk.every
@@ -37,11 +38,11 @@ class ConnectionTest {
 fun EmittingConnection() = EmittingConnection(mockk())
 
 class EmittingConnection(mock: Connection) : Connection by mock {
-    private val listeners = mutableListOf<(ConnectionStatusChange) -> Unit>()
+    private val listeners = mutableListOf<ConnectionStatusListener>()
 
     override val status: ConnectionStatus = ConnectionStatus.Initialized
 
-    override fun onStatusChange(listener: (ConnectionStatusChange) -> Unit): Subscription {
+    override fun onStatusChange(listener: ConnectionStatusListener): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }

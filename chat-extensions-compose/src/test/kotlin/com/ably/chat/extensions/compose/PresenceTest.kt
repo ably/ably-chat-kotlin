@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.ably.chat.Presence
 import com.ably.chat.PresenceEvent
 import com.ably.chat.PresenceEventType
+import com.ably.chat.PresenceListener
 import com.ably.chat.PresenceMember
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
@@ -104,11 +105,11 @@ class PresenceTest {
 fun EmittingPresence() = EmittingPresence(mockk())
 
 class EmittingPresence(val mock: Presence) : Presence by mock {
-    private val listeners = mutableListOf<(PresenceEvent) -> Unit>()
+    private val listeners = mutableListOf<PresenceListener>()
     private val clientIdToPresenceMember = mutableMapOf<String, PresenceMember>()
     private val mutex = Mutex(locked = false)
 
-    override fun subscribe(listener: (PresenceEvent) -> Unit): Subscription {
+    override fun subscribe(listener: PresenceListener): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }

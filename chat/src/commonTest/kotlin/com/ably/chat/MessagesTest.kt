@@ -279,8 +279,8 @@ class MessagesTest {
 
     @Test
     fun `subscription should invoke once for each incoming message`() = runTest {
-        val listener1 = mockk<(ChatMessageEvent) -> Unit>(relaxed = true)
-        val listener2 = mockk<(ChatMessageEvent) -> Unit>(relaxed = true)
+        val listener1 = mockk<MessageListener>(relaxed = true)
+        val listener2 = mockk<MessageListener>(relaxed = true)
 
         val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
 
@@ -306,7 +306,7 @@ class MessagesTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val messages: Messages = mockk()
         val subscription: MessagesSubscription = mockk()
-        lateinit var callback: (ChatMessageEvent) -> Unit
+        lateinit var callback: MessageListener
 
         every { messages.subscribe(any()) } answers {
             callback = firstArg()

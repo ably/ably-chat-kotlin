@@ -7,6 +7,7 @@ import com.ably.chat.Occupancy
 import com.ably.chat.OccupancyData
 import com.ably.chat.OccupancyEvent
 import com.ably.chat.OccupancyEventType
+import com.ably.chat.OccupancyListener
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.Subscription
@@ -62,11 +63,11 @@ class OccupancyTest {
 fun EmittingOccupancy() = EmittingOccupancy(mockk())
 
 class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
-    private val listeners = mutableListOf<(OccupancyEvent) -> Unit>()
+    private val listeners = mutableListOf<OccupancyListener>()
     private var currentOccupancyEvent = OccupancyEvent(0, 0)
     private val mutex = Mutex(locked = false)
 
-    override fun subscribe(listener: (OccupancyEvent) -> Unit): Subscription {
+    override fun subscribe(listener: OccupancyListener): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }

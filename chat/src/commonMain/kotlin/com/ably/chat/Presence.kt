@@ -63,8 +63,13 @@ public interface Presence {
      * Subscribe the given listener to all presence events.
      * @param listener listener to subscribe
      */
-    public fun subscribe(listener: (PresenceEvent) -> Unit): Subscription
+    public fun subscribe(listener: PresenceListener): Subscription
 }
+
+/**
+ * Type for PresenceListener
+ */
+public typealias PresenceListener = (PresenceEvent) -> Unit
 
 /**
  * @return [PresenceEvent] events as a [Flow]
@@ -165,7 +170,7 @@ internal class DefaultPresence(
         presence.leaveClientCoroutine(room.clientId, data)
     }
 
-    override fun subscribe(listener: (PresenceEvent) -> Unit): Subscription {
+    override fun subscribe(listener: PresenceListener): Subscription {
         logger.trace("Presence.subscribe()")
         // CHA-PR7d - Check if presence events are enabled
         if (!room.options.presence.enableEvents) {

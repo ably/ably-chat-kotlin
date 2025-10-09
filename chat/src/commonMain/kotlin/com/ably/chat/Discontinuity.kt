@@ -17,8 +17,13 @@ public interface Discontinuity {
      * Register a listener to be called when a discontinuity is detected.
      * @param listener The listener to be called when a discontinuity is detected.
      */
-    public fun onDiscontinuity(listener: (ErrorInfo) -> Unit): Subscription
+    public fun onDiscontinuity(listener: DiscontinuityListener): Subscription
 }
+
+/**
+ * Handler for discontinuity events
+ */
+public typealias DiscontinuityListener = (ErrorInfo) -> Unit
 
 /**
  * An interface for handling discontinuity events.
@@ -43,7 +48,7 @@ internal abstract class DiscontinuityImpl(logger: Logger) : Discontinuity, Handl
 
     private val discontinuityEmitter = DiscontinuityEmitter(logger)
 
-    override fun onDiscontinuity(listener: (ErrorInfo) -> Unit): Subscription {
+    override fun onDiscontinuity(listener: DiscontinuityListener): Subscription {
         discontinuityEmitter.on(listener)
         return Subscription {
             discontinuityEmitter.off(listener)
@@ -66,10 +71,10 @@ public fun Discontinuity.discontinuityAsFlow(): Flow<ErrorInfo> = transformCallb
     onDiscontinuity(it)
 }
 
-internal class DiscontinuityEmitter(logger: Logger) : EventEmitter<String, (ErrorInfo) -> Unit>() {
+internal class DiscontinuityEmitter(logger: Logger) : EventEmitter<String, DiscontinuityListener>() {
     private val logger = logger.withContext("DiscontinuityEmitter")
 
-    override fun apply(listener: ((ErrorInfo) -> Unit)?, event: String?, vararg args: Any?) {
+    override fun apply(listener: (DiscontinuityListener)?, event: String?, vararg args: Any?) {
         try {
             val reason = args.firstOrNull() as? ErrorInfo?
             listener?.invoke(reason ?: createErrorInfo("Discontinuity detected", ErrorCode.RoomDiscontinuity.code))

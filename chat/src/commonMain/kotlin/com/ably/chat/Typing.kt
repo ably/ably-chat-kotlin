@@ -44,7 +44,7 @@ public interface Typing {
      * @param listener A listener to be called when the typing state of a user in the room changes.
      * @returns A response object that allows you to control the subscription to typing events.
      */
-    public fun subscribe(listener: (TypingSetEvent) -> Unit): Subscription
+    public fun subscribe(listener: TypingListener): Subscription
 
     /**
      * Current typing members.
@@ -92,6 +92,11 @@ public interface Typing {
      */
     public suspend fun stop()
 }
+
+/**
+ * A listener which listens for typing events.
+ */
+public typealias TypingListener = (TypingSetEvent) -> Unit
 
 /**
  * @return [TypingSetEvent] events as a [Flow]
@@ -166,7 +171,7 @@ internal class DefaultTyping(
     @OptIn(InternalAPI::class)
     override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
-    private val listeners: MutableList<(TypingSetEvent) -> Unit> = CopyOnWriteArrayList()
+    private val listeners: MutableList<TypingListener> = CopyOnWriteArrayList()
 
     private var currentlyTypingMembers: MutableSet<String> = mutableSetOf()
 
@@ -228,7 +233,7 @@ internal class DefaultTyping(
     /**
      * Spec: CHA-T6a
      */
-    override fun subscribe(listener: (TypingSetEvent) -> Unit): Subscription {
+    override fun subscribe(listener: TypingListener): Subscription {
         logger.trace("DefaultTyping.subscribe()")
         listeners.add(listener)
         // CHA-T6b

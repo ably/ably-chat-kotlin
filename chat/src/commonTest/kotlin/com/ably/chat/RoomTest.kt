@@ -14,7 +14,7 @@ class RoomTest {
     fun `statusAsFlow() should automatically unsubscribe then it's done`() = runTest {
         val room: Room = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: (RoomStatusChange) -> Unit
+        lateinit var callback: RoomStatusListener
 
         every { room.onStatusChange(any()) } answers {
             callback = firstArg()

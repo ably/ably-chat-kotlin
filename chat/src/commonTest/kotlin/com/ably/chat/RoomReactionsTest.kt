@@ -97,7 +97,7 @@ class RoomReactionsTest {
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val roomReactions: RoomReactions = mockk()
         val subscription: Subscription = mockk()
-        lateinit var callback: (RoomReactionEvent) -> Unit
+        lateinit var callback: RoomReactionListener
 
         every { roomReactions.subscribe(any()) } answers {
             callback = firstArg()

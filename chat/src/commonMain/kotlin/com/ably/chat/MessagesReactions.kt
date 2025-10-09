@@ -52,7 +52,7 @@ public interface MessagesReactions {
      * @param listener The listener to call when a message reaction summary is received
      * @return A subscription object that should be used to unsubscribe
      */
-    public fun subscribe(listener: (MessageReactionSummaryEvent) -> Unit): Subscription
+    public fun subscribe(listener: MessageReactionListener): Subscription
 
     /**
      * Subscribe to individual reaction events.
@@ -61,7 +61,7 @@ public interface MessagesReactions {
      * @param listener The listener to call when a message reaction event is received
      * @return A subscription object that should be used to unsubscribe
      */
-    public fun subscribeRaw(listener: (MessageReactionRawEvent) -> Unit): Subscription
+    public fun subscribeRaw(listener: MessageRawReactionListener): Subscription
 }
 
 public enum class MessageReactionEventType(public val eventName: String) {
@@ -121,6 +121,16 @@ public enum class MessageReactionType(public val type: String) {
         fun tryFind(type: String) = MessageReactionType.entries.firstOrNull { it.type == type }
     }
 }
+
+/**
+ * A listener for summary message reaction events.
+ */
+public typealias MessageReactionListener = (MessageReactionSummaryEvent) -> Unit
+
+/**
+ * A listener for individual message reaction events.
+ */
+public typealias MessageRawReactionListener = (MessageReactionRawEvent) -> Unit
 
 /**
  * Represents a raw message reaction event, such as when a reaction is added or removed from a message.
@@ -284,8 +294,8 @@ internal class DefaultMessagesReactions(
 
     private val reactionsScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + SupervisorJob())
 
-    private val listeners: MutableList<(MessageReactionSummaryEvent) -> Unit> = CopyOnWriteArrayList()
-    private val rawEventlisteners: MutableList<(MessageReactionRawEvent) -> Unit> = CopyOnWriteArrayList()
+    private val listeners: MutableList<MessageReactionListener> = CopyOnWriteArrayList()
+    private val rawEventlisteners: MutableList<MessageRawReactionListener> = CopyOnWriteArrayList()
 
     private val summaryEventBus = MutableSharedFlow<MessageReactionSummaryEvent>(
         extraBufferCapacity = 1,
@@ -414,7 +424,7 @@ internal class DefaultMessagesReactions(
         )
     }
 
-    override fun subscribe(listener: (MessageReactionSummaryEvent) -> Unit): Subscription {
+    override fun subscribe(listener: MessageReactionListener): Subscription {
         logger.trace("MessagesReactions.subscribe()")
         listeners.add(listener)
         return Subscription {
@@ -423,7 +433,7 @@ internal class DefaultMessagesReactions(
         }
     }
 
-    override fun subscribeRaw(listener: (MessageReactionRawEvent) -> Unit): Subscription {
+    override fun subscribeRaw(listener: MessageRawReactionListener): Subscription {
         logger.trace("MessagesReactions.subscribeRaw()")
 
         if (!options.rawMessageReactions) {

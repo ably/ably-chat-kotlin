@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.ably.chat.Room
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
+import com.ably.chat.RoomStatusListener
 import com.ably.chat.Subscription
 import com.ably.chat.annotations.ExperimentalChatApi
 import io.mockk.every
@@ -37,11 +38,11 @@ class RoomTest {
 fun EmittingRoom() = EmittingRoom(mockk())
 
 class EmittingRoom(mock: Room) : Room by mock {
-    private val listeners = mutableListOf<(RoomStatusChange) -> Unit>()
+    private val listeners = mutableListOf<RoomStatusListener>()
 
     override val status: RoomStatus = RoomStatus.Initialized
 
-    override fun onStatusChange(listener: (RoomStatusChange) -> Unit): Subscription {
+    override fun onStatusChange(listener: RoomStatusListener): Subscription {
         listeners.add(listener)
         return Subscription { listeners.remove(listener) }
     }
