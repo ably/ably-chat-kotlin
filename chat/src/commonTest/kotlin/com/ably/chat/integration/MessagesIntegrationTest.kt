@@ -13,6 +13,7 @@ import com.ably.chat.copy
 import com.ably.chat.delete
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.RoomOptionsWithAllFeatures
+import com.ably.chat.runTestWithDifferentClients
 import com.ably.chat.update
 import io.ably.lib.realtime.channelOptions
 import java.util.UUID
@@ -148,8 +149,7 @@ class MessagesIntegrationTest {
      * Spec: CHA-M8, CHA-M4
      */
     @Test
-    fun `should be able to update a sent message`() = runTest {
-        val chatClient = sandbox.createSandboxChatClient()
+    fun `should be able to update a sent message`() = runTestWithDifferentClients(sandbox) { chatClient ->
         val roomName = UUID.randomUUID().toString()
 
         val room = chatClient.rooms.get(roomName)
@@ -207,8 +207,7 @@ class MessagesIntegrationTest {
      * Spec: CHA-M9, CHA-M4
      */
     @Test
-    fun `should be able to delete a sent message`() = runTest {
-        val chatClient = sandbox.createSandboxChatClient()
+    fun `should be able to delete a sent message`() = runTestWithDifferentClients(sandbox) { chatClient ->
         val roomName = UUID.randomUUID().toString()
 
         val room = chatClient.rooms.get(roomName)

@@ -9,6 +9,7 @@ import com.ably.chat.Room
 import com.ably.chat.Subscription
 import com.ably.chat.get
 import com.ably.chat.messages
+import com.ably.chat.runTestWithDifferentClients
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -29,8 +30,7 @@ class MessageReactionsIntegrationTest {
      * Spec: CHA-MR4, CHA-MR7
      */
     @Test
-    fun `should correctly send message reaction`() = runTest {
-        val chatClient = sandbox.createSandboxChatClient()
+    fun `should correctly send message reaction`() = runTestWithDifferentClients(sandbox) { chatClient ->
         val roomName = UUID.randomUUID().toString()
         val room = chatClient.rooms.get(roomName) {
             messages {
@@ -57,8 +57,7 @@ class MessageReactionsIntegrationTest {
      * Spec: CHA-MR11, CHA-MR6
      */
     @Test
-    fun `should correctly delete message reaction`() = runTest {
-        val chatClient = sandbox.createSandboxChatClient()
+    fun `should correctly delete message reaction`() = runTestWithDifferentClients(sandbox) { chatClient ->
         val roomName = UUID.randomUUID().toString()
         val room = chatClient.rooms.get(roomName)
         room.attach()
@@ -82,8 +81,7 @@ class MessageReactionsIntegrationTest {
      * Spec: CHA-MR11, CHA-MR6
      */
     @Test
-    fun `should delete with multiple summary type`() = runTest {
-        val chatClient = sandbox.createSandboxChatClient()
+    fun `should delete with multiple summary type`() = runTestWithDifferentClients(sandbox) { chatClient ->
         val roomName = UUID.randomUUID().toString()
         val room = chatClient.rooms.get(roomName)
         room.attach()
@@ -109,8 +107,7 @@ class MessageReactionsIntegrationTest {
      * Spec: CHA-MR5
      */
     @Test
-    fun `should use unique summary type`() = runTest {
-        val chatClient = sandbox.createSandboxChatClient()
+    fun `should use unique summary type`() = runTestWithDifferentClients(sandbox) { chatClient ->
         val roomName = UUID.randomUUID().toString()
         val room = chatClient.rooms.get(roomName) {
             messages {
