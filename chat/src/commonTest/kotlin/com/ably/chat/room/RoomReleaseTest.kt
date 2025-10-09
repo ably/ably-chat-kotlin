@@ -9,7 +9,6 @@ import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusChange
 import com.ably.chat.assertWaiter
-import com.ably.chat.buildChatClientOptions
 import io.ably.lib.types.AblyException
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -43,7 +42,7 @@ class RoomReleaseTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
             DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
@@ -69,7 +68,7 @@ class RoomReleaseTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
             DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
@@ -111,7 +110,7 @@ class RoomReleaseTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         // No room exists
         Assert.assertEquals(0, rooms.RoomNameToRoom.size)
@@ -131,7 +130,7 @@ class RoomReleaseTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
             DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
@@ -188,7 +187,7 @@ class RoomReleaseTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
             DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),

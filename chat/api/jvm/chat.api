@@ -564,7 +564,6 @@ public abstract interface class com/ably/chat/RoomStatusChange {
 public abstract interface class com/ably/chat/Rooms {
 	public abstract fun get (Ljava/lang/String;Lcom/ably/chat/RoomOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun get$default (Lcom/ably/chat/Rooms;Ljava/lang/String;Lcom/ably/chat/RoomOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun getClientOptions ()Lcom/ably/chat/ChatClientOptions;
 	public abstract fun release (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 

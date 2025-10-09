@@ -13,12 +13,6 @@ import kotlinx.coroutines.launch
  */
 public interface Rooms {
     /**
-     * Get the chat client options used to create the Chat instance.
-     * @returns ChatClientOptions
-     */
-    public val clientOptions: ChatClientOptions
-
-    /**
      * Gets a room reference by ID. The Rooms class ensures that only one reference
      * exists for each room. A new reference object is created if it doesn't already
      * exist, or if the one used previously was released using release(name).
@@ -69,7 +63,6 @@ public suspend fun Rooms.get(
 internal class DefaultRooms(
     private val realtimeClient: RealtimeClient,
     private val chatApi: ChatApi,
-    override val clientOptions: ChatClientOptions,
     private val clientId: String,
     logger: Logger,
 ) : Rooms {

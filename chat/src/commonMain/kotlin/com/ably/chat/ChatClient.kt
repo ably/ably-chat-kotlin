@@ -83,7 +83,6 @@ internal class DefaultChatClient(
     override val rooms: Rooms = DefaultRooms(
         realtimeClient = realtimeClientWrapper,
         chatApi = chatApi,
-        clientOptions = clientOptions,
         clientId = clientId,
         logger = logger,
     )

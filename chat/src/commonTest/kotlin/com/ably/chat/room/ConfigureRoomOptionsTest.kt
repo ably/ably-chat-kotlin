@@ -6,7 +6,6 @@ import com.ably.chat.DefaultRooms
 import com.ably.chat.MainDispatcherRule
 import com.ably.chat.RoomStatus
 import com.ably.chat.Rooms
-import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
 import com.ably.chat.presence
@@ -111,7 +110,7 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4a) With no room options, the client shall provide defaults`() = runTest {
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientId, logger)
 
         val room = rooms.get(DEFAULT_ROOM_ID)
         val roomOptions = room.options
@@ -124,7 +123,7 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4b) With partial room options, client shall deep-merge the provided values with the defaults`() = runTest {
-        val rooms: Rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
+        val rooms: Rooms = DefaultRooms(mockRealtimeClient, chatApi, clientId, logger)
 
         val roomOpts = buildRoomOptions {
             occupancy { enableEvents = true }

@@ -7,7 +7,6 @@ import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import com.ably.chat.Rooms
 import com.ably.chat.assertWaiter
-import com.ably.chat.buildChatClientOptions
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.get
 import com.ably.chat.occupancy
@@ -41,7 +40,7 @@ class RoomGetTest {
     fun `(CHA-RC1f) Requesting a room from the Chat Client return instance of a room with the provided id and options`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger)
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientId, logger)
         val room = rooms.get("1234")
         Assert.assertNotNull(room)
         Assert.assertEquals("1234", room.name)
@@ -54,7 +53,7 @@ class RoomGetTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms: Rooms = spyk(
-            DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger),
+            DefaultRooms(mockRealtimeClient, chatApi, clientId, logger),
             recordPrivateCalls = true,
         )
 
@@ -88,7 +87,7 @@ class RoomGetTest {
     fun `(CHA-RC1f2) If the room name already exists, and newly requested with same options, then returns same room`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         val room1 = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomNameToRoom.size)
@@ -131,7 +130,7 @@ class RoomGetTest {
     fun `(CHA-RC1f3) If no CHA-RC1g release operation is in progress, a new room instance shall be created, and added to the room map`() = runTest {
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
         val roomName = "1234"
 
         // No release op. in progress
@@ -151,7 +150,7 @@ class RoomGetTest {
         val roomName = "1234"
         val mockRealtimeClient = createMockRealtimeClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, buildChatClientOptions(), clientId, logger), recordPrivateCalls = true)
+        val rooms = spyk(DefaultRooms(mockRealtimeClient, chatApi, clientId, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
             DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientId, logger),
