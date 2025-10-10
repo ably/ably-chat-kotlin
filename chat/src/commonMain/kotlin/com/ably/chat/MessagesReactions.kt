@@ -62,6 +62,33 @@ public interface MessagesReactions {
      * @return A subscription object that should be used to unsubscribe
      */
     public fun subscribeRaw(listener: MessageRawReactionListener): Subscription
+
+    /**
+     * Get the reaction summary for a message filtered by a particular client.
+     * @param messageSerial The ID of the message to get the reaction summary for.
+     * @param clientId The client to fetch the reaction summary for (leave unset for current client).
+     * @return A clipped reaction summary containing only the requested clientId.
+     * @example
+     * ```kotlin
+     * // Subscribe to reaction summaries and check for specific client reactions
+     * room.messages.reactions.asFlow().collect { event ->
+     *   // For brevity of example, we check unique 👍 (normally iterate for all relevant reactions)
+     *   val uniqueLikes = event.summary.unique["👍"]
+     *   if (uniqueLikes?.clipped == true && !uniqueLikes.clientIds.contains(myClientId)) {
+     *     // summary is clipped and doesn't include myClientId, so we need to fetch a clientSummary
+     *     val clientReactions = room.messages.reactions.getClientReactionSummary(
+     *       event.messageSerial,
+     *       myClientId
+     *     )
+     *     if (clientReactions.unique["👍"] != null) {
+     *       // client has reacted with 👍
+     *     }
+     *   }
+     *   // from here, process the summary as usual
+     * }
+     * ```
+     */
+    public suspend fun clientReactions(messageSerial: String, clientId: String? = null): MessageReactionSummary
 }
 
 public enum class MessageReactionEventType(public val eventName: String) {
@@ -417,6 +444,11 @@ internal class DefaultMessagesReactions(
             logger.trace("MessagesReactions.unsubscribeRaw()")
             rawEventlisteners.remove(listener)
         }
+    }
+
+    override suspend fun clientReactions(messageSerial: String, clientId: String?): MessageReactionSummary {
+        logger.trace("MessageReactions.clientReactions()", context = mapOf("messageSerial" to messageSerial, "fromClientId" to clientId))
+        return chatApi.getClientReactions(roomName, messageSerial, clientId)
     }
 
     fun dispose() {

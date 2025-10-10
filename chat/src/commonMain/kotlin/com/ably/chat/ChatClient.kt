@@ -88,7 +88,7 @@ internal class DefaultChatClient(
 
     private val clientIdResolver = ClientIdResolver(realtimeClientWrapper)
 
-    private val chatApi = ChatApi(realtimeClientWrapper, clientIdResolver, logger)
+    private val chatApi = ChatApi(realtimeClientWrapper, logger)
 
     override val rooms: Rooms = DefaultRooms(
         realtimeClient = realtimeClientWrapper,

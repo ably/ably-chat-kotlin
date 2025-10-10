@@ -86,7 +86,7 @@ internal fun createMockChatApi(
 ): ChatApi {
     val clientIdResolver = mockk<ClientIdResolver>()
     every { clientIdResolver.get() } returns clientId
-    return spyk(ChatApi(realtimeClient, clientIdResolver, logger), recordPrivateCalls = true)
+    return spyk(ChatApi(realtimeClient, logger), recordPrivateCalls = true)
 }
 
 internal fun createMockLogger(): Logger = mockk<Logger>(relaxed = true)
