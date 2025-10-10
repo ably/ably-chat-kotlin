@@ -59,6 +59,14 @@ public interface Messages {
     ): PaginatedResult<Message>
 
     /**
+     * Retrieves a specific message by its serial identifier.
+     *
+     * @param serial The unique serial identifier of the message to be retrieved.
+     * @return The message object associated with the provided serial.
+     */
+    public suspend fun get(serial: String): Message
+
+    /**
      * Send a message in the chat room.
      *
      * This method uses the Ably Chat API endpoint for sending messages.
@@ -538,6 +546,11 @@ internal class DefaultMessages(
             roomName,
             QueryOptions(start, end, limit, orderBy),
         )
+    }
+
+    override suspend fun get(serial: String): Message {
+        logger.trace("Messages.get()", context = mapOf("serial" to serial))
+        return chatApi.getMessage(roomName, serial)
     }
 
     override suspend fun send(text: String, metadata: JsonObject?, headers: Map<String, String>?): Message {

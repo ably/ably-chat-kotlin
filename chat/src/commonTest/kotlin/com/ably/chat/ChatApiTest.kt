@@ -21,7 +21,7 @@ class ChatApiTest {
     private val clientIdResolver = mockk<ClientIdResolver>()
 
     private val chatApi =
-        ChatApi(realtime, clientIdResolver, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
+        ChatApi(realtime, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
 
     @Before
     fun setUp() {
