@@ -38,8 +38,8 @@ internal fun JsonValue.jsonObjectOrNull(): JsonObject? = when (this) {
     else -> null
 }
 
-internal fun JsonValue?.toRequestBody(useBinaryProtocol: Boolean = false): HttpCore.RequestBody =
-    HttpUtils.requestBodyFromGson(this?.toGson(), useBinaryProtocol)
+internal fun JsonValue?.toRequestBody(useBinaryProtocol: Boolean = false): HttpCore.RequestBody? =
+    this?.let { HttpUtils.requestBodyFromGson(it.toGson(), useBinaryProtocol) }
 
 internal fun Map<String, String>.toJson() = jsonObject {
     forEach { (key, value) -> put(key, value) }

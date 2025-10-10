@@ -1,12 +1,14 @@
 package com.ably.chat.integration
 
 import com.ably.chat.MainDispatcherRule
+import com.ably.chat.MessageReactionSummary
 import com.ably.chat.MessageReactionSummaryEvent
 import com.ably.chat.MessageReactionType
 import com.ably.chat.MessagesReactions
 import com.ably.chat.RetryTestRule
 import com.ably.chat.Room
 import com.ably.chat.Subscription
+import com.ably.chat.assertWaiter
 import com.ably.chat.get
 import com.ably.chat.messages
 import com.ably.chat.runTestWithDifferentClients
@@ -125,6 +127,34 @@ class MessageReactionsIntegrationTest {
         assertEquals(message.serial, event1.messageSerial)
         assertEquals(1, event1.reactions.unique["like"]?.total)
         assertEquals(listOf("sandbox-client"), event1.reactions.unique["like"]?.clientIds)
+    }
+
+    @Test
+    fun `clientReactions should return reaction summaries for clientId`() = runTest {
+        val chatClient = sandbox.createSandboxChatClient()
+        val roomName = UUID.randomUUID().toString()
+        val room = chatClient.rooms.get(roomName) {
+            messages {
+                defaultMessageReactionType = MessageReactionType.Multiple
+            }
+        }
+
+        room.attach()
+
+        val message = room.messages.send("test")
+
+        val deferred = room.messages.reactions.subscribeOnce()
+        room.messages.reactions.send(message.serial, "like")
+        deferred.await()
+
+        lateinit var reactions: MessageReactionSummary
+
+        assertWaiter {
+            reactions = room.messages.reactions.clientReactions(message.serial, "sandbox-client")
+            reactions.multiple["like"]?.total == 1
+        }
+        assertEquals(1, reactions.multiple["like"]?.total)
+        assertEquals(mapOf("sandbox-client" to 1), reactions.multiple["like"]?.clientIds)
     }
 
     private fun waitForRawReactions(room: Room, size: Int): CompletableDeferred<List<String>> {

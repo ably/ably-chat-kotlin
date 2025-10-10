@@ -266,6 +266,53 @@ class MessagesIntegrationTest {
         )
     }
 
+    @Test
+    fun `should be able to send and retrieve messages by id`() = runTest {
+        val chatClient = sandbox.createSandboxChatClient()
+        val roomName = UUID.randomUUID().toString()
+
+        val room = chatClient.rooms.get(roomName)
+
+        room.attach()
+
+        val metadata = jsonObject {
+            put("foo", "bar")
+        }
+        val headers = mapOf("headerKey" to "headerValue")
+        val sentMessage = room.messages.send("hello", metadata, headers)
+
+        lateinit var message: Message
+
+        assertWaiter {
+            try {
+                message = room.messages.get(sentMessage.serial)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        assertEquals(MessageAction.MessageCreate, message.action)
+        assertEquals("hello", message.text)
+        assertEquals("sandbox-client", message.clientId)
+        assertTrue(message.serial.isNotEmpty())
+        assertEquals(message.serial, message.version.serial)
+        assertEquals(message.timestamp, message.version.timestamp)
+        assertEquals(metadata, message.metadata)
+        assertEquals(headers, message.headers)
+
+        // check for sentMessage fields against historyMessage fields
+        assertEquals(sentMessage.serial, message.serial)
+        assertEquals(sentMessage.clientId, message.clientId)
+        assertEquals(sentMessage.text, message.text)
+        assertEquals(sentMessage.timestamp, message.timestamp)
+        assertEquals(sentMessage.metadata, message.metadata)
+        assertEquals(sentMessage.headers, message.headers)
+        assertEquals(sentMessage.action, message.action)
+        assertEquals(sentMessage.version, message.version)
+        assertEquals(sentMessage.timestamp, message.timestamp)
+    }
+
     companion object {
         private lateinit var sandbox: Sandbox
 
