@@ -77,7 +77,7 @@ public interface Message {
     /**
      * The reactions summary for this message.
      */
-    public val reactions: MessageReactions
+    public val reactions: MessageReactionSummary
 }
 
 /**
@@ -124,7 +124,7 @@ public interface MessageVersion {
  * The interface definition may evolve over time with additional properties or methods to support new features,
  * which could break implementations.
  */
-public interface MessageReactions {
+public interface MessageReactionSummary {
     /**
      * Map of reaction to the summary (total and clients) for reactions of type [MessageReactionType.Unique].
      */
@@ -219,13 +219,13 @@ internal operator fun MessageVersion.compareTo(other: MessageVersion): Int = com
 public fun Message.with(
     event: MessageReactionSummaryEvent,
 ): Message {
-    checkMessageSerial(event.summary.messageSerial)
+    checkMessageSerial(event.messageSerial)
 
     return (this as? DefaultMessage)?.copy(
-        reactions = DefaultMessageReactions(
-            unique = event.summary.unique,
-            distinct = event.summary.distinct,
-            multiple = event.summary.multiple,
+        reactions = DefaultMessageReactionSummary(
+            unique = event.reactions.unique,
+            distinct = event.reactions.distinct,
+            multiple = event.reactions.multiple,
         ),
     ) ?: throw clientError("Message interface is not suitable for inheritance")
 }
@@ -246,14 +246,14 @@ internal data class DefaultMessage(
     override val headers: Map<String, String>,
     override val action: MessageAction,
     override val version: MessageVersion,
-    override val reactions: MessageReactions = DefaultMessageReactions(),
+    override val reactions: MessageReactionSummary = DefaultMessageReactionSummary(),
 ) : Message
 
-internal data class DefaultMessageReactions(
+internal data class DefaultMessageReactionSummary(
     override val unique: Map<String, SummaryClientIdList> = mapOf(),
     override val distinct: Map<String, SummaryClientIdList> = mapOf(),
     override val multiple: Map<String, SummaryClientIdCounts> = mapOf(),
-) : MessageReactions
+) : MessageReactionSummary
 
 internal data class DefaultMessageVersion(
     override val serial: String,
@@ -263,14 +263,14 @@ internal data class DefaultMessageVersion(
     override val metadata: Map<String, String>? = null,
 ) : MessageVersion
 
-internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactions {
-    if (jsonObject == null) return DefaultMessageReactions()
+internal fun buildMessageReactions(jsonObject: JsonObject?): MessageReactionSummary {
+    if (jsonObject == null) return DefaultMessageReactionSummary()
 
     val uniqueJson = jsonObject[MessageReactionsProperty.Unique]
     val distinctJson = jsonObject[MessageReactionsProperty.Distinct]
     val multipleJson = jsonObject[MessageReactionsProperty.Multiple]
 
-    return DefaultMessageReactions(
+    return DefaultMessageReactionSummary(
         unique = parseSummaryUniqueV1(uniqueJson),
         distinct = parseSummaryDistinctV1(distinctJson),
         multiple = parseSummaryMultipleV1(multipleJson),

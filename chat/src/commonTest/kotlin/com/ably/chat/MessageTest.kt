@@ -17,7 +17,7 @@ class MessageTest {
             text = "Hello",
             serial = "123",
             version = "2",
-            reactions = DefaultMessageReactions(
+            reactions = DefaultMessageReactionSummary(
                 mapOf("heart" to SummaryClientIdList(1, listOf("user1"), false)),
             ),
         )
@@ -99,20 +99,19 @@ class MessageTest {
             text = "Hello",
             serial = "123",
             version = "1",
-            reactions = DefaultMessageReactions(),
+            reactions = DefaultMessageReactionSummary(),
         )
         val summary = DefaultMessageReactionSummary(
-            messageSerial = "123",
             unique = mapOf("like" to SummaryClientIdList(2, listOf("user1", "user2"), false)),
             distinct = mapOf("like" to SummaryClientIdList(1, listOf("user1"), false)),
             multiple = mapOf("like" to SummaryClientIdCounts(1, mapOf("user1" to 1), 0, false, 1)),
         )
 
-        val event = DefaultMessageReactionSummaryEvent(summary = summary)
+        val event = DefaultMessageReactionSummaryEvent(messageSerial = "123", reactions = summary)
 
         assertEquals(
             initialMessage.copy(
-                reactions = DefaultMessageReactions(
+                reactions = DefaultMessageReactionSummary(
                     unique = summary.unique,
                     distinct = summary.distinct,
                     multiple = summary.multiple,
@@ -131,13 +130,11 @@ class MessageTest {
             text = "Hello",
             serial = "123",
             version = "1",
-            reactions = DefaultMessageReactions(),
+            reactions = DefaultMessageReactionSummary(),
         )
-        val summary = DefaultMessageReactionSummary(
-            messageSerial = "456",
-        )
+        val summary = DefaultMessageReactionSummary()
 
-        val event = DefaultMessageReactionSummaryEvent(summary = summary)
+        val event = DefaultMessageReactionSummaryEvent(messageSerial = "456", reactions = summary)
 
         val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
@@ -155,13 +152,11 @@ class MessageTest {
             text = "Hello",
             serial = "123",
             version = "1",
-            reactions = DefaultMessageReactions(),
+            reactions = DefaultMessageReactionSummary(),
         )
-        val summary = DefaultMessageReactionSummary(
-            messageSerial = "456",
-        )
+        val summary = DefaultMessageReactionSummary()
 
-        val event = DefaultMessageReactionSummaryEvent(summary = summary)
+        val event = DefaultMessageReactionSummaryEvent(messageSerial = "456", reactions = summary)
 
         val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
@@ -176,7 +171,7 @@ private fun createMessage(
     serial: String,
     version: String,
     action: MessageAction = MessageAction.MessageCreate,
-    reactions: MessageReactions = DefaultMessageReactions(),
+    reactions: MessageReactionSummary = DefaultMessageReactionSummary(),
 ) = DefaultMessage(
     text = text,
     serial = serial,

@@ -95,9 +95,9 @@ class MessagesReactionsTest {
         val event = deferredValue.await()
 
         assertEquals(MessageReactionSummaryEventType.Summary, event.type)
-        assertEquals("abcdefghij@1672531200000-123", event.summary.messageSerial)
-        assertEquals(1, event.summary.distinct["heart"]?.total)
-        assertEquals(listOf("clientId"), event.summary.distinct["heart"]?.clientIds)
+        assertEquals("abcdefghij@1672531200000-123", event.messageSerial)
+        assertEquals(1, event.reactions.distinct["heart"]?.total)
+        assertEquals(listOf("clientId"), event.reactions.distinct["heart"]?.clientIds)
     }
 
     /**

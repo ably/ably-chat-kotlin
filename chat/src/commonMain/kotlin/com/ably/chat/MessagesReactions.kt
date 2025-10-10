@@ -205,33 +205,11 @@ public interface MessageReactionSummaryEvent {
     /** The type of the event */
     public val type: MessageReactionSummaryEventType
 
-    /** The message reactions summary. */
-    public val summary: MessageReactionsSummary
-}
-
-/**
- * Represents a summary of reactions associated with a particular message.
- *
- * This interface provides detailed information about the different types of reactions
- * applied to a message, categorized into unique, distinct, and multiple types.
- *
- * ### Not suitable for inheritance
- * This interface is not designed for implementation or extension outside this SDK.
- * The interface definition may evolve over time with additional properties or methods to support new features,
- * which could break implementations.
- */
-public interface MessageReactionsSummary {
     /** Reference to the original message's serial number */
     public val messageSerial: String
 
-    /** Map of unique-type reactions summaries */
-    public val unique: Map<String, SummaryClientIdList>
-
-    /** Map of distinct-type reactions summaries */
-    public val distinct: Map<String, SummaryClientIdList>
-
-    /** Map of multiple-type reactions summaries */
-    public val multiple: Map<String, SummaryClientIdCounts>
+    /** The message reactions summary. */
+    public val reactions: MessageReactionSummary
 }
 
 /**
@@ -255,13 +233,6 @@ public suspend fun MessagesReactions.delete(message: Message, name: String? = nu
         type = type,
     )
 
-internal data class DefaultMessageReactionSummary(
-    override val messageSerial: String,
-    override val unique: Map<String, SummaryClientIdList> = mapOf(),
-    override val distinct: Map<String, SummaryClientIdList> = mapOf(),
-    override val multiple: Map<String, SummaryClientIdCounts> = mapOf(),
-) : MessageReactionsSummary
-
 internal data class DefaultMessageReactionRawEvent(
     override val type: MessageReactionEventType,
     override val timestamp: Long,
@@ -269,7 +240,8 @@ internal data class DefaultMessageReactionRawEvent(
 ) : MessageReactionRawEvent
 
 internal data class DefaultMessageReactionSummaryEvent(
-    override val summary: MessageReactionsSummary,
+    override val messageSerial: String,
+    override val reactions: MessageReactionSummary,
     override val type: MessageReactionSummaryEventType = MessageReactionSummaryEventType.Summary,
 ) : MessageReactionSummaryEvent
 
@@ -465,7 +437,7 @@ internal class DefaultMessagesReactions(
         // only process summary events with the serial
         if (message.action !== PubSubMessageAction.MESSAGE_SUMMARY || message.serial == null) {
             message.serial ?: logger.warn(
-                "DefaultMessageReactions.internalSummaryListener(); received summary without serial",
+                "DefaultMessageReactionSummary.internalSummaryListener(); received summary without serial",
                 context = mapOf("message" to message),
             )
 
@@ -477,8 +449,8 @@ internal class DefaultMessagesReactions(
             // Happens when there are no reactions such as after deleting the last reaction.
             summaryEventBus.tryEmit(
                 DefaultMessageReactionSummaryEvent(
+                    message.serial,
                     DefaultMessageReactionSummary(
-                        messageSerial = message.serial,
                         unique = emptyMap(),
                         distinct = emptyMap(),
                         multiple = emptyMap(),
@@ -497,8 +469,8 @@ internal class DefaultMessagesReactions(
 
         summaryEventBus.tryEmit(
             DefaultMessageReactionSummaryEvent(
+                messageSerial = message.serial,
                 DefaultMessageReactionSummary(
-                    messageSerial = message.serial,
                     unique = unique,
                     distinct = distinct,
                     multiple = multiple,
@@ -520,14 +492,14 @@ internal class DefaultMessagesReactions(
 
         val reactionType = MessageReactionType.tryFind(annotation.type) ?: run {
             logger.debug(
-                "DefaultMessageReactions.internalAnnotationListener(); received event with unknown type",
+                "DefaultMessageReactionSummary.internalAnnotationListener(); received event with unknown type",
                 context = mapOf("annotation" to annotation),
             )
             return
         }
 
         val action = annotation.action ?: run {
-            logger.debug("DefaultMessageReactions.internalAnnotationListener(); received event with unknown action")
+            logger.debug("DefaultMessageReactionSummary.internalAnnotationListener(); received event with unknown action")
             return
         }
 
