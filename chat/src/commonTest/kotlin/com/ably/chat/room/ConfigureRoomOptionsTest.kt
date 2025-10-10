@@ -2,6 +2,7 @@ package com.ably.chat.room
 
 import com.ably.chat.ChatApi
 import com.ably.chat.ChatException
+import com.ably.chat.ClientIdResolver
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRooms
 import com.ably.chat.MainDispatcherRule
@@ -11,12 +12,14 @@ import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
 import com.ably.chat.presence
 import com.ably.chat.typing
+import io.mockk.every
 import io.mockk.mockk
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Assert.assertThrows
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -28,13 +31,18 @@ import org.junit.Test
  */
 class ConfigureRoomOptionsTest {
 
-    private val clientId = DEFAULT_CLIENT_ID
+    private val clientIdResolver = mockk<ClientIdResolver>()
     private val logger = createMockLogger()
     private val mockRealtimeClient = createMockRealtimeClient()
     private val chatApi = mockk<ChatApi>(relaxed = true)
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    @Before
+    fun setUp() {
+        every { clientIdResolver.get() } returns DEFAULT_CLIENT_ID
+    }
 
     @Test
     fun `(CHA-RC2a) If a room is requested with a negative typing timeout, an ErrorInfo with code 40001 must be thrown`() = runTest {
@@ -45,7 +53,7 @@ class ConfigureRoomOptionsTest {
             roomOpts,
             mockRealtimeClient,
             chatApi,
-            clientId,
+            clientIdResolver,
             logger,
         )
         Assert.assertNotNull(room)
@@ -59,7 +67,7 @@ class ConfigureRoomOptionsTest {
                 roomOpts,
                 mockRealtimeClient,
                 chatApi,
-                clientId,
+                clientIdResolver,
                 logger,
             )
         }
@@ -71,7 +79,7 @@ class ConfigureRoomOptionsTest {
     @Test
     fun `(CHA-RC5, CHA-RC2g) No feature should throw any exception on accessing it`() = runTest {
         // Room only supports messages feature, since by default other features are turned off
-        var room = DefaultRoom("1234", buildRoomOptions(), mockRealtimeClient, chatApi, clientId, logger)
+        var room = DefaultRoom("1234", buildRoomOptions(), mockRealtimeClient, chatApi, clientIdResolver, logger)
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
@@ -91,7 +99,7 @@ class ConfigureRoomOptionsTest {
                 presence { enableEvents = false }
                 occupancy { enableEvents = false }
             },
-            mockRealtimeClient, chatApi, clientId, logger,
+            mockRealtimeClient, chatApi, clientIdResolver, logger,
         )
 
         Assert.assertNotNull(room)
@@ -110,7 +118,7 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4a) With no room options, the client shall provide defaults`() = runTest {
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientId, logger)
+        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger)
 
         val room = rooms.get(DEFAULT_ROOM_ID)
         val roomOptions = room.options
@@ -123,7 +131,7 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4b) With partial room options, client shall deep-merge the provided values with the defaults`() = runTest {
-        val rooms: Rooms = DefaultRooms(mockRealtimeClient, chatApi, clientId, logger)
+        val rooms: Rooms = DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger)
 
         val roomOpts = buildRoomOptions {
             occupancy { enableEvents = true }

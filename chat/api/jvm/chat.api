@@ -83,6 +83,7 @@ public final class com/ably/chat/DiscontinuityKt {
 public final class com/ably/chat/ErrorCode : java/lang/Enum {
 	public static final field BadRequest Lcom/ably/chat/ErrorCode;
 	public static final field InternalError Lcom/ably/chat/ErrorCode;
+	public static final field InvalidClientId Lcom/ably/chat/ErrorCode;
 	public static final field InvalidRequestBody Lcom/ably/chat/ErrorCode;
 	public static final field MessageRejectedByBeforePublishRule Lcom/ably/chat/ErrorCode;
 	public static final field MessageRejectedByModeration Lcom/ably/chat/ErrorCode;

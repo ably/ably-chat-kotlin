@@ -1,5 +1,8 @@
 package com.ably.chat
 
+import com.ably.chat.integration.Sandbox
+import com.ably.chat.integration.createSandboxChatClient
+import com.ably.chat.integration.createTokenBasedSandboxChatClient
 import com.ably.chat.json.JsonValue
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
@@ -13,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -248,4 +252,21 @@ class RetryTestRule(times: Int) : TestRule {
             }
         }
     }
+}
+
+/**
+ * Runs test logic with different configurations of `ChatClient` (key-based and token-based clients)
+ * created within the provided `Sandbox` environment.
+ *
+ * This method facilitates executing the same test block with multiple client configurations to
+ * validate behavior under varying authentication setups.
+ *
+ * @param sandbox The `Sandbox` instance used for creating the `ChatClient` instances.
+ * @param block A suspending function that defines the test logic to be executed with each `ChatClient`.
+ */
+fun runTestWithDifferentClients(sandbox: Sandbox, block: suspend (ChatClient) -> Unit) = runTest {
+    val keyBasedClient = sandbox.createSandboxChatClient()
+    block(keyBasedClient)
+    val tokenBasedClient = sandbox.createTokenBasedSandboxChatClient()
+    block(tokenBasedClient)
 }

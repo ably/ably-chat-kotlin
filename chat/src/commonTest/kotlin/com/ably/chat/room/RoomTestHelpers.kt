@@ -3,6 +3,7 @@ package com.ably.chat.room
 import com.ably.annotations.InternalAPI
 import com.ably.chat.AtomicCoroutineScope
 import com.ably.chat.ChatApi
+import com.ably.chat.ClientIdResolver
 import com.ably.chat.DefaultRoom
 import com.ably.chat.DefaultRoomStatusManager
 import com.ably.chat.Logger
@@ -82,7 +83,11 @@ internal fun createMockChatApi(
     realtimeClient: RealtimeClient = createMockRealtimeClient(),
     clientId: String = DEFAULT_CLIENT_ID,
     logger: Logger = createMockLogger(),
-) = spyk(ChatApi(realtimeClient, clientId, logger), recordPrivateCalls = true)
+): ChatApi {
+    val clientIdResolver = mockk<ClientIdResolver>()
+    every { clientIdResolver.get() } returns clientId
+    return spyk(ChatApi(realtimeClient, clientIdResolver, logger), recordPrivateCalls = true)
+}
 
 internal fun createMockLogger(): Logger = mockk<Logger>(relaxed = true)
 
@@ -93,8 +98,11 @@ internal fun createTestRoom(
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
     roomOptions: (MutableRoomOptions.() -> Unit)? = null,
-): DefaultRoom =
-    DefaultRoom(roomName, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientId, logger)
+): DefaultRoom {
+    val clientIdResolver = mockk<ClientIdResolver>()
+    every { clientIdResolver.get() } returns clientId
+    return DefaultRoom(roomName, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientIdResolver, logger)
+}
 
 internal val RoomOptionsWithAllFeatures: RoomOptions
     get() = buildRoomOptions {

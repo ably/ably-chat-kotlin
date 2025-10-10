@@ -2,12 +2,16 @@ package com.ably.chat.integration
 
 import com.ably.chat.DefaultChatClient
 import com.ably.chat.buildChatClientOptions
+import com.ably.chat.json.jsonObject
 import com.ably.chat.serverError
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.realtime.ConnectionEvent
 import io.ably.lib.realtime.ConnectionState
+import io.ably.lib.rest.AblyRest
+import io.ably.lib.rest.Auth
+import io.ably.lib.types.ClientOptions
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -62,9 +66,41 @@ internal fun Sandbox.createSandboxChatClient(chatClientId: String = "sandbox-cli
     return DefaultChatClient(realtime, buildChatClientOptions())
 }
 
-internal fun Sandbox.createSandboxRealtime(chatClientId: String): AblyRealtime =
+internal fun Sandbox.createTokenBasedSandboxChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
+    val restClient = createSandboxRest()
+
+    val realtime = AblyRealtime(
+        ClientOptions().apply {
+            authCallback = Auth.TokenCallback {
+                restClient.auth.createTokenRequest(
+                    Auth.TokenParams().apply {
+                        capability = jsonObject {
+                            putArray("*") { add("*") }
+                            putArray("[*]*") { add("*") }
+                        }.toString()
+                        clientId = chatClientId
+                    },
+                    null,
+                )
+            }
+            environment = "sandbox"
+        },
+    )
+    return DefaultChatClient(realtime, buildChatClientOptions())
+}
+
+internal fun Sandbox.createSandboxRealtime(chatClientId: String? = null): AblyRealtime =
     AblyRealtime(
-        io.ably.lib.types.ClientOptions().apply {
+        ClientOptions().apply {
+            key = apiKey
+            environment = "sandbox"
+            clientId = chatClientId
+        },
+    )
+
+internal fun Sandbox.createSandboxRest(chatClientId: String? = null): AblyRest =
+    AblyRest(
+        ClientOptions().apply {
             key = apiKey
             environment = "sandbox"
             clientId = chatClientId

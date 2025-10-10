@@ -68,7 +68,7 @@ public suspend fun Rooms.get(
 internal class DefaultRooms(
     private val realtimeClient: RealtimeClient,
     private val chatApi: ChatApi,
-    private val clientId: String,
+    private val clientIdResolver: ClientIdResolver,
     logger: Logger,
 ) : Rooms {
     private val logger = logger.withContext(tag = "Rooms")
@@ -184,5 +184,5 @@ internal class DefaultRooms(
      * Spec: CHA-RC1f3
      */
     private fun makeRoom(roomName: String, options: RoomOptions): DefaultRoom =
-        DefaultRoom(roomName, options, realtimeClient, chatApi, clientId, logger)
+        DefaultRoom(roomName, options, realtimeClient, chatApi, clientIdResolver, logger)
 }

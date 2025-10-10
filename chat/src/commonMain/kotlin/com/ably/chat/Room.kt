@@ -125,7 +125,7 @@ internal class DefaultRoom(
     override val options: RoomOptions,
     internal val realtimeClient: RealtimeClient,
     internal val chatApi: ChatApi,
-    internal val clientId: String,
+    internal val clientIdResolver: ClientIdResolver,
     logger: Logger,
 ) : Room {
     internal val logger = logger.withContext("Room", mapOf("roomName" to name))

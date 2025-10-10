@@ -1,6 +1,7 @@
 package com.ably.chat.room
 
 import com.ably.chat.ChatApi
+import com.ably.chat.ClientIdResolver
 import com.ably.chat.DefaultRoom
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
@@ -12,6 +13,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -19,6 +21,13 @@ import org.junit.Test
  * Spec: CHA-RC3
  */
 class RoomFeatureSharedChannelTest {
+
+    private val clientIdResolver = mockk<ClientIdResolver>()
+
+    @Before
+    fun setUp() {
+        every { clientIdResolver.get() } returns DEFAULT_CLIENT_ID
+    }
 
     @Test
     fun `(CHA-RC3, CHA-RC3c) All features should share same channel and channels#get should be called only once`() = runTest {
@@ -95,7 +104,7 @@ class RoomFeatureSharedChannelTest {
             },
             mockRealtimeClient,
             chatApi,
-            "clientId",
+            clientIdResolver,
             createMockLogger(),
         )
         Assert.assertFalse(room.options.presence.enableEvents)
