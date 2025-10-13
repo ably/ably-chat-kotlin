@@ -157,9 +157,7 @@ public abstract interface class com/ably/chat/Message {
 public final class com/ably/chat/MessageAction : java/lang/Enum {
 	public static final field MessageCreate Lcom/ably/chat/MessageAction;
 	public static final field MessageDelete Lcom/ably/chat/MessageAction;
-	public static final field MessageSummary Lcom/ably/chat/MessageAction;
 	public static final field MessageUpdate Lcom/ably/chat/MessageAction;
-	public static final field Meta Lcom/ably/chat/MessageAction;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/ably/chat/MessageAction;
 	public static fun values ()[Lcom/ably/chat/MessageAction;

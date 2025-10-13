@@ -34,9 +34,6 @@ internal val messageActionNameToAction = mapOf(
 
     /** Action applied to a deleted message. */
     "message.delete" to MessageAction.MessageDelete,
-
-    /** Action applied to a message summary. */
-    "message.summary" to MessageAction.MessageSummary,
 )
 
 internal val messageActionToEventType = mapOf(
