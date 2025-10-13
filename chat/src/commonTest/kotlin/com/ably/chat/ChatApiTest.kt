@@ -2,31 +2,22 @@ package com.ably.chat
 
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
-import com.ably.chat.room.DEFAULT_CLIENT_ID
 import com.ably.http.HttpMethod
 import com.ably.pubsub.RealtimeClient
-import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
-import org.junit.Before
 import org.junit.Test
 
 class ChatApiTest {
 
     private val realtime = mockk<RealtimeClient>(relaxed = true)
-    private val clientIdResolver = mockk<ClientIdResolver>()
 
     private val chatApi =
-        ChatApi(realtime, clientIdResolver, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
-
-    @Before
-    fun setUp() {
-        every { clientIdResolver.get() } returns DEFAULT_CLIENT_ID
-    }
+        ChatApi(realtime, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
 
     /**
      * @nospec
@@ -146,6 +137,8 @@ class ChatApiTest {
                 put("foo", "bar")
                 put(MessageProperty.Serial, "timeserial")
                 put(MessageProperty.Timestamp, 1_000_000)
+                put(MessageProperty.ClientId, "clientId")
+                put(MessageProperty.Text, "hello")
             },
         )
 
@@ -229,6 +222,8 @@ class ChatApiTest {
             jsonObject {
                 put(MessageProperty.Serial, "timeserial")
                 put(MessageProperty.Timestamp, 1_000_000)
+                put(MessageProperty.ClientId, "clientId")
+                put(MessageProperty.Action, "message.create")
             },
             roomName,
         )

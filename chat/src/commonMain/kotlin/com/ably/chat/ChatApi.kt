@@ -23,12 +23,9 @@ private const val CHAT_API_PROTOCOL_VERSION = PROTOCOL_VERSION_PARAM_NAME + CHAT
 
 internal class ChatApi(
     private val realtimeClient: RealtimeClient,
-    private val clientIdResolver: ClientIdResolver,
     parentLogger: Logger,
 ) {
     private val logger = parentLogger.withContext(tag = "ChatApi")
-
-    private val clientId: String get() = clientIdResolver.get()
 
     /**
      * Get messages from the Chat Backend
@@ -61,23 +58,7 @@ internal class ChatApi(
             HttpMethod.Post,
             body,
         )?.let {
-            val serial = it.requireString(MessageProperty.Serial)
-            val timestamp = it.requireLong(MessageProperty.Timestamp)
-            logger.debug("sendMessage()", context = mapOf("roomName" to roomName, "response" to it))
-            // CHA-M3a
-            DefaultMessage(
-                serial = serial,
-                clientId = clientId,
-                text = params.text,
-                timestamp = timestamp,
-                metadata = params.metadata ?: JsonObject(),
-                headers = params.headers ?: mapOf(),
-                action = MessageAction.MessageCreate,
-                version = DefaultMessageVersion(
-                    serial = serial,
-                    timestamp = timestamp,
-                ),
-            )
+            tryParseMessageResponse(it)
         } ?: throw serverError("Send message endpoint returned empty value") // CHA-M3e
     }
 
@@ -171,6 +152,24 @@ internal class ChatApi(
             method = HttpMethod.Delete,
             params = buildMessageReactionsApiParams(type, name),
         )
+    }
+
+    suspend fun getMessage(roomName: String, serial: String): Message {
+        return makeAuthorizedRequest(
+            "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}",
+            HttpMethod.Get,
+        )?.let {
+            tryParseMessageResponse(it)
+        } ?: throw serverError("Get message endpoint returned empty value")
+    }
+
+    suspend fun getClientReactions(roomName: String, messageSerial: String, clientId: String?): MessageReactionSummary {
+        val response = this.makeAuthorizedRequest(
+            url = "/chat/$CHAT_API_PROTOCOL_VERSION/rooms/${encodePath(roomName)}/messages/${encodePath(messageSerial)}/client-reactions",
+            method = HttpMethod.Get,
+            params = if (clientId != null) listOf(Param("forClientId", clientId)) else listOf(),
+        )?.jsonObjectOrNull()
+        return buildMessageReactions(response)
     }
 
     private fun buildMessageReactionsApiParams(type: MessageReactionType, name: String? = null): List<Param> = buildList {

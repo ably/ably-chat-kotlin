@@ -56,6 +56,14 @@ class MessagesTest {
             jsonObject {
                 put(MessageProperty.Serial, "abcdefghij@1672531200000-123")
                 put(MessageProperty.Timestamp, 1_000_000)
+                put(MessageProperty.ClientId, "clientId")
+                put(MessageProperty.Text, "lala")
+                putObject(MessageProperty.Metadata) {
+                    put("meta", "data")
+                }
+                putObject(MessageProperty.Headers) {
+                    put("foo", "bar")
+                }
             },
             roomName = "room1",
         )
