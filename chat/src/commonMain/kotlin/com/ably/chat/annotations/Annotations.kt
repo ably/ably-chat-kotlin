@@ -24,6 +24,27 @@ package com.ably.chat.annotations
 public annotation class ExperimentalChatApi
 
 /**
+ * This API is not intended for external use and is subject to change or removal in future releases.
+ * Use of APIs marked with this annotation requires opting-in explicitly, as these APIs may exhibit
+ * changes in behavior or be removed in later versions of the SDK.
+ */
+@MustBeDocumented
+@RequiresOptIn(
+    level = RequiresOptIn.Level.ERROR,
+    message = "This API is not intended for external use and is subject to change or removal in future releases.",
+)
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.TYPEALIAS,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.FIELD,
+    AnnotationTarget.CONSTRUCTOR,
+    AnnotationTarget.PROPERTY_SETTER,
+)
+public annotation class InternalChatApi
+
+/**
  * A marker annotations for DSLs.
  */
 @DslMarker

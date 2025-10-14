@@ -49,7 +49,6 @@ import com.ably.chat.LogLevel
 import com.ably.chat.Message
 import com.ably.chat.Room
 import com.ably.chat.RoomReaction
-import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.asFlow
 import com.ably.chat.copy
 import com.ably.chat.delete
@@ -88,12 +87,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalChatApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App(chatClient: ChatClient) {
     var showPopup by remember { mutableStateOf(false) }
     var room by remember { mutableStateOf<Room?>(null) }
-    val currentlyTyping = room?.collectAsCurrentlyTyping() ?: setOf()
+    val currentlyTyping = room?.collectAsCurrentlyTyping()?.value ?: setOf()
 
     LaunchedEffect(Unit) {
         val chatRoom = chatClient.rooms.get(
@@ -144,7 +143,6 @@ fun App(chatClient: ChatClient) {
 }
 
 @SuppressWarnings("LongMethod", "CognitiveComplexMethod")
-@OptIn(ExperimentalChatApi::class)
 @Composable
 fun Chat(room: Room, modifier: Modifier = Modifier) {
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
@@ -152,7 +150,7 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
     var sending by remember { mutableStateOf(false) }
     val updating = edited != null
     val coroutineScope = rememberCoroutineScope()
-    val paginatedMessages = room.collectAsPagingMessagesState(scrollThreshold = 10, fetchSize = 15)
+    val paginatedMessages = room.collectAsPagingMessagesState(scrollThreshold = 1, fetchSize = 15)
     val receivedReactions = remember { mutableStateListOf<RoomReaction>() }
 
     LaunchedEffect(Unit) {

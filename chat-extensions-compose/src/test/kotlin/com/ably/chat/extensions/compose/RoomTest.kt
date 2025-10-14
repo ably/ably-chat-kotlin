@@ -23,7 +23,7 @@ class RoomTest {
     @Test
     fun `should return live value for room status change`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
-            room.collectAsStatus()
+            room.collectAsStatus().value
         }.test {
             assertEquals(RoomStatus.Initialized, awaitItem())
             room.emit(RoomStatusChange(current = RoomStatus.Attached, previous = RoomStatus.Initialized))

@@ -1,5 +1,6 @@
 package com.ably.chat
 
+import com.ably.chat.annotations.InternalChatApi
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.RealtimeAnnotations
 import io.ably.lib.types.Annotation
@@ -11,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import io.ably.lib.types.MessageAction as PubSubMessageAction
@@ -89,6 +91,13 @@ public interface MessagesReactions {
      * ```
      */
     public suspend fun clientReactions(messageSerial: String, clientId: String? = null): MessageReactionSummary
+}
+
+/**
+ * @return [MessageReactionSummaryEvent] events as a [Flow]
+ */
+public fun MessagesReactions.asFlow(): Flow<MessageReactionSummaryEvent> = transformCallbackAsFlow {
+    subscribe(it)
 }
 
 public enum class MessageReactionEventType(public val eventName: String) {
@@ -238,6 +247,56 @@ public interface MessageReactionSummaryEvent {
     /** The message reactions summary. */
     public val reactions: MessageReactionSummary
 }
+
+@InternalChatApi
+public fun MessageReactionSummaryEvent.mergeWith(reactions: MessageReactionSummary): MessageReactionSummaryEvent =
+    DefaultMessageReactionSummaryEvent(
+        messageSerial = messageSerial,
+        type = type,
+        reactions = this.reactions.mergeWith(reactions),
+    )
+
+private fun MessageReactionSummary.mergeWith(other: MessageReactionSummary): MessageReactionSummary = DefaultMessageReactionSummary(
+    unique = unique.mergeWith(other.unique),
+    distinct = distinct.mergeWith(other.distinct),
+    multiple = multiple.mergeWith(other.multiple),
+)
+
+@JvmName("mergeWithSummaryClientIdList")
+private fun Map<String, SummaryClientIdList>.mergeWith(other: Map<String, SummaryClientIdList>): Map<String, SummaryClientIdList> =
+    mapValues {
+        if (it.value.clipped && !it.value.clientIds.containsAll(other[it.key]?.clientIds ?: listOf())) {
+            SummaryClientIdList(
+                it.value.total,
+                buildSet {
+                    addAll(it.value.clientIds)
+                    other[it.key]?.clientIds?.let(::addAll)
+                }.toList(),
+                it.value.clipped,
+            )
+        } else {
+            it.value
+        }
+    }
+
+@JvmName("mergeWithSummaryClientIdCounts")
+private fun Map<String, SummaryClientIdCounts>.mergeWith(other: Map<String, SummaryClientIdCounts>): Map<String, SummaryClientIdCounts> =
+    mapValues {
+        if (it.value.clipped && !it.value.clientIds.keys.containsAll(other[it.key]?.clientIds?.keys ?: setOf())) {
+            SummaryClientIdCounts(
+                total = it.value.total,
+                clientIds = buildMap {
+                    putAll(it.value.clientIds)
+                    putAll(other[it.key]?.clientIds ?: emptyMap())
+                },
+                totalUnidentified = it.value.totalUnidentified,
+                clipped = it.value.clipped,
+                totalClientIds = it.value.totalClientIds,
+            )
+        } else {
+            it.value
+        }
+    }
 
 /**
  * @see [MessagesReactions.send]

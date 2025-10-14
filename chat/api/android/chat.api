@@ -270,8 +270,10 @@ public abstract interface class com/ably/chat/MessagesReactions {
 }
 
 public final class com/ably/chat/MessagesReactionsKt {
+	public static final fun asFlow (Lcom/ably/chat/MessagesReactions;)Lkotlinx/coroutines/flow/Flow;
 	public static final fun delete (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun delete$default (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun mergeWith (Lcom/ably/chat/MessageReactionSummaryEvent;Lcom/ably/chat/MessageReactionSummary;)Lcom/ably/chat/MessageReactionSummaryEvent;
 	public static final fun send (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun send$default (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
@@ -367,6 +369,7 @@ public final class com/ably/chat/OccupancyEventType : java/lang/Enum {
 
 public final class com/ably/chat/OccupancyKt {
 	public static final fun asFlow (Lcom/ably/chat/Occupancy;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun getEmptyOccupancyData ()Lcom/ably/chat/OccupancyData;
 }
 
 public abstract interface class com/ably/chat/OccupancyOptions {
@@ -441,6 +444,7 @@ public abstract interface class com/ably/chat/Room : com/ably/chat/Discontinuity
 	public abstract fun attach (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun detach (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getChannel ()Lcom/ably/pubsub/RealtimeChannel;
+	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getError ()Lcom/ably/chat/ErrorInfo;
 	public abstract fun getMessages ()Lcom/ably/chat/Messages;
 	public abstract fun getName ()Ljava/lang/String;
@@ -622,6 +626,9 @@ public abstract interface annotation class com/ably/chat/annotations/ChatDsl : j
 }
 
 public abstract interface annotation class com/ably/chat/annotations/ExperimentalChatApi : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class com/ably/chat/annotations/InternalChatApi : java/lang/annotation/Annotation {
 }
 
 public final class com/ably/chat/json/JsonArray : com/ably/chat/json/JsonValue, java/util/List, kotlin/jvm/internal/markers/KMappedMarker {

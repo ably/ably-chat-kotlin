@@ -32,14 +32,14 @@ class OccupancyTest {
     fun `should return active occupancy set`() = runTest {
         occupancy.emit(OccupancyEvent(1, 0))
         moleculeFlow(RecompositionMode.Immediate) {
-            room.collectAsOccupancy()
+            room.collectAsOccupancy().value
         }.test {
-            assertEquals(DefaultCurrentOccupancy(0, 0), awaitItem())
-            assertEquals(DefaultCurrentOccupancy(1, 0), awaitItem())
+            assertEquals(Pair(0, 0), awaitItem().toPair())
+            assertEquals(Pair(1, 0), awaitItem().toPair())
             occupancy.emit(OccupancyEvent(1, 1))
-            assertEquals(DefaultCurrentOccupancy(1, 1), awaitItem())
+            assertEquals(Pair(1, 1), awaitItem().toPair())
             occupancy.emit(OccupancyEvent(2, 1))
-            assertEquals(DefaultCurrentOccupancy(2, 1), awaitItem())
+            assertEquals(Pair(2, 1), awaitItem().toPair())
         }
     }
 
@@ -48,14 +48,14 @@ class OccupancyTest {
         occupancy.emit(OccupancyEvent(100, 50))
         occupancy.pause()
         moleculeFlow(RecompositionMode.Immediate) {
-            room.collectAsOccupancy()
+            room.collectAsOccupancy().value
         }.test {
-            assertEquals(DefaultCurrentOccupancy(), awaitItem())
+            assertEquals(Pair(0, 0), awaitItem().toPair())
             occupancy.emit(OccupancyEvent(1, 0))
-            assertEquals(DefaultCurrentOccupancy(1, 0), awaitItem())
+            assertEquals(Pair(1, 0), awaitItem().toPair())
             occupancy.resume()
             occupancy.emit(OccupancyEvent(2, 1))
-            assertEquals(DefaultCurrentOccupancy(2, 1), awaitItem())
+            assertEquals(Pair(2, 1), awaitItem().toPair())
         }
     }
 }
@@ -92,7 +92,7 @@ class EmittingOccupancy(val mock: Occupancy) : Occupancy by mock {
     }
 }
 
-fun OccupancyEvent(connections: Int, presenceMembers: Int): OccupancyEvent = mockk occupancyEvent@{
+private fun OccupancyEvent(connections: Int, presenceMembers: Int): OccupancyEvent = mockk occupancyEvent@{
     val occupancy = mockk<OccupancyData> occupancyData@{
         every { this@occupancyData.connections } returns connections
         every { this@occupancyData.presenceMembers } returns presenceMembers
@@ -100,3 +100,5 @@ fun OccupancyEvent(connections: Int, presenceMembers: Int): OccupancyEvent = moc
     every { this@occupancyEvent.type } returns OccupancyEventType.Updated
     every { this@occupancyEvent.occupancy } returns occupancy
 }
+
+private fun OccupancyData.toPair(): Pair<Int, Int> = Pair(connections, presenceMembers)

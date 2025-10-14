@@ -1,6 +1,7 @@
 package com.ably.chat
 
 import com.ably.chat.annotations.ExperimentalChatApi
+import com.ably.chat.annotations.InternalChatApi
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimeClient
 import io.ably.lib.realtime.ConnectionState
@@ -88,6 +89,9 @@ public interface Room : Discontinuity {
      */
     public val error: ErrorInfo?
 
+    @InternalChatApi
+    public val clientId: String
+
     /**
      * Registers a listener that will be called whenever the room status changes.
      * @param listener The function to call when the status changes.
@@ -161,6 +165,10 @@ internal class DefaultRoom(
 
     override val error: ErrorInfo?
         get() = statusManager.error
+
+    @InternalChatApi
+    override val clientId: String
+        get() = clientIdResolver.get()
 
     private val lifecycleManager: RoomLifecycleManager
 

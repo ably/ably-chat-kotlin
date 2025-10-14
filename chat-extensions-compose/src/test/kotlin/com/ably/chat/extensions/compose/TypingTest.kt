@@ -28,7 +28,7 @@ class TypingTest {
     @Test
     fun `should return live value for each typing update`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
-            room.collectAsCurrentlyTyping()
+            room.collectAsCurrentlyTyping().value
         }.test {
             assertEquals(emptySet<String>(), awaitItem())
             val change = object : TypingSetEvent.Change {
