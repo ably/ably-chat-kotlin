@@ -162,18 +162,6 @@ public enum class MessageAction {
      * This action is used when a message is softly removed.
      */
     MessageDelete,
-
-    /**
-     * Message action for a meta-message (a message originating from ably rather than being explicitly
-     * published on a channel), containing eg inband channel occupancy events or some other information
-     * requested by channel param.
-     */
-    Meta,
-
-    /**
-     * Represents the action of updating the message reactions summary.
-     */
-    MessageSummary,
 }
 
 /**
@@ -183,8 +171,7 @@ internal fun PubSubMessageAction.toMessageAction(): MessageAction? = when (this)
     PubSubMessageAction.MESSAGE_CREATE -> MessageAction.MessageCreate
     PubSubMessageAction.MESSAGE_UPDATE -> MessageAction.MessageUpdate
     PubSubMessageAction.MESSAGE_DELETE -> MessageAction.MessageDelete
-    PubSubMessageAction.META -> MessageAction.Meta
-    PubSubMessageAction.MESSAGE_SUMMARY -> MessageAction.MessageSummary
+    else -> null
 }
 
 public fun Message.copy(
