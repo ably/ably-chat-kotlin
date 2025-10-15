@@ -28,6 +28,13 @@ import kotlinx.coroutines.launch
 public interface Occupancy {
 
     /**
+     * The latest occupancy data received from realtime events.
+     *
+     * @throws [ChatException] If occupancy events are not enabled for this room.
+     */
+    public val current: OccupancyData?
+
+    /**
      * Subscribe a given listener to occupancy updates of the chat room.
      *
      * @param listener A listener to be called when the occupancy of the room changes.
@@ -40,14 +47,6 @@ public interface Occupancy {
      * @return the current occupancy of the chat room.
      */
     public suspend fun get(): OccupancyData
-
-    /**
-     * Get the latest occupancy data received from realtime events.
-     *
-     * @return The latest occupancy data, or undefined if no realtime events have been received yet.
-     * @throws [ChatException] If occupancy events are not enabled for this room.
-     */
-    public fun current(): OccupancyData?
 }
 
 /**
@@ -168,6 +167,17 @@ internal class DefaultOccupancy(
         occupancySubscription = channelWrapper.subscribe(META_OCCUPANCY_EVENT_NAME, occupancyListener).asChatSubscription()
     }
 
+    override val current: OccupancyData?
+        get() {
+            logger.trace("Occupancy.current")
+            if (!room.options.occupancy.enableEvents) { // CHA-O7c
+                throw clientError("cannot get current occupancy; occupancy events are not enabled in room options")
+            }
+            // CHA-O7a
+            // CHA-O7b
+            return latestOccupancyData
+        }
+
     // Spec: CHA-O4
     override fun subscribe(listener: OccupancyListener): Subscription {
         logger.trace("Occupancy.subscribe()")
@@ -187,16 +197,6 @@ internal class DefaultOccupancy(
     override suspend fun get(): OccupancyData {
         logger.trace("Occupancy.get()")
         return room.chatApi.getOccupancy(room.name)
-    }
-
-    override fun current(): OccupancyData? {
-        logger.trace("Occupancy.current()")
-        if (!room.options.occupancy.enableEvents) { // CHA-O7c
-            throw clientError("cannot get current occupancy; occupancy events are not enabled in room options")
-        }
-        // CHA-O7a
-        // CHA-O7b
-        return latestOccupancyData
     }
 
     override fun dispose() {

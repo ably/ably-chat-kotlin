@@ -344,8 +344,8 @@ public final class com/ably/chat/MutableTypingOptions : com/ably/chat/TypingOpti
 }
 
 public abstract interface class com/ably/chat/Occupancy {
-	public abstract fun current ()Lcom/ably/chat/OccupancyData;
 	public abstract fun get (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getCurrent ()Lcom/ably/chat/OccupancyData;
 	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
 }
 
@@ -579,8 +579,7 @@ public final class com/ably/chat/SummaryClientIdList {
 }
 
 public abstract interface class com/ably/chat/Typing {
-	public abstract fun current ()Ljava/util/Set;
-	public abstract fun getChannel ()Lio/ably/lib/realtime/Channel;
+	public abstract fun getCurrent ()Ljava/util/Set;
 	public abstract fun keystroke (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun stop (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
