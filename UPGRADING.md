@@ -2,6 +2,138 @@
 
 This guide provides detailed instructions on how to upgrade between versions of the Chat SDK.
 
+## 0.8.x to 0.9.x
+
+### MessageAction Enum
+
+**Expected Impact: Low**
+
+The `MessageAction` enum no longer includes internal `Meta` and `Summary` values. These values were not part of the public API and should not have been used in application code. The enum now only contains the three public action types: `MessageCreate`, `MessageUpdate`, and `MessageDelete`.
+
+No code changes are required unless you were incorrectly using these internal values.
+
+### Listener Functions
+
+**Expected Impact: Low**
+
+Interface-based listeners have been replaced with Kotlin function types for a more idiomatic API.
+This affects binary-compatibility mostly for all subscription methods throughout the SDK.
+
+This change applies to all subscription methods including:
+- `Messages.subscribe()`
+- `Presence.subscribe()`
+- `RoomReactions.subscribe()`
+- `Occupancy.subscribe()`
+- `Typing.subscribe()`
+- `Room.onStatusChange()`
+- `Connection.onStatusChange()`
+
+### Exception Handling
+
+**Expected Impact: Medium**
+
+The Chat SDK now throws `ChatException` instead of `AblyException`. This provides better error handling specificity for chat-related operations.
+
+#### Code Changes Required
+
+**Before**
+
+```kotlin
+import io.ably.lib.types.AblyException
+
+try {
+    room.attach()
+} catch (e: AblyException) {
+    // Handle error
+}
+```
+
+**After**
+
+```kotlin
+import com.ably.chat.*
+
+try {
+    room.attach()
+} catch (e: ChatException) {
+    // Handle error
+}
+```
+
+### Status Properties
+
+**Expected Impact: Medium**
+
+Status properties have been changed from `current()` function to `current` property for cleaner, more idiomatic Kotlin syntax.
+
+#### Code Changes Required
+
+**Before**
+
+```kotlin
+val occupancyData = occupancy.current()
+val typingClients = typing.current()
+```
+
+**After**
+
+```kotlin
+val occupancyData = occupancy.current
+val typingClients = typing.current
+```
+
+This change applies to:
+- `Occupancy.current`
+- `Typing.current`
+
+### Import Path Changes
+
+**Expected Impact: High**
+
+Several types now import from `com.ably.chat` instead of their previous locations. This ensures consistency and clarity about which types are part of the Chat SDK public API.
+
+#### Code Changes Required
+
+**Before**
+
+```kotlin
+import io.ably.lib.types.ErrorInfo
+import io.ably.lib.types.MessageAction
+```
+
+**After**
+
+```kotlin
+import com.ably.chat.*
+```
+
+### Compose Extension
+
+**Expected Impact: Low**
+
+The `chat-compose-extension` module has been promoted from experimental to stable.
+Made extensions return `State<*>` instead of plain objects to avoid unnecessary recompositions:
+
+**Before**
+
+```kotlin
+val roomStatus = room.collectAsStatus()
+val connectionStatus = connection.collectAsStatus()
+val currentlyTyping = room.collectAsCurrentlyTyping()
+val presentMembers = room.collectAsPresenceMembers()
+val occupancy = room.collectAsOccupancy()
+```
+
+**After**
+
+```kotlin
+val roomStatus by room.collectAsStatus()
+val connectionStatus by connection.collectAsStatus()
+val currentlyTyping by room.collectAsCurrentlyTyping()
+val presentMembers by room.collectAsPresenceMembers()
+val occupancy by room.collectAsOccupancy()
+```
+
 ## 0.7.x to 0.8.x
 
 ### Protocol v4 changes

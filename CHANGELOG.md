@@ -1,5 +1,29 @@
 # Change Log
 
+## [0.9.0](https://github.com/ably/ably-chat-kotlin/tree/v0.9.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.8.0...v0.9.0)
+
+## What's Changed
+
+The following features have been added in this release:
+
+- Added `get(serial: String)` in `Messages` to fetch messages by serial.
+- Added `clientReactions` in `MessageReactions` for filtering reaction summaries by client.
+- **chat-compose-extension promoted to stable** The Jetpack Compose extension module has been promoted from experimental to stable status.
+
+### Breaking changes
+
+This release includes several breaking changes:
+
+- `MessageAction` enum no longer includes internal `Meta` and `Summary` values that were not part of the public API.
+- Interface-based listeners have been replaced with Kotlin function types for a more idiomatic API.
+- The Chat SDK now throws `ChatException` instead of `AblyException` for better error handling specificity.
+- Status properties have been changed from `current()` function to `current` property for cleaner syntax.
+- Import path changes: `ErrorInfo`, `SummaryClientIdCounts`, `SummaryClientIdList`, and `MessageAction` now import from `com.ably.chat` instead of other packages.
+
+For detailed migration instructions, please refer to the [Upgrading Guide](UPGRADING.md).
+
 ## [0.8.0](https://github.com/ably/ably-chat-kotlin/tree/v0.8.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.7.0...v0.8.0)
