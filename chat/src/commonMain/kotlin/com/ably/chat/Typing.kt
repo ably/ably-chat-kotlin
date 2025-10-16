@@ -33,10 +33,9 @@ import kotlinx.coroutines.launch
 public interface Typing {
 
     /**
-     * Get the Ably realtime channel underpinning typing events.
-     * @returns The Ably realtime channel.
+     * Current typing members.
      */
-    public val channel: Channel
+    public val current: Set<String>
 
     /**
      * Subscribe a given listener to all typing events from users in the chat room.
@@ -45,12 +44,6 @@ public interface Typing {
      * @returns A response object that allows you to control the subscription to typing events.
      */
     public fun subscribe(listener: TypingListener): Subscription
-
-    /**
-     * Current typing members.
-     * @return set of clientIds that are currently typing.
-     */
-    public fun current(): Set<String>
 
     /**
      * This will send a `typing.started` event to the server.
@@ -169,7 +162,7 @@ internal class DefaultTyping(
     private val channelWrapper: RealtimeChannel = room.channel
 
     @OptIn(InternalAPI::class)
-    override val channel: Channel = channelWrapper.javaChannel // CHA-RC3
+    internal val channel: Channel = channelWrapper.javaChannel // CHA-RC3
 
     private val listeners: MutableList<TypingListener> = CopyOnWriteArrayList()
 
@@ -211,6 +204,15 @@ internal class DefaultTyping(
     private val latestJobExecutor = LatestJobExecutor()
 
     /**
+     * Spec: CHA-T9
+     */
+    override val current: Set<String>
+        get() {
+            logger.trace("DefaultTyping.current")
+            return currentlyTypingMembers.toSet()
+        }
+
+    /**
      * Spec: CHA-T13
      */
     init {
@@ -241,14 +243,6 @@ internal class DefaultTyping(
             logger.trace("DefaultTyping.unsubscribe()")
             listeners.remove(listener)
         }
-    }
-
-    /**
-     * Spec: CHA-T9
-     */
-    override fun current(): Set<String> {
-        logger.trace("DefaultTyping.current()")
-        return currentlyTypingMembers.toSet()
     }
 
     /**
@@ -337,6 +331,7 @@ internal class DefaultTyping(
                 }
                 typingStartEventPrunerJobs[clientId] = timedTypingStopEvent
             }
+
             TypingEventType.Stopped -> { // CHA-T13b4
                 val clientIdPresent = currentlyTypingMembers.remove(clientId)
                 typingStartEventPrunerJobs[clientId]?.cancel()
@@ -352,7 +347,7 @@ internal class DefaultTyping(
     private fun emit(eventType: TypingEventType, clientId: String) {
         val typingEventChange = DefaultTypingEventChange(eventType, clientId)
         listeners.forEach {
-            it.invoke(DefaultTypingEvent(current(), typingEventChange))
+            it.invoke(DefaultTypingEvent(current, typingEventChange))
         }
     }
 }
