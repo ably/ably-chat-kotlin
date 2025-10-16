@@ -122,7 +122,6 @@ public final class com/ably/chat/HttpStatusCode {
 }
 
 public final class com/ably/chat/LogEntry {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/LogLevel;Ljava/util/Map;Ljava/lang/Throwable;)V
 	public final fun getContext ()Ljava/util/Map;
 	public final fun getLevel ()Lcom/ably/chat/LogLevel;
 	public final fun getMessage ()Ljava/lang/String;
