@@ -33,7 +33,7 @@ class PresenceTest {
     @Test
     fun `should return active presence set`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
-            room.collectAsPresenceMembers()
+            room.collectAsPresenceMembers().value
         }.test {
             assertEquals(emptyList<PresenceMember>(), awaitItem())
             presence.emit(
@@ -80,7 +80,7 @@ class PresenceTest {
         )
         presence.pause()
         moleculeFlow(RecompositionMode.Immediate) {
-            room.collectAsPresenceMembers()
+            room.collectAsPresenceMembers().value
         }.test {
             assertEquals(emptyList<PresenceMember>(), awaitItem())
             presence.emit(

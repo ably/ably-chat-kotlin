@@ -1,6 +1,7 @@
 package com.ably.chat
 
 import com.ably.annotations.InternalAPI
+import com.ably.chat.annotations.InternalChatApi
 import com.ably.pubsub.RealtimeChannel
 import io.ably.lib.realtime.Channel
 import java.util.concurrent.CopyOnWriteArrayList
@@ -115,6 +116,9 @@ internal data class DefaultOccupancyData(
     override val connections: Int,
     override val presenceMembers: Int,
 ) : OccupancyData
+
+@InternalChatApi
+public val EmptyOccupancyData: OccupancyData = DefaultOccupancyData(0, 0)
 
 internal data class DefaultOccupancyEvent(
     override val occupancy: DefaultOccupancyData,

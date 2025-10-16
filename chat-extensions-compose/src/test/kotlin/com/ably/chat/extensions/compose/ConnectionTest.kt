@@ -23,7 +23,7 @@ class ConnectionTest {
     @Test
     fun `should return live value for the current connection`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
-            connection.collectAsStatus()
+            connection.collectAsStatus().value
         }.test {
             assertEquals(ConnectionStatus.Initialized, awaitItem())
             connection.emit(ConnectionStatusChange(current = ConnectionStatus.Connecting, previous = ConnectionStatus.Initialized))
