@@ -11,7 +11,7 @@ package com.ably.chat
  * @property throwable An optional [Throwable] associated with the log entry, providing details about an exception
  * or error if applicable.
  */
-public class LogEntry(
+public class LogEntry internal constructor(
     public val tag: String,
     public val message: String,
     public val level: LogLevel,
