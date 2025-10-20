@@ -72,7 +72,7 @@ class DetachTest {
             }
         }
         Assert.assertEquals("unable to detach room; room is released", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
+        Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
         Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
@@ -90,8 +90,8 @@ class DetachTest {
                 roomLifecycle.detach()
             }
         }
-        Assert.assertEquals("cannot detach room, room is in failed state", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.RoomInFailedState.code, exception.errorInfo.code)
+        Assert.assertEquals("unable to detach room; room is in failed state", exception.errorInfo.message)
+        Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
         Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
@@ -137,7 +137,7 @@ class DetachTest {
         val exception = result.exceptionOrNull() as ChatException
 
         Assert.assertEquals("unable to detach room; room is released", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
+        Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
         Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 

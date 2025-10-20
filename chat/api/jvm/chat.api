@@ -82,16 +82,22 @@ public final class com/ably/chat/DiscontinuityKt {
 
 public final class com/ably/chat/ErrorCode : java/lang/Enum {
 	public static final field BadRequest Lcom/ably/chat/ErrorCode;
+	public static final field ChannelOptionsCannotBeModified Lcom/ably/chat/ErrorCode;
+	public static final field ChannelSerialNotDefined Lcom/ably/chat/ErrorCode;
+	public static final field Disconnected Lcom/ably/chat/ErrorCode;
+	public static final field FeatureNotEnabledInRoom Lcom/ably/chat/ErrorCode;
 	public static final field InternalError Lcom/ably/chat/ErrorCode;
+	public static final field InvalidArgument Lcom/ably/chat/ErrorCode;
 	public static final field InvalidClientId Lcom/ably/chat/ErrorCode;
-	public static final field InvalidRequestBody Lcom/ably/chat/ErrorCode;
+	public static final field ListenerNotSubscribed Lcom/ably/chat/ErrorCode;
 	public static final field MessageRejectedByBeforePublishRule Lcom/ably/chat/ErrorCode;
 	public static final field MessageRejectedByModeration Lcom/ably/chat/ErrorCode;
+	public static final field OperationSerializationFailed Lcom/ably/chat/ErrorCode;
+	public static final field PresenceAutoReentryFailed Lcom/ably/chat/ErrorCode;
+	public static final field ResourceDisposed Lcom/ably/chat/ErrorCode;
 	public static final field RoomDiscontinuity Lcom/ably/chat/ErrorCode;
-	public static final field RoomInFailedState Lcom/ably/chat/ErrorCode;
+	public static final field RoomExistsWithDifferentOptions Lcom/ably/chat/ErrorCode;
 	public static final field RoomInInvalidState Lcom/ably/chat/ErrorCode;
-	public static final field RoomIsReleased Lcom/ably/chat/ErrorCode;
-	public static final field RoomIsReleasing Lcom/ably/chat/ErrorCode;
 	public static final field RoomReleasedBeforeOperationCompleted Lcom/ably/chat/ErrorCode;
 	public final fun getCode ()I
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;

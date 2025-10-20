@@ -174,7 +174,10 @@ internal class DefaultPresence(
         logger.trace("Presence.subscribe()")
         // CHA-PR7d - Check if presence events are enabled
         if (!room.options.presence.enableEvents) {
-            throw clientError("could not subscribe to presence; presence events are not enabled in room options")
+            throw clientError(
+                "unable to subscribe to presence; presence events are not enabled in room options",
+                ErrorCode.FeatureNotEnabledInRoom,
+            )
         }
 
         val presenceListener = PubSubPresenceListener {

@@ -171,7 +171,10 @@ internal class DefaultOccupancy(
         get() {
             logger.trace("Occupancy.current")
             if (!room.options.occupancy.enableEvents) { // CHA-O7c
-                throw clientError("cannot get current occupancy; occupancy events are not enabled in room options")
+                throw clientError(
+                    "unable to get current occupancy; occupancy events are not enabled in room options",
+                    ErrorCode.FeatureNotEnabledInRoom,
+                )
             }
             // CHA-O7a
             // CHA-O7b
@@ -182,7 +185,10 @@ internal class DefaultOccupancy(
     override fun subscribe(listener: OccupancyListener): Subscription {
         logger.trace("Occupancy.subscribe()")
         if (!room.options.occupancy.enableEvents) { // CHA-O4e
-            throw clientError("cannot subscribe to occupancy; occupancy events are not enabled in room options")
+            throw clientError(
+                "unable to subscribe to occupancy; occupancy events are not enabled in room options",
+                ErrorCode.FeatureNotEnabledInRoom,
+            )
         }
 
         listeners.add(listener)

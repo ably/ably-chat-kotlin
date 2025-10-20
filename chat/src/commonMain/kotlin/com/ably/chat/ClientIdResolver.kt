@@ -9,7 +9,7 @@ import com.ably.pubsub.RealtimeClient
  */
 internal class ClientIdResolver(private val realtimeClient: RealtimeClient) {
     fun get(): String = realtimeClient.auth.clientId ?: throw chatException(
-        errorMessage = "invalid client id",
+        errorMessage = "unable to perform operation; invalid client id",
         errorCode = ErrorCode.InvalidClientId,
         statusCode = HttpStatusCode.BadRequest,
     )

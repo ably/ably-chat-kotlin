@@ -159,8 +159,8 @@ class MessagesReactionsTest {
                 messagesReactions.send("", "heart")
             }
         }
-        assertEquals(exception.errorInfo.code, 40_000)
-        assertEquals(exception.errorInfo.statusCode, 400)
+        assertEquals(40_003, exception.errorInfo.code)
+        assertEquals(400, exception.errorInfo.statusCode)
     }
 
     /**
@@ -175,8 +175,8 @@ class MessagesReactionsTest {
                 messagesReactions.delete("", "heart")
             }
         }
-        assertEquals(exception.errorInfo.code, 40_000)
-        assertEquals(exception.errorInfo.statusCode, 400)
+        assertEquals(40_003, exception.errorInfo.code)
+        assertEquals(400, exception.errorInfo.statusCode)
     }
 
     /**
@@ -193,8 +193,8 @@ class MessagesReactionsTest {
         val exception = assertThrows(ChatException::class.java) {
             messagesReactions.subscribeRaw { }
         }
-        assertEquals(exception.errorInfo.code, 40_000)
-        assertEquals(exception.errorInfo.statusCode, 400)
+        assertEquals(102_108, exception.errorInfo.code)
+        assertEquals(400, exception.errorInfo.statusCode)
     }
 
     /**
@@ -209,8 +209,8 @@ class MessagesReactionsTest {
                 messagesReactions.send("abcdefghij@1672531200000-123", "heart", count = 3)
             }
         }
-        assertEquals(exception.errorInfo.code, 40_000)
-        assertEquals(exception.errorInfo.statusCode, 400)
+        assertEquals(40_003, exception.errorInfo.code)
+        assertEquals(400, exception.errorInfo.statusCode)
     }
 
     /**
@@ -226,7 +226,7 @@ class MessagesReactionsTest {
                 messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 0)
             }
         }
-        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.code, 40_003)
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 
@@ -242,7 +242,7 @@ class MessagesReactionsTest {
                 messagesReactions.send("abcdefghij@1672531200000-123", "")
             }
         }
-        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.code, 40_003)
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 

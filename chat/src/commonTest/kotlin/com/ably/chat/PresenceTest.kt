@@ -174,9 +174,9 @@ class PresenceTest {
             presence.subscribe { }
         }
         val errorInfo = exception.errorInfo
-        assertEquals("could not subscribe to presence; presence events are not enabled in room options", errorInfo.message)
+        assertEquals("unable to subscribe to presence; presence events are not enabled in room options", errorInfo.message)
         assertEquals(400, errorInfo.statusCode)
-        assertEquals(40_000, errorInfo.code)
+        assertEquals(102_108, errorInfo.code)
     }
 
     @Test

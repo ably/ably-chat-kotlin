@@ -534,7 +534,10 @@ internal class DefaultMessages(
             },
             fromSerialProvider = {
                 channelSerialMap[messageListener]
-                    ?: throw clientError("This messages subscription instance was already unsubscribed")
+                    ?: throw clientError(
+                        "unable to get history before subscribe; listener has not been subscribed",
+                        ErrorCode.ListenerNotSubscribed,
+                    )
             },
             parentLogger = logger,
         )
@@ -608,12 +611,18 @@ internal class DefaultMessages(
 
     private fun requireChannelSerial(): String {
         return channelWrapper.properties.channelSerial
-            ?: throw clientError("Channel has been attached, but channelSerial is not defined")
+            ?: throw clientError(
+                "unable to get channel serial; channel is attached but channelSerial is not defined",
+                ErrorCode.ChannelSerialNotDefined,
+            )
     }
 
     private fun requireAttachSerial(): String {
         return channelWrapper.properties.attachSerial
-            ?: throw clientError("Channel has been attached, but attachSerial is not defined")
+            ?: throw clientError(
+                "unable to get attach serial; channel is attached but attachSerial is not defined",
+                ErrorCode.ChannelSerialNotDefined,
+            )
     }
 
     override fun dispose() {

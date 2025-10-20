@@ -59,7 +59,7 @@ internal class ChatApi(
             body,
         )?.let {
             tryParseMessageResponse(it)
-        } ?: throw serverError("Send message endpoint returned empty value") // CHA-M3e
+        } ?: throw serverError("unable to send message; server returned empty response") // CHA-M3e
     }
 
     /**
@@ -75,7 +75,7 @@ internal class ChatApi(
             body,
         )?.let {
             tryParseMessageResponse(it)
-        } ?: throw serverError("Update message endpoint returned empty value") // CHA-M8d
+        } ?: throw serverError("unable to update message; server returned empty response") // CHA-M8d
     }
 
     /**
@@ -91,7 +91,7 @@ internal class ChatApi(
             body,
         )?.let {
             tryParseMessageResponse(it)
-        } ?: throw serverError("Delete message endpoint returned empty value") // CHA-M9c
+        } ?: throw serverError("unable to delete message; server returned empty response") // CHA-M9c
     }
 
     private fun tryParseMessageResponse(json: JsonValue): Message? {
@@ -135,7 +135,7 @@ internal class ChatApi(
                 connections = it.getOrNull("connections")?.intOrNull() ?: 0,
                 presenceMembers = it.getOrNull("presenceMembers")?.intOrNull() ?: 0,
             )
-        } ?: throw serverError("Occupancy endpoint returned empty value")
+        } ?: throw serverError("unable to get occupancy; server returned empty response")
     }
 
     suspend fun sendMessageReaction(roomName: String, messageSerial: String, type: MessageReactionType, name: String, count: Int = 1) {
@@ -160,7 +160,7 @@ internal class ChatApi(
             HttpMethod.Get,
         )?.let {
             tryParseMessageResponse(it)
-        } ?: throw serverError("Get message endpoint returned empty value")
+        } ?: throw serverError("unable to get message; server returned empty response")
     }
 
     suspend fun getClientReactions(roomName: String, messageSerial: String, clientId: String?): MessageReactionSummary {

@@ -175,7 +175,7 @@ internal class RoomLifecycleManager(
 
             if (statusManager.status == RoomStatus.Released) { // CHA-RL1c
                 logger.error("attach(); attach failed, room is in released state")
-                throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomIsReleased)
+                throw lifeCycleException("unable to attach room; room is released", ErrorCode.RoomInInvalidState)
             }
 
             logger.debug("attach(); attaching room", context = mapOf("state" to room.status.stateName))
@@ -218,13 +218,13 @@ internal class RoomLifecycleManager(
 
             // CHA-RL2d
             if (statusManager.status == RoomStatus.Failed) {
-                throw lifeCycleException("cannot detach room, room is in failed state", ErrorCode.RoomInFailedState)
+                throw lifeCycleException("unable to detach room; room is in failed state", ErrorCode.RoomInInvalidState)
             }
 
             // CHA-RL2c
             if (statusManager.status == RoomStatus.Released) {
                 logger.error("detach(); detach failed, room is in released state")
-                throw lifeCycleException("unable to detach room; room is released", ErrorCode.RoomIsReleased)
+                throw lifeCycleException("unable to detach room; room is released", ErrorCode.RoomInInvalidState)
             }
 
             // CHA-RL2a

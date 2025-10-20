@@ -230,7 +230,7 @@ class MessagesTest {
             runBlocking { subscription.historyBeforeSubscribe() }
         }
 
-        assertEquals(40_000, exception.errorInfo.code)
+        assertEquals(102_109, exception.errorInfo.code)
     }
 
     /**

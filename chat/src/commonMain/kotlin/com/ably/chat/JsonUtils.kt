@@ -57,26 +57,26 @@ internal fun JsonValue.toMap(): Map<String, String> = when (this) {
 
 internal fun JsonValue.requireJsonObject(): JsonObject {
     return this as? JsonObject
-        ?: throw serverError("Response value expected to be JsonObject, got primitive instead")
+        ?: throw serverError("unable to parse response; expected JsonObject but got primitive instead")
 }
 
 internal fun JsonValue.requireString(memberName: String): String {
     val memberElement = requireField(memberName)
     return memberElement.stringOrNull() ?: throw serverError(
-        "Required string field \"$memberName\" is not a valid string",
+        "unable to parse response; required string field \"$memberName\" is not a valid string",
     )
 }
 
 internal fun JsonValue.requireLong(memberName: String): Long {
     val memberElement = requireField(memberName)
     return memberElement.longOrNull() ?: throw serverError(
-        "Required numeric field \"$memberName\" is not a valid number",
+        "unable to parse response; required numeric field \"$memberName\" is not a valid number",
     )
 }
 
 internal fun JsonValue.requireField(memberName: String): JsonValue = requireJsonObject()[memberName]
     ?: throw serverError(
-        "Required field \"$memberName\" is missing",
+        "unable to parse response; required field \"$memberName\" is missing",
     )
 
 private inline fun <T : Number> safeCastToNumber(block: () -> T): T? {

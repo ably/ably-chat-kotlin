@@ -76,8 +76,8 @@ class RoomGetTest {
             }
         }
         Assert.assertNotNull(exception)
-        Assert.assertEquals(40_000, exception.errorInfo.code)
-        Assert.assertEquals("room already exists with different options", exception.errorInfo.message)
+        Assert.assertEquals(102_107, exception.errorInfo.code)
+        Assert.assertEquals("unable to get room; room already exists with different options", exception.errorInfo.message)
 
         // Throws exception for requesting room for different roomOptions
         exception = assertThrows(ChatException::class.java) {
@@ -86,8 +86,8 @@ class RoomGetTest {
             }
         }
         Assert.assertNotNull(exception)
-        Assert.assertEquals(40_000, exception.errorInfo.code)
-        Assert.assertEquals("room already exists with different options", exception.errorInfo.message)
+        Assert.assertEquals(102_107, exception.errorInfo.code)
+        Assert.assertEquals("unable to get room; room already exists with different options", exception.errorInfo.message)
     }
 
     @Test

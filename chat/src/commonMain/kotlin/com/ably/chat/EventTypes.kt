@@ -70,7 +70,9 @@ public enum class PresenceEventType(public val eventName: String) {
     internal companion object {
         fun fromPresenceAction(action: PresenceMessage.Action): PresenceEventType {
             return when (action) {
-                PresenceMessage.Action.absent -> throw clientError("event with type absent can't be received from the realtime")
+                PresenceMessage.Action.absent -> throw serverError(
+                    "unable to process presence action; event with type absent can't be received from the realtime",
+                )
                 PresenceMessage.Action.present -> Present
                 PresenceMessage.Action.enter -> Enter
                 PresenceMessage.Action.leave -> Leave
