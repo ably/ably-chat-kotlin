@@ -285,7 +285,7 @@ class RoomReleaseTest {
             Assert.assertTrue(result.isFailure)
             val exception = result.exceptionOrNull() as ChatException
             Assert.assertEquals(ErrorCode.RoomReleasedBeforeOperationCompleted.code, exception.errorInfo.code)
-            Assert.assertEquals("room released before get operation could complete", exception.errorInfo.message)
+            Assert.assertEquals("unable to get room; room released before operation could complete", exception.errorInfo.message)
         }
 
         verify(exactly = 2) {

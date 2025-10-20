@@ -162,9 +162,9 @@ class OccupancyTest {
             occupancy.subscribe { }
         }
         val errorInfo = exception.errorInfo
-        assertEquals("cannot subscribe to occupancy; occupancy events are not enabled in room options", errorInfo.message)
+        assertEquals("unable to subscribe to occupancy; occupancy events are not enabled in room options", errorInfo.message)
         assertEquals(400, errorInfo.statusCode)
-        assertEquals(40_000, errorInfo.code)
+        assertEquals(102_108, errorInfo.code)
     }
 
     @Test

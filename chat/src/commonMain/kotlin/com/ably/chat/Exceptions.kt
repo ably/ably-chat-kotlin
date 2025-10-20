@@ -107,6 +107,10 @@ private fun createChatException(
 ) = cause?.let { ChatException(errorInfo, it) }
     ?: ChatException(errorInfo)
 
-internal fun clientError(errorMessage: String) = chatException(errorMessage, ErrorCode.BadRequest, HttpStatusCode.BadRequest)
+internal fun clientError(errorMessage: String, code: ErrorCode = ErrorCode.BadRequest) = chatException(
+    errorMessage,
+    code,
+    HttpStatusCode.BadRequest,
+)
 
 internal fun serverError(errorMessage: String) = chatException(errorMessage, ErrorCode.InternalError, HttpStatusCode.InternalServerError)

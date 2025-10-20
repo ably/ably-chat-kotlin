@@ -226,7 +226,7 @@ internal class DefaultRoom(
                     "status" to realtimeClient.connection.state.name,
                 ),
             )
-            throw clientError("cannot perform operation, connection is not connected")
+            throw clientError("unable to perform operation; connection is not connected", ErrorCode.Disconnected)
         }
     }
 

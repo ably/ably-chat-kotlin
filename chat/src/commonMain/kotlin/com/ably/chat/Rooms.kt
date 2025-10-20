@@ -89,7 +89,10 @@ internal class DefaultRooms(
             val existingRoom = getReleasedOrExistingRoom(name)
             existingRoom?.let {
                 if (options != existingRoom.options) { // CHA-RC1f1
-                    throw chatException("room already exists with different options", ErrorCode.BadRequest)
+                    throw chatException(
+                        "unable to get room; room already exists with different options",
+                        ErrorCode.RoomExistsWithDifferentOptions,
+                    )
                 }
                 logger.debug("get(); returning existing room with name: $name")
                 return@async existingRoom // CHA-RC1f2
@@ -109,7 +112,7 @@ internal class DefaultRooms(
             roomGetDeferredMap[name]?.let {
                 logger.debug("release(); cancelling existing rooms.get() for name: $name")
                 val exception = chatException(
-                    "room released before get operation could complete",
+                    "unable to get room; room released before operation could complete",
                     ErrorCode.RoomReleasedBeforeOperationCompleted,
                 )
                 it.completeExceptionally(exception)

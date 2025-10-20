@@ -239,7 +239,7 @@ internal fun MutableMessageOptions.asEquatable() = EquatableMessageOptions(
 internal fun RoomOptions.validateRoomOptions(logger: Logger) {
     if (typing.heartbeatThrottle.inWholeMilliseconds <= 0) {
         logger.error("Typing heartbeatThrottle must be greater than 0, found ${typing.heartbeatThrottle}")
-        throw chatException("Typing heartbeatThrottle must be greater than 0", ErrorCode.InvalidRequestBody)
+        throw chatException("unable to create room options; typing heartbeatThrottle must be greater than 0", ErrorCode.InvalidArgument)
     }
 }
 

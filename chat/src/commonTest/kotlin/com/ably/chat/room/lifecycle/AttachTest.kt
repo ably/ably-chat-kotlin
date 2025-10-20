@@ -75,7 +75,7 @@ class AttachTest {
             }
         }
         Assert.assertEquals("unable to attach room; room is released", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
+        Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
         Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
     }
@@ -122,7 +122,7 @@ class AttachTest {
         val exception = result.exceptionOrNull() as ChatException
 
         Assert.assertEquals("unable to attach room; room is released", exception.errorInfo.message)
-        Assert.assertEquals(ErrorCode.RoomIsReleased.code, exception.errorInfo.code)
+        Assert.assertEquals(ErrorCode.RoomInInvalidState.code, exception.errorInfo.code)
         Assert.assertEquals(HttpStatusCode.BadRequest, exception.errorInfo.statusCode)
         assertWaiter { roomLifecycle.atomicCoroutineScope().finishedProcessing }
 

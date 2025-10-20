@@ -183,7 +183,7 @@ public fun Message.copy(
         text = text,
         headers = headers,
         metadata = metadata,
-    ) ?: throw clientError("Message interface is not suitable for inheritance")
+    ) ?: throw clientError("unable to copy message; Message interface is not suitable for inheritance", ErrorCode.InvalidArgument)
 
 public fun Message.with(
     event: ChatMessageEvent,
@@ -191,14 +191,17 @@ public fun Message.with(
     checkMessageSerial(event.message.serial)
 
     if (event.type == ChatMessageEventType.Created) { // CHA-M11a
-        throw clientError("MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE")
+        throw clientError(
+            "unable to apply message event; MessageEvent.message.action must be MESSAGE_UPDATE or MESSAGE_DELETE",
+            ErrorCode.InvalidArgument,
+        )
     }
 
     if (event.message.version <= this.version) return this
 
     return (event.message as? DefaultMessage)?.copy(
         reactions = reactions,
-    ) ?: throw clientError("Message interface is not suitable for inheritance")
+    ) ?: throw clientError("unable to apply message event; Message interface is not suitable for inheritance", ErrorCode.InvalidArgument)
 }
 
 internal operator fun MessageVersion.compareTo(other: MessageVersion): Int = compareValuesBy(this, other) { it.serial }
@@ -214,13 +217,13 @@ public fun Message.with(
             distinct = event.reactions.distinct,
             multiple = event.reactions.multiple,
         ),
-    ) ?: throw clientError("Message interface is not suitable for inheritance")
+    ) ?: throw clientError("unable to apply reaction event; Message interface is not suitable for inheritance", ErrorCode.InvalidArgument)
 }
 
 private fun Message.checkMessageSerial(serial: String) {
     // message event (update or delete)
     if (serial != this.serial) {
-        throw clientError("cannot apply event for a different message")
+        throw clientError("unable to apply event; cannot apply event for a different message", ErrorCode.InvalidArgument)
     }
 }
 

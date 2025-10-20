@@ -6,19 +6,24 @@ package com.ably.chat
 public enum class ErrorCode(public val code: Int) {
 
     /**
-     * The request cannot be understood
+     * The request was invalid.
      */
     BadRequest(40_000),
 
     /**
-     * Invalid request body
+     * Invalid argument provided.
      */
-    InvalidRequestBody(40_001),
+    InvalidArgument(40_003),
 
     /**
-     * Invalid client id
+     * Invalid client ID.
      */
     InvalidClientId(40_012),
+
+    /**
+     * Resource has been disposed.
+     */
+    ResourceDisposed(40_014),
 
     /**
      * The message was rejected before publishing by a rule on the chat room.
@@ -31,24 +36,21 @@ public enum class ErrorCode(public val code: Int) {
     MessageRejectedByModeration(42_213),
 
     /**
+     * The client is not connected to Ably.
+     */
+    Disconnected(80_003),
+
+    /**
+     * Could not re-enter presence automatically after a room re-attach occurred.
+     */
+    PresenceAutoReentryFailed(91_004),
+
+    /**
      * The room has experienced a discontinuity.
      */
     RoomDiscontinuity(102_100),
 
-    /**
-     * Cannot perform operation because the room is in a failed state.
-     */
-    RoomInFailedState(102_101),
-
-    /**
-     * Cannot perform operation because the room is in a releasing state.
-     */
-    RoomIsReleasing(102_102),
-
-    /**
-     * Cannot perform operation because the room is in a released state.
-     */
-    RoomIsReleased(102_103),
+    // Unable to perform operation;
 
     /**
      * Room was released before the operation could complete.
@@ -56,9 +58,39 @@ public enum class ErrorCode(public val code: Int) {
     RoomReleasedBeforeOperationCompleted(102_106),
 
     /**
-     * Room is not in valid state to perform any realtime operation.
+     * A room already exists with different options.
      */
-    RoomInInvalidState(102_107),
+    RoomExistsWithDifferentOptions(102_107),
+
+    /**
+     * Feature is not enabled in room options.
+     */
+    FeatureNotEnabledInRoom(102_108),
+
+    /**
+     * Listener has not been subscribed yet.
+     */
+    ListenerNotSubscribed(102_109),
+
+    /**
+     * Channel serial is not defined when expected.
+     */
+    ChannelSerialNotDefined(102_110),
+
+    /**
+     * Channel options cannot be modified after the channel has been requested.
+     */
+    ChannelOptionsCannotBeModified(102_111),
+
+    /**
+     * Cannot perform operation because the room is in an invalid state.
+     */
+    RoomInInvalidState(102_112),
+
+    /**
+     * Failed to enforce sequential execution of the operation.
+     */
+    OperationSerializationFailed(102_113),
 
     /**
      * Internal error

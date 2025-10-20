@@ -99,7 +99,7 @@ internal class AwaitableChannel<T>(private val logger: Logger) {
      */
     suspend fun collect(block: suspend (T) -> Unit) {
         if (!activeCollector.compareAndSet(false, true)) {
-            throw clientError("only one collector is allowed to process events")
+            throw clientError("unable to collect events; only one collector is allowed to process events", ErrorCode.InvalidArgument)
         }
         for ((value, deferred) in channel) {
             try {

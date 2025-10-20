@@ -71,8 +71,8 @@ class ConfigureRoomOptionsTest {
                 logger,
             )
         }
-        Assert.assertEquals("Typing heartbeatThrottle must be greater than 0", exception.errorInfo.message)
-        Assert.assertEquals(40_001, exception.errorInfo.code)
+        Assert.assertEquals("unable to create room options; typing heartbeatThrottle must be greater than 0", exception.errorInfo.message)
+        Assert.assertEquals(40_003, exception.errorInfo.code)
         Assert.assertEquals(400, exception.errorInfo.statusCode)
     }
 

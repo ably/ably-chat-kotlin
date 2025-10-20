@@ -442,16 +442,16 @@ internal class DefaultMessagesReactions(
 
         // CHA-MR4b3
         if (count != null && type != MessageReactionType.Multiple) {
-            throw clientError("count option only supports multiple type")
+            throw clientError("unable to send reaction; count option only supports multiple type", ErrorCode.InvalidArgument)
         }
 
         // CHA-MR4b3
         if (count != null && count <= 0) {
-            throw clientError("reaction count should be positive integer")
+            throw clientError("unable to send reaction; reaction count should be positive integer", ErrorCode.InvalidArgument)
         }
 
         if (name.isEmpty()) {
-            throw clientError("reaction name cannot be empty string")
+            throw clientError("unable to send reaction; reaction name cannot be empty string", ErrorCode.InvalidArgument)
         }
     }
 
@@ -471,7 +471,7 @@ internal class DefaultMessagesReactions(
         )
 
         if (reactionType != MessageReactionType.Unique && name.isNullOrEmpty()) {
-            throw clientError("cannot delete reaction of type $type without a name")
+            throw clientError("unable to delete reaction; cannot delete reaction of type $type without a name", ErrorCode.InvalidArgument)
         }
 
         chatApi.deleteMessageReaction(
@@ -495,7 +495,10 @@ internal class DefaultMessagesReactions(
         logger.trace("MessagesReactions.subscribeRaw()")
 
         if (!options.rawMessageReactions) {
-            throw clientError("raw message reactions are not enabled")
+            throw clientError(
+                "unable to subscribe to raw reactions; raw message reactions are not enabled",
+                ErrorCode.FeatureNotEnabledInRoom,
+            )
         }
 
         rawEventlisteners.add(listener)
@@ -518,7 +521,7 @@ internal class DefaultMessagesReactions(
 
     private fun checkMessageSerialIsNotEmpty(messageSerial: String) {
         if (messageSerial.isEmpty()) {
-            throw clientError("messageSerial cannot be empty")
+            throw clientError("unable to perform reaction operation; messageSerial cannot be empty", ErrorCode.InvalidArgument)
         }
     }
 

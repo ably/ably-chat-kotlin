@@ -86,7 +86,7 @@ class MessageTest {
         val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
         }
-        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.code, 40_003)
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 
@@ -139,7 +139,7 @@ class MessageTest {
         val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
         }
-        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.code, 40_003)
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 
@@ -161,7 +161,7 @@ class MessageTest {
         val exception = assertThrows(ChatException::class.java) {
             initialMessage.with(event)
         }
-        assertEquals(exception.errorInfo.code, 40_000)
+        assertEquals(exception.errorInfo.code, 40_003)
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 }
