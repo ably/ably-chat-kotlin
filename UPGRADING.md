@@ -2,6 +2,44 @@
 
 This guide provides detailed instructions on how to upgrade between versions of the Chat SDK.
 
+## 0.9.x to 0.10.x
+
+### `MessageOptions` renamed to `MessagesOptions`
+
+**Expected Impact: Low**
+
+The `MessageOptions` class has been renamed to `MessagesOptions` for consistency with other SDKs.
+
+**Before**
+
+```kotlin
+val options: MessageOptions = room.options.messages
+```
+
+**After**
+
+```kotlin
+val options: MessagesOptions = room.options.messages
+```
+
+### `MessagesReactions` renamed to `MessageReactions`
+
+**Expected Impact: Low**
+
+The `MessagesReactions` class has been renamed to `MessageReactions` for consistency with other SDKs.
+
+**Before**
+
+```kotlin
+val reactions: MessagesReactions = room.messages.reactions
+```
+
+**After**
+
+```kotlin
+val reactions: MessageReactions = room.messages.reactions
+```
+
 ## 0.8.x to 0.9.x
 
 ### MessageAction Enum
