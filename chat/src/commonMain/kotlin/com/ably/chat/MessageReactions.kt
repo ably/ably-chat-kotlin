@@ -32,7 +32,7 @@ public interface MessageReactions {
      * @param messageSerial The unique serial identifier of the message to which the reaction should be added.
      * @param name The name of the reaction, such as an emoji or predefined reaction identifier.
      * @param type The type of the reaction behavior, represented by [MessageReactionType]. If not specified,
-     * the default type configured in the room's [MessageOptions.defaultMessageReactionType] will be used.
+     * the default type configured in the room's [MessagesOptions.defaultMessageReactionType] will be used.
      * @param count The number of reactions to apply (for [MessageReactionType.Multiple] only). Defaults to 1.
      */
     public suspend fun send(messageSerial: String, name: String, type: MessageReactionType? = null, count: Int? = null)
@@ -44,7 +44,7 @@ public interface MessageReactions {
      * except [MessageReactionType.Unique].
      * @param type The type of reaction, must be one of [MessageReactionType].
      * If not set, the default type will be used which is configured in the
-     * [MessageOptions.defaultMessageReactionType] of the room.
+     * [MessagesOptions.defaultMessageReactionType] of the room.
      */
     public suspend fun delete(messageSerial: String, name: String? = null, type: MessageReactionType? = null)
 
@@ -344,7 +344,7 @@ internal class DefaultMessageReactions(
     private val roomName: String,
     private val channel: Channel,
     private val annotations: RealtimeAnnotations,
-    private val options: MessageOptions,
+    private val options: MessagesOptions,
     parentLogger: Logger,
 ) : MessageReactions {
 

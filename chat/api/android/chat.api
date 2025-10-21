@@ -175,11 +175,6 @@ public final class com/ably/chat/MessageKt {
 	public static final fun with (Lcom/ably/chat/Message;Lcom/ably/chat/MessageReactionSummaryEvent;)Lcom/ably/chat/Message;
 }
 
-public abstract interface class com/ably/chat/MessageOptions {
-	public abstract fun getDefaultMessageReactionType ()Lcom/ably/chat/MessageReactionType;
-	public abstract fun getRawMessageReactions ()Z
-}
-
 public abstract interface class com/ably/chat/MessageReaction {
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getCount ()Ljava/lang/Integer;
@@ -283,6 +278,11 @@ public final class com/ably/chat/MessagesKt {
 	public static synthetic fun update$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
+public abstract interface class com/ably/chat/MessagesOptions {
+	public abstract fun getDefaultMessageReactionType ()Lcom/ably/chat/MessageReactionType;
+	public abstract fun getRawMessageReactions ()Z
+}
+
 public abstract interface class com/ably/chat/MessagesSubscription : com/ably/chat/Subscription {
 	public fun component2 ()Lcom/ably/chat/MessagesSubscription;
 	public abstract fun historyBeforeSubscribe (Ljava/lang/Long;Ljava/lang/Long;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -299,7 +299,7 @@ public final class com/ably/chat/MutableChatClientOptions : com/ably/chat/ChatCl
 	public fun setStateDispatcher (Lkotlinx/coroutines/CoroutineDispatcher;)V
 }
 
-public final class com/ably/chat/MutableMessageOptions : com/ably/chat/MessageOptions {
+public final class com/ably/chat/MutableMessagesOptions : com/ably/chat/MessagesOptions {
 	public fun <init> ()V
 	public fun getDefaultMessageReactionType ()Lcom/ably/chat/MessageReactionType;
 	public fun getRawMessageReactions ()Z
@@ -321,8 +321,8 @@ public final class com/ably/chat/MutablePresenceOptions : com/ably/chat/Presence
 
 public final class com/ably/chat/MutableRoomOptions : com/ably/chat/RoomOptions {
 	public fun <init> ()V
-	public synthetic fun getMessages ()Lcom/ably/chat/MessageOptions;
-	public fun getMessages ()Lcom/ably/chat/MutableMessageOptions;
+	public synthetic fun getMessages ()Lcom/ably/chat/MessagesOptions;
+	public fun getMessages ()Lcom/ably/chat/MutableMessagesOptions;
 	public fun getOccupancy ()Lcom/ably/chat/MutableOccupancyOptions;
 	public synthetic fun getOccupancy ()Lcom/ably/chat/OccupancyOptions;
 	public fun getPresence ()Lcom/ably/chat/MutablePresenceOptions;
@@ -331,7 +331,7 @@ public final class com/ably/chat/MutableRoomOptions : com/ably/chat/RoomOptions 
 	public synthetic fun getReactions ()Lcom/ably/chat/RoomReactionsOptions;
 	public fun getTyping ()Lcom/ably/chat/MutableTypingOptions;
 	public synthetic fun getTyping ()Lcom/ably/chat/TypingOptions;
-	public fun setMessages (Lcom/ably/chat/MutableMessageOptions;)V
+	public fun setMessages (Lcom/ably/chat/MutableMessagesOptions;)V
 	public fun setOccupancy (Lcom/ably/chat/MutableOccupancyOptions;)V
 	public fun setPresence (Lcom/ably/chat/MutablePresenceOptions;)V
 	public fun setReactions (Lcom/ably/chat/MutableRoomReactionsOptions;)V
@@ -475,7 +475,7 @@ public final class com/ably/chat/RoomKt {
 }
 
 public abstract interface class com/ably/chat/RoomOptions {
-	public abstract fun getMessages ()Lcom/ably/chat/MessageOptions;
+	public abstract fun getMessages ()Lcom/ably/chat/MessagesOptions;
 	public abstract fun getOccupancy ()Lcom/ably/chat/OccupancyOptions;
 	public abstract fun getPresence ()Lcom/ably/chat/PresenceOptions;
 	public abstract fun getReactions ()Lcom/ably/chat/RoomReactionsOptions;

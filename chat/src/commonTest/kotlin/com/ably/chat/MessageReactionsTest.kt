@@ -111,7 +111,7 @@ class MessageReactionsTest {
         val deferredValue = CompletableDeferred<MessageReactionRawEvent>()
 
         val messageReactions = createMessagesReaction(
-            MutableMessageOptions().apply {
+            MutableMessagesOptions().apply {
                 rawMessageReactions = true
             },
         )
@@ -185,7 +185,7 @@ class MessageReactionsTest {
     @Test
     fun `subscribeRaw should throw an exception if rawMessageReactions is not enabled`() = runTest {
         val messageReactions = createMessagesReaction(
-            MutableMessageOptions().apply {
+            MutableMessagesOptions().apply {
                 rawMessageReactions = false
             },
         )
@@ -246,7 +246,7 @@ class MessageReactionsTest {
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 
-    private fun createMessagesReaction(options: MessageOptions = MutableMessageOptions()) = DefaultMessageReactions(
+    private fun createMessagesReaction(options: MessagesOptions = MutableMessagesOptions()) = DefaultMessageReactions(
         chatApi = chatApi,
         roomName = "room1",
         channel = channel,
