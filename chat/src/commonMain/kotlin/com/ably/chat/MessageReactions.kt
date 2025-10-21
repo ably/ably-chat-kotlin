@@ -25,7 +25,7 @@ import io.ably.lib.types.MessageAction as PubSubMessageAction
  * The interface definition may evolve over time with additional properties or methods to support new features,
  * which could break implementations.
  */
-public interface MessagesReactions {
+public interface MessageReactions {
     /**
      * Sends a reaction to a specific message.
      *
@@ -96,7 +96,7 @@ public interface MessagesReactions {
 /**
  * @return [MessageReactionSummaryEvent] events as a [Flow]
  */
-public fun MessagesReactions.asFlow(): Flow<MessageReactionSummaryEvent> = transformCallbackAsFlow {
+public fun MessageReactions.asFlow(): Flow<MessageReactionSummaryEvent> = transformCallbackAsFlow {
     subscribe(it)
 }
 
@@ -299,9 +299,9 @@ private fun Map<String, SummaryClientIdCounts>.mergeWith(other: Map<String, Summ
     }
 
 /**
- * @see [MessagesReactions.send]
+ * @see [MessageReactions.send]
  */
-public suspend fun MessagesReactions.send(message: Message, name: String, type: MessageReactionType? = null, count: Int = 1): Unit =
+public suspend fun MessageReactions.send(message: Message, name: String, type: MessageReactionType? = null, count: Int = 1): Unit =
     send(
         messageSerial = message.serial,
         name = name,
@@ -310,9 +310,9 @@ public suspend fun MessagesReactions.send(message: Message, name: String, type: 
     )
 
 /**
- * @see [MessagesReactions.delete]
+ * @see [MessageReactions.delete]
  */
-public suspend fun MessagesReactions.delete(message: Message, name: String? = null, type: MessageReactionType? = null): Unit =
+public suspend fun MessageReactions.delete(message: Message, name: String? = null, type: MessageReactionType? = null): Unit =
     delete(
         messageSerial = message.serial,
         name = name,
@@ -339,16 +339,16 @@ internal data class DefaultMessageReaction(
     override val clientId: String,
 ) : MessageReaction
 
-internal class DefaultMessagesReactions(
+internal class DefaultMessageReactions(
     private val chatApi: ChatApi,
     private val roomName: String,
     private val channel: Channel,
     private val annotations: RealtimeAnnotations,
     private val options: MessageOptions,
     parentLogger: Logger,
-) : MessagesReactions {
+) : MessageReactions {
 
-    private val logger = parentLogger.withContext("MessagesReactions")
+    private val logger = parentLogger.withContext("MessageReactions")
 
     private val reactionsScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + SupervisorJob())
 
@@ -412,7 +412,7 @@ internal class DefaultMessagesReactions(
         val reactionType = type ?: options.defaultMessageReactionType
 
         logger.trace(
-            "MessagesReactions.send();",
+            "MessageReactions.send();",
             context = mapOf(
                 "messageSerial" to messageSerial,
                 "name" to name,
@@ -462,7 +462,7 @@ internal class DefaultMessagesReactions(
         val reactionType = type ?: options.defaultMessageReactionType
 
         logger.trace(
-            "MessagesReactions.delete();",
+            "MessageReactions.delete();",
             context = mapOf(
                 "messageSerial" to messageSerial,
                 "name" to (name ?: ""),
@@ -483,16 +483,16 @@ internal class DefaultMessagesReactions(
     }
 
     override fun subscribe(listener: MessageReactionListener): Subscription {
-        logger.trace("MessagesReactions.subscribe()")
+        logger.trace("MessageReactions.subscribe()")
         listeners.add(listener)
         return Subscription {
-            logger.trace("MessagesReactions.unsubscribe()")
+            logger.trace("MessageReactions.unsubscribe()")
             listeners.remove(listener)
         }
     }
 
     override fun subscribeRaw(listener: MessageRawReactionListener): Subscription {
-        logger.trace("MessagesReactions.subscribeRaw()")
+        logger.trace("MessageReactions.subscribeRaw()")
 
         if (!options.rawMessageReactions) {
             throw clientError(
@@ -503,7 +503,7 @@ internal class DefaultMessagesReactions(
 
         rawEventlisteners.add(listener)
         return Subscription {
-            logger.trace("MessagesReactions.unsubscribeRaw()")
+            logger.trace("MessageReactions.unsubscribeRaw()")
             rawEventlisteners.remove(listener)
         }
     }
@@ -526,7 +526,7 @@ internal class DefaultMessagesReactions(
     }
 
     private fun internalMessageSummaryListener(message: PubSubMessage) {
-        logger.trace("MessagesReactions.internalSummaryListener();", context = mapOf("message" to message))
+        logger.trace("MessageReactions.internalSummaryListener();", context = mapOf("message" to message))
 
         // only process summary events with the serial
         if (message.action !== PubSubMessageAction.MESSAGE_SUMMARY || message.serial == null) {
@@ -574,11 +574,11 @@ internal class DefaultMessagesReactions(
     }
 
     private fun internalAnnotationListener(annotation: Annotation) {
-        logger.trace("MessagesReactions.internalAnnotationListener();", context = mapOf("annotation" to annotation.toString()))
+        logger.trace("MessageReactions.internalAnnotationListener();", context = mapOf("annotation" to annotation.toString()))
 
         if (annotation.messageSerial == null) {
             logger.warn(
-                "MessagesReactions.internalAnnotationListener(); received event with missing messageSerial",
+                "MessageReactions.internalAnnotationListener(); received event with missing messageSerial",
                 context = mapOf("annotation" to annotation),
             )
             return

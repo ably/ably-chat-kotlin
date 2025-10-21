@@ -107,7 +107,7 @@ public interface MessageOptions {
      * The default message reaction type to use for sending message reactions.
      *
      * Any message reaction type can be sent regardless of this setting by specifying the `type` parameter
-     * in the [MessagesReactions.send] method.
+     * in the [MessageReactions.send] method.
      *
      * @defaultValue [MessageReactionType.Distinct]
      */

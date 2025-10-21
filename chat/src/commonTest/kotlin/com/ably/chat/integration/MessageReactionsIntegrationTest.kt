@@ -4,7 +4,7 @@ import com.ably.chat.MainDispatcherRule
 import com.ably.chat.MessageReactionSummary
 import com.ably.chat.MessageReactionSummaryEvent
 import com.ably.chat.MessageReactionType
-import com.ably.chat.MessagesReactions
+import com.ably.chat.MessageReactions
 import com.ably.chat.RetryTestRule
 import com.ably.chat.Room
 import com.ably.chat.Subscription
@@ -182,7 +182,7 @@ class MessageReactionsIntegrationTest {
     }
 }
 
-private fun MessagesReactions.subscribeOnce(): CompletableDeferred<MessageReactionSummaryEvent> {
+private fun MessageReactions.subscribeOnce(): CompletableDeferred<MessageReactionSummaryEvent> {
     val deferredEvent = CompletableDeferred<MessageReactionSummaryEvent>()
     lateinit var subscription: Subscription
     subscription = subscribe { event ->

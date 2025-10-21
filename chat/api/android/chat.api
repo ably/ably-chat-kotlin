@@ -233,6 +233,26 @@ public final class com/ably/chat/MessageReactionType : java/lang/Enum {
 	public static fun values ()[Lcom/ably/chat/MessageReactionType;
 }
 
+public abstract interface class com/ably/chat/MessageReactions {
+	public abstract fun clientReactions (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun clientReactions$default (Lcom/ably/chat/MessageReactions;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun delete (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun delete$default (Lcom/ably/chat/MessageReactions;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun send (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun send$default (Lcom/ably/chat/MessageReactions;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
+	public abstract fun subscribeRaw (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
+}
+
+public final class com/ably/chat/MessageReactionsKt {
+	public static final fun asFlow (Lcom/ably/chat/MessageReactions;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun delete (Lcom/ably/chat/MessageReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun delete$default (Lcom/ably/chat/MessageReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun mergeWith (Lcom/ably/chat/MessageReactionSummaryEvent;Lcom/ably/chat/MessageReactionSummary;)Lcom/ably/chat/MessageReactionSummaryEvent;
+	public static final fun send (Lcom/ably/chat/MessageReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun send$default (Lcom/ably/chat/MessageReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
 public abstract interface class com/ably/chat/MessageVersion {
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getDescription ()Ljava/lang/String;
@@ -245,7 +265,7 @@ public abstract interface class com/ably/chat/Messages {
 	public abstract fun delete (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun delete$default (Lcom/ably/chat/Messages;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public abstract fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun getReactions ()Lcom/ably/chat/MessagesReactions;
+	public abstract fun getReactions ()Lcom/ably/chat/MessageReactions;
 	public abstract fun history (Ljava/lang/Long;Ljava/lang/Long;ILcom/ably/chat/OrderBy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun history$default (Lcom/ably/chat/Messages;Ljava/lang/Long;Ljava/lang/Long;ILcom/ably/chat/OrderBy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public abstract fun send (Ljava/lang/String;Lcom/ably/chat/json/JsonObject;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -261,26 +281,6 @@ public final class com/ably/chat/MessagesKt {
 	public static synthetic fun delete$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun update (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun update$default (Lcom/ably/chat/Messages;Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-}
-
-public abstract interface class com/ably/chat/MessagesReactions {
-	public abstract fun clientReactions (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun clientReactions$default (Lcom/ably/chat/MessagesReactions;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun delete (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun delete$default (Lcom/ably/chat/MessagesReactions;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun send (Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun send$default (Lcom/ably/chat/MessagesReactions;Ljava/lang/String;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Ljava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public abstract fun subscribe (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
-	public abstract fun subscribeRaw (Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/Subscription;
-}
-
-public final class com/ably/chat/MessagesReactionsKt {
-	public static final fun asFlow (Lcom/ably/chat/MessagesReactions;)Lkotlinx/coroutines/flow/Flow;
-	public static final fun delete (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun delete$default (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static final fun mergeWith (Lcom/ably/chat/MessageReactionSummaryEvent;Lcom/ably/chat/MessageReactionSummary;)Lcom/ably/chat/MessageReactionSummaryEvent;
-	public static final fun send (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun send$default (Lcom/ably/chat/MessagesReactions;Lcom/ably/chat/Message;Ljava/lang/String;Lcom/ably/chat/MessageReactionType;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public abstract interface class com/ably/chat/MessagesSubscription : com/ably/chat/Subscription {

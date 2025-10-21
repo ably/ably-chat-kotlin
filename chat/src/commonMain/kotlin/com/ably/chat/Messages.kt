@@ -32,7 +32,7 @@ public interface Messages {
     /**
      * Add, delete, and subscribe to message reactions.
      */
-    public val reactions: MessagesReactions
+    public val reactions: MessageReactions
 
     /**
      * Subscribe to new messages in this chat room.
@@ -442,10 +442,10 @@ internal class DefaultMessages(
      */
     private var deferredChannelSerial = CompletableDeferred<String>()
 
-    override val reactions: MessagesReactions
+    override val reactions: MessageReactions
         get() = _reactions
 
-    private val _reactions: DefaultMessagesReactions
+    private val _reactions: DefaultMessageReactions
 
     init {
         logger.trace("init(); roomName=$roomName, initializing channelStateListener to update channel serials after discontinuity")
@@ -458,7 +458,7 @@ internal class DefaultMessages(
         val internalChannel = channelWrapper.javaChannel
         internalChannel.on(channelStateListener)
 
-        _reactions = DefaultMessagesReactions(
+        _reactions = DefaultMessageReactions(
             chatApi = chatApi,
             roomName = roomName,
             channel = internalChannel,
