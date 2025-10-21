@@ -38,7 +38,7 @@ public interface RoomOptions {
     /**
      * The message options for the room.
      */
-    public val messages: MessageOptions
+    public val messages: MessagesOptions
 }
 
 /**
@@ -91,7 +91,7 @@ public interface OccupancyOptions {
 /**
  * Represents the message options for a chat room.
  */
-public interface MessageOptions {
+public interface MessagesOptions {
     /**
      * Whether to enable receiving raw individual message reactions from the
      * realtime channel. Set to true if subscribing to raw message reactions.
@@ -107,7 +107,7 @@ public interface MessageOptions {
      * The default message reaction type to use for sending message reactions.
      *
      * Any message reaction type can be sent regardless of this setting by specifying the `type` parameter
-     * in the [MessagesReactions.send] method.
+     * in the [MessageReactions.send] method.
      *
      * @defaultValue [MessageReactionType.Distinct]
      */
@@ -120,7 +120,7 @@ public class MutableRoomOptions : RoomOptions {
     override var typing: MutableTypingOptions = MutableTypingOptions()
     override var reactions: MutableRoomReactionsOptions = MutableRoomReactionsOptions()
     override var occupancy: MutableOccupancyOptions = MutableOccupancyOptions()
-    override var messages: MutableMessageOptions = MutableMessageOptions()
+    override var messages: MutableMessagesOptions = MutableMessagesOptions()
 }
 
 @ChatDsl
@@ -142,7 +142,7 @@ public class MutableOccupancyOptions : OccupancyOptions {
 }
 
 @ChatDsl
-public class MutableMessageOptions : MessageOptions {
+public class MutableMessagesOptions : MessagesOptions {
     override var rawMessageReactions: Boolean = false
     override var defaultMessageReactionType: MessageReactionType = MessageReactionType.Distinct
 }
@@ -166,8 +166,8 @@ public fun MutableRoomOptions.occupancy(init: MutableOccupancyOptions.() -> Unit
     this.occupancy = MutableOccupancyOptions().apply(init)
 }
 
-public fun MutableRoomOptions.messages(init: MutableMessageOptions.() -> Unit = {}) {
-    this.messages = MutableMessageOptions().apply(init)
+public fun MutableRoomOptions.messages(init: MutableMessagesOptions.() -> Unit = {}) {
+    this.messages = MutableMessagesOptions().apply(init)
 }
 
 internal data class EquatableRoomOptions(
@@ -175,7 +175,7 @@ internal data class EquatableRoomOptions(
     override val typing: TypingOptions,
     override val reactions: RoomReactionsOptions,
     override val occupancy: OccupancyOptions,
-    override val messages: MessageOptions,
+    override val messages: MessagesOptions,
 ) : RoomOptions {
     override fun toString(): String = "{presence=$presence, typing=$typing, occupancy=$occupancy, messages=$messages}"
 }
@@ -198,10 +198,10 @@ internal data class EquatableOccupancyOptions(
     override fun toString(): String = "{enableEvents=$enableEvents}"
 }
 
-internal data class EquatableMessageOptions(
+internal data class EquatableMessagesOptions(
     override val rawMessageReactions: Boolean,
     override val defaultMessageReactionType: MessageReactionType,
-) : MessageOptions {
+) : MessagesOptions {
     override fun toString(): String = "{rawMessageReactions=$rawMessageReactions, defaultMessageReactionType=$defaultMessageReactionType}"
 }
 
@@ -227,7 +227,7 @@ internal fun MutableOccupancyOptions.asEquatable() = EquatableOccupancyOptions(
     enableEvents = enableEvents,
 )
 
-internal fun MutableMessageOptions.asEquatable() = EquatableMessageOptions(
+internal fun MutableMessagesOptions.asEquatable() = EquatableMessagesOptions(
     rawMessageReactions = rawMessageReactions,
     defaultMessageReactionType = defaultMessageReactionType,
 )

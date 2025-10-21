@@ -24,7 +24,7 @@ import org.junit.Before
 import org.junit.Test
 import io.ably.lib.types.MessageAction as PubSubMessageAction
 
-class MessagesReactionsTest {
+class MessageReactionsTest {
     private val realtimeClient = createMockRealtimeClient()
     private val chatApi = createMockChatApi(realtimeClient)
     private val channel = spyk(buildRealtimeChannel("room1::\$chat"))
@@ -40,8 +40,8 @@ class MessagesReactionsTest {
      */
     @Test
     fun `should propagate reactions type from options`() = runTest {
-        val messagesReactions = createMessagesReaction()
-        messagesReactions.send("messageSerial", "heart")
+        val messageReactions = createMessagesReaction()
+        messageReactions.send("messageSerial", "heart")
         coVerify { chatApi.sendMessageReaction("room1", "messageSerial", MessageReactionType.Distinct, "heart") }
     }
 
@@ -50,8 +50,8 @@ class MessagesReactionsTest {
      */
     @Test
     fun `specified reactions type should take precedent over type from options`() = runTest {
-        val messagesReactions = createMessagesReaction()
-        messagesReactions.send("messageSerial", "heart", MessageReactionType.Multiple)
+        val messageReactions = createMessagesReaction()
+        messageReactions.send("messageSerial", "heart", MessageReactionType.Multiple)
         coVerify { chatApi.sendMessageReaction("room1", "messageSerial", MessageReactionType.Multiple, "heart") }
     }
 
@@ -64,9 +64,9 @@ class MessagesReactionsTest {
         every { channel.subscribe(capture(pubSubMessageListenerSlot)) } returns mockk()
         val deferredValue = CompletableDeferred<MessageReactionSummaryEvent>()
 
-        val messagesReactions = createMessagesReaction()
+        val messageReactions = createMessagesReaction()
 
-        messagesReactions.subscribe {
+        messageReactions.subscribe {
             deferredValue.complete(it)
         }
 
@@ -110,13 +110,13 @@ class MessagesReactionsTest {
         every { annotations.subscribe(capture(annotationsListenerSlot)) } returns mockk()
         val deferredValue = CompletableDeferred<MessageReactionRawEvent>()
 
-        val messagesReactions = createMessagesReaction(
-            MutableMessageOptions().apply {
+        val messageReactions = createMessagesReaction(
+            MutableMessagesOptions().apply {
                 rawMessageReactions = true
             },
         )
 
-        messagesReactions.subscribeRaw {
+        messageReactions.subscribeRaw {
             deferredValue.complete(it)
         }
 
@@ -152,11 +152,11 @@ class MessagesReactionsTest {
      */
     @Test
     fun `send should throw an exception if messageSerial is empty string`() = runTest {
-        val messagesReactions = createMessagesReaction()
+        val messageReactions = createMessagesReaction()
 
         val exception = assertThrows(ChatException::class.java) {
             runBlocking {
-                messagesReactions.send("", "heart")
+                messageReactions.send("", "heart")
             }
         }
         assertEquals(40_003, exception.errorInfo.code)
@@ -168,11 +168,11 @@ class MessagesReactionsTest {
      */
     @Test
     fun `delete should throw an exception if messageSerial is empty string`() = runTest {
-        val messagesReactions = createMessagesReaction()
+        val messageReactions = createMessagesReaction()
 
         val exception = assertThrows(ChatException::class.java) {
             runBlocking {
-                messagesReactions.delete("", "heart")
+                messageReactions.delete("", "heart")
             }
         }
         assertEquals(40_003, exception.errorInfo.code)
@@ -184,14 +184,14 @@ class MessagesReactionsTest {
      */
     @Test
     fun `subscribeRaw should throw an exception if rawMessageReactions is not enabled`() = runTest {
-        val messagesReactions = createMessagesReaction(
-            MutableMessageOptions().apply {
+        val messageReactions = createMessagesReaction(
+            MutableMessagesOptions().apply {
                 rawMessageReactions = false
             },
         )
 
         val exception = assertThrows(ChatException::class.java) {
-            messagesReactions.subscribeRaw { }
+            messageReactions.subscribeRaw { }
         }
         assertEquals(102_108, exception.errorInfo.code)
         assertEquals(400, exception.errorInfo.statusCode)
@@ -202,11 +202,11 @@ class MessagesReactionsTest {
      */
     @Test
     fun `send should throw exception if count specified for any type other than multiple`() = runTest {
-        val messagesReactions = createMessagesReaction()
+        val messageReactions = createMessagesReaction()
 
         val exception = assertThrows(ChatException::class.java) {
             runBlocking {
-                messagesReactions.send("abcdefghij@1672531200000-123", "heart", count = 3)
+                messageReactions.send("abcdefghij@1672531200000-123", "heart", count = 3)
             }
         }
         assertEquals(40_003, exception.errorInfo.code)
@@ -218,12 +218,12 @@ class MessagesReactionsTest {
      */
     @Test
     fun `send should throw exception if count is not positive`() = runTest {
-        val messagesReactions = createMessagesReaction()
+        val messageReactions = createMessagesReaction()
 
-        messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 1)
+        messageReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 1)
         val exception = assertThrows(ChatException::class.java) {
             runBlocking {
-                messagesReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 0)
+                messageReactions.send("abcdefghij@1672531200000-123", "heart", MessageReactionType.Multiple, count = 0)
             }
         }
         assertEquals(exception.errorInfo.code, 40_003)
@@ -235,18 +235,18 @@ class MessagesReactionsTest {
      */
     @Test
     fun `send should throw exception if reaction name is empty`() = runTest {
-        val messagesReactions = createMessagesReaction()
+        val messageReactions = createMessagesReaction()
 
         val exception = assertThrows(ChatException::class.java) {
             runBlocking {
-                messagesReactions.send("abcdefghij@1672531200000-123", "")
+                messageReactions.send("abcdefghij@1672531200000-123", "")
             }
         }
         assertEquals(exception.errorInfo.code, 40_003)
         assertEquals(exception.errorInfo.statusCode, 400)
     }
 
-    private fun createMessagesReaction(options: MessageOptions = MutableMessageOptions()) = DefaultMessagesReactions(
+    private fun createMessagesReaction(options: MessagesOptions = MutableMessagesOptions()) = DefaultMessageReactions(
         chatApi = chatApi,
         roomName = "room1",
         channel = channel,

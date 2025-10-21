@@ -4,7 +4,7 @@ import com.ably.chat.annotations.InternalChatApi
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class MessagesReactionsKtTest {
+class MessageReactionsKtTest {
 
     @OptIn(InternalChatApi::class)
     @Test
