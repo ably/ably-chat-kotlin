@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.10.0](https://github.com/ably/ably-chat-kotlin/tree/v0.10.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.9.0...v0.10.0)
+
+## What's Changed
+
+Type Renaming: some type renamed for clarity and consistency with other SDKs:
+
+- `MessageOptions` → `MessagesOptions`
+- `MessagesReactions` → `MessageReactions`
+
+For detailed migration instructions, please refer to the [Upgrading Guide](UPGRADING.md).
+
 ## [0.9.0](https://github.com/ably/ably-chat-kotlin/tree/v0.9.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.8.0...v0.9.0)

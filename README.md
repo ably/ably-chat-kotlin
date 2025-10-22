@@ -45,13 +45,13 @@ The Ably Chat SDK is available on the Maven Central Repository. To include the d
 For Groovy:
 
 ```groovy
-implementation 'com.ably.chat:chat:0.9.0'
+implementation 'com.ably.chat:chat:0.10.0'
 ```
 
 For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat:0.9.0")
+implementation("com.ably.chat:chat:0.10.0")
 ```
 
 ## Releases
