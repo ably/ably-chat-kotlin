@@ -1,5 +1,28 @@
 # Change Log
 
+## [1.0.0](https://github.com/ably/ably-chat-kotlin/tree/v1.0.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.10.0...v1.0.0)
+
+## What's Changed
+
+We are excited to announce that the Ably Chat SDK API is now stable.
+
+The Chat SDK includes comprehensive support for:
+
+- Chat rooms for 1:1, 1:many, many:1 and many:many participation
+- Messages with full CRUD operations (create, read, update, delete)
+- Presence to track online status of chat participants
+- Occupancy for monitoring total connections and presence members
+- Typing indicators for real-time typing awareness
+- Room reactions for real-time room reactions
+- Message reactions for reactions to specific messages
+- Jetpack Compose extensions for seamless Android UI integration
+
+We are committed to maintaining API stability and providing long-term support for v1.x releases.
+
+Thank you to everyone who provided feedback during the preview releases!
+
 ## [0.10.0](https://github.com/ably/ably-chat-kotlin/tree/v0.10.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.9.0...v0.10.0)
