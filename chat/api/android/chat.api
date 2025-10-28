@@ -53,6 +53,8 @@ public final class com/ably/chat/ConnectionKt {
 }
 
 public final class com/ably/chat/ConnectionStatus : java/lang/Enum {
+	public static final field Closed Lcom/ably/chat/ConnectionStatus;
+	public static final field Closing Lcom/ably/chat/ConnectionStatus;
 	public static final field Connected Lcom/ably/chat/ConnectionStatus;
 	public static final field Connecting Lcom/ably/chat/ConnectionStatus;
 	public static final field Disconnected Lcom/ably/chat/ConnectionStatus;
