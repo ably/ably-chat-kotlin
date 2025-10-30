@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.1.0](https://github.com/ably/ably-chat-kotlin/tree/v1.1.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v1.0.0...v1.1.0)
+
+### Bug Fixes
+
+- **Connection Status**: Added missing `closing` and `closed` states to the `ConnectionStatus` enum. Previously these states were incorrectly mapped to `failed`. [#184](https://github.com/ably/ably-chat-kotlin/pull/184)
+
+**Note:** If you are using an exhaustive when or switch statement over this enum, you’ll need to either handle
+these new cases explicitly or add a default/else branch.
+
 ## [1.0.0](https://github.com/ably/ably-chat-kotlin/tree/v1.0.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v0.10.0...v1.0.0)
