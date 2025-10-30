@@ -43,6 +43,20 @@ public enum class ConnectionStatus(public val stateName: String) {
      * (CHA-CS1f) The library is currently disconnected from Ably and will not attempt to reconnect.
      */
     Failed("failed"),
+
+    /**
+     * (CHA-CS1g) An explicit request by the developer to close the connection has been sent
+     * to the Ably service. If a reply is not received from Ably within a short period of
+     * time, the connection is forcibly terminated and the connection status becomes Closed.
+     */
+    Closing("closing"),
+
+    /**
+     * (CHA-CS1h) The connection has been explicitly closed by the client. In the closed state,
+     * no reconnection attempts are made automatically. No connection state is preserved by
+     * the service or the library.
+     */
+    Closed("closed"),
 }
 
 /**
@@ -187,7 +201,7 @@ private fun mapPubSubStatusToChat(status: ConnectionState): ConnectionStatus {
         ConnectionState.disconnected -> ConnectionStatus.Disconnected
         ConnectionState.suspended -> ConnectionStatus.Suspended
         ConnectionState.failed -> ConnectionStatus.Failed
-        ConnectionState.closing -> ConnectionStatus.Failed
-        ConnectionState.closed -> ConnectionStatus.Failed
+        ConnectionState.closing -> ConnectionStatus.Closing
+        ConnectionState.closed -> ConnectionStatus.Closed
     }
 }
