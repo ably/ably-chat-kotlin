@@ -15,8 +15,9 @@ architectures.
 
 Everything you need to get started with Ably Chat for JVM and Android:
 
-* [Getting started: Chat with Kotlin.](https://ably.com/docs/chat/getting-started/kotlin)
+* [Getting started: Chat with Kotlin.](https://ably.com/docs/chat/getting-started/android)
 * [SDK and usage docs in Kotlin.](https://ably.com/docs/chat/setup?lang=kotlin)
+* [API documentation](https://sdk.ably.com/builds/ably/ably-chat-kotlin/main/dokka/)
 * Play with the [livestream chat demo.](https://ably-livestream-chat-demo.vercel.app/)
 
 ---
