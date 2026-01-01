@@ -15,9 +15,11 @@ architectures.
 
 Everything you need to get started with Ably Chat for JVM and Android:
 
-* [Getting started: Chat with Kotlin.](https://ably.com/docs/chat/getting-started/android)
+* [Getting started: Chat with Kotlin (Android).](https://ably.com/docs/chat/getting-started/android)
+* [Getting started: Chat with Kotlin (JVM).](https://ably.com/docs/chat/getting-started/jvm)
 * [SDK and usage docs in Kotlin.](https://ably.com/docs/chat/setup?lang=kotlin)
-* [API documentation](https://sdk.ably.com/builds/ably/ably-chat-kotlin/main/dokka/)
+* [API documentation.](https://sdk.ably.com/builds/ably/ably-chat-kotlin/main/dokka/)
+* [Chat Example App.](https://github.com/ably/ably-chat-kotlin/tree/main/example)
 * Play with the [livestream chat demo.](https://ably-livestream-chat-demo.vercel.app/)
 
 ---
@@ -54,6 +56,57 @@ For Kotlin Script (`build.gradle.kts`):
 ```kotlin
 implementation("com.ably.chat:chat:1.1.0")
 ```
+
+---
+
+## Usage
+
+The following code connects to Ably's chat service, subscribes to a chat room, and sends a message to that room:
+
+```kotlin
+import com.ably.chat.ChatClient
+import com.ably.chat.RoomOptions
+import com.ably.chat.RoomStatus
+import io.ably.lib.realtime.AblyRealtime
+import io.ably.lib.types.ClientOptions
+
+// Initialize Ably Realtime client
+val realtimeClient = AblyRealtime(
+    ClientOptions().apply {
+        key = "<your-ably-api-key>"
+        clientId = "your-client-id"
+    }
+)
+
+// Create a chat client
+val chatClient = ChatClient(realtimeClient)
+
+// Get a chat room
+val room = chatClient.rooms.get("my-room", RoomOptions())
+
+// Attach to the room
+room.attach()
+
+// Monitor room status
+room.onStatusChange { statusChange ->
+    when (statusChange.current) {
+        RoomStatus.Attached -> println("Room is attached")
+        RoomStatus.Detached -> println("Room is detached")
+        RoomStatus.Failed -> println("Room failed: ${statusChange.error}")
+        else -> println("Room status: ${statusChange.current}")
+    }
+}
+
+// Subscribe to messages
+val subscription = room.messages.subscribe { message ->
+    println("Received message: ${message.text}")
+}
+
+// Send a message
+room.messages.send(text = "Hello, World!")
+```
+
+---
 
 ## Releases
 
