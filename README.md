@@ -18,6 +18,7 @@ Everything you need to get started with Ably Chat for JVM and Android:
 * [Getting started: Chat with Kotlin (Android).](https://ably.com/docs/chat/getting-started/android)
 * [Getting started: Chat with Kotlin (JVM).](https://ably.com/docs/chat/getting-started/jvm)
 * [SDK and usage docs in Kotlin.](https://ably.com/docs/chat/setup?lang=kotlin)
+* [SDK and usage docs in Android using Jetpack Compose.](https://ably.com/docs/chat/setup?lang=jetpack)
 * [API documentation.](https://sdk.ably.com/builds/ably/ably-chat-kotlin/main/dokka/)
 * [Chat Example App.](https://github.com/ably/ably-chat-kotlin/tree/main/example)
 * Play with the [livestream chat demo.](https://ably-livestream-chat-demo.vercel.app/)
@@ -32,7 +33,7 @@ This SDK supports the following platforms:
 
 | Platform | Support |
 |----------|---------|
-|Android | Android 7.0+ (API level 24+) |
+| Android | Android 7.0+ (API level 24+) |
 | Java | Java 8+ |
 
 > [!NOTE]
@@ -55,6 +56,13 @@ For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
 implementation("com.ably.chat:chat:1.1.0")
+```
+
+For Android (`build.gradle.kts`):
+
+```kotlin
+implementation("com.ably.chat:chat:1.1.0")
+implementation("com.ably.chat:chat-extensions-compose:1.1.0")
 ```
 
 ---
@@ -84,9 +92,6 @@ val chatClient = ChatClient(realtimeClient)
 // Get a chat room
 val room = chatClient.rooms.get("my-room", RoomOptions())
 
-// Attach to the room
-room.attach()
-
 // Monitor room status
 room.onStatusChange { statusChange ->
     when (statusChange.current) {
@@ -96,6 +101,9 @@ room.onStatusChange { statusChange ->
         else -> println("Room status: ${statusChange.current}")
     }
 }
+
+// Attach to the room
+room.attach()
 
 // Subscribe to messages
 val subscription = room.messages.subscribe { message ->
@@ -110,7 +118,7 @@ room.messages.send(text = "Hello, World!")
 
 ## Releases
 
-The [CHANGELOG.md](/ably/ably-chat-kotlin/blob/main/CHANGELOG.md) contains details of the latest releases for this SDK. You can also view all Ably releases on [changelog.ably.com](https://changelog.ably.com).
+The [CHANGELOG.md](./CHANGELOG.md) contains details of the latest releases for this SDK. You can also view all Ably releases on [changelog.ably.com](https://changelog.ably.com).
 
 ---
 
@@ -122,4 +130,4 @@ Read the [CONTRIBUTING.md](./CONTRIBUTING.md) guidelines to contribute to Ably o
 
 ## Support, Feedback, and Troubleshooting
 
-For help or technical support, visit Ably's [support page](https://ably.com/support). You can also view the [community reported Github issues](https://github.com/ably/ably-chat-kotlin/issues) or raise one yourself.
+For help or technical support, visit Ably's [support page](https://ably.com/support). You can also view the [community-reported GitHub issues](https://github.com/ably/ably-chat-kotlin/issues) or raise one yourself.
