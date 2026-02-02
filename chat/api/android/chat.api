@@ -1,4 +1,5 @@
 public abstract interface class com/ably/chat/ChatClient {
+	public abstract fun dispose (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getClientOptions ()Lcom/ably/chat/ChatClientOptions;
 	public abstract fun getConnection ()Lcom/ably/chat/Connection;
