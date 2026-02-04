@@ -37,13 +37,17 @@ public enum class AvatarSize(public val dp: Dp) {
 /**
  * A composable that displays a user avatar with an optional image or initials fallback.
  *
- * If [imageUrl] is provided and loads successfully, the image is displayed.
- * Otherwise, initials extracted from [clientId] are displayed with a background color
- * that is deterministically generated from the clientId hash.
+ * Avatar resolution priority:
+ * 1. If [imageUrl] is provided directly, it is used
+ * 2. If an [AvatarProvider] is in the composition, its resolver is called to fetch avatar data
+ * 3. Otherwise, initials are displayed with a deterministic background color
+ *
+ * When using [AvatarProvider], the resolved [AvatarData.displayName] is used for initials
+ * if available, otherwise the [clientId] is used.
  *
  * @param clientId The unique identifier of the user, used to generate initials and background color.
  * @param modifier Modifier to be applied to the avatar.
- * @param imageUrl Optional URL of the avatar image.
+ * @param imageUrl Optional URL of the avatar image. Takes precedence over provider-resolved URLs.
  * @param size The size of the avatar. Defaults to [AvatarSize.Medium].
  */
 @Composable
@@ -55,10 +59,19 @@ public fun Avatar(
 ) {
     val colors = AblyChatTheme.colors
     val typography = AblyChatTheme.typography
-
-    val initials = remember(clientId) { extractInitials(clientId) }
-    val backgroundColor = remember(clientId) { generateColorFromClientId(clientId) }
     val context = LocalContext.current
+
+    // Check for avatar provider
+    val avatarProvider = LocalAvatarProvider.current
+    val resolvedData = avatarProvider?.getAvatarData(clientId)
+
+    // Use provided imageUrl, then resolved imageUrl, then fall back to initials
+    val effectiveImageUrl = imageUrl ?: resolvedData?.imageUrl
+
+    // Use resolved displayName for initials if available
+    val initialsSource = resolvedData?.displayName ?: clientId
+    val initials = remember(initialsSource) { extractInitials(initialsSource) }
+    val backgroundColor = remember(clientId) { generateColorFromClientId(clientId) }
 
     val fontSize = when (size) {
         AvatarSize.Small -> (typography.avatarInitials.value * 0.8f).sp
@@ -74,10 +87,10 @@ public fun Avatar(
             .background(backgroundColor),
         contentAlignment = Alignment.Center,
     ) {
-        if (imageUrl != null) {
+        if (effectiveImageUrl != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data(imageUrl)
+                    .data(effectiveImageUrl)
                     .crossfade(true)
                     .build(),
                 contentDescription = "Avatar for $clientId",

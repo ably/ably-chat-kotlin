@@ -48,7 +48,8 @@ import java.util.Locale
  * @param message The message to display.
  * @param currentClientId The clientId of the current user, used to determine message alignment.
  * @param modifier Modifier to be applied to the message row.
- * @param showClientId Whether to show the sender's clientId above the message. Defaults to true.
+ * @param showClientId Whether to show the sender's clientId/displayName above the message. Defaults to true.
+ * @param showAvatar Whether to show the sender's avatar next to the message. Defaults to false.
  * @param showTimestamp Whether to show the message timestamp below the message. Defaults to true.
  * @param timestampFormat The format to use for displaying timestamps. Defaults to "HH:mm".
  * @param showReactions Whether to show message reactions below the message. Defaults to true.
@@ -66,6 +67,7 @@ public fun MessageBubble(
     currentClientId: String,
     modifier: Modifier = Modifier,
     showClientId: Boolean = true,
+    showAvatar: Boolean = false,
     showTimestamp: Boolean = true,
     timestampFormat: String = "HH:mm",
     showReactions: Boolean = true,
@@ -83,31 +85,41 @@ public fun MessageBubble(
     val isEdited = message.action == MessageAction.MessageUpdate
     val context = LocalContext.current
 
+    // Check for avatar provider to get display name
+    val avatarProvider = LocalAvatarProvider.current
+    val resolvedData = avatarProvider?.getAvatarData(message.clientId)
+    val displayName = resolvedData?.displayName ?: message.clientId
+
     var showMenu by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var editText by remember(message.serial) { mutableStateOf(message.text) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    val menuActions = actions ?: defaultMessageActions(
-        isOwnMessage = isOwnMessage,
-        onCopy = { text ->
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("message", text)
-            clipboard.setPrimaryClip(clip)
-        },
-        onEdit = if (onEdit != null && !isDeleted) {
-            { isEditing = true }
-        } else {
-            null
-        },
-        onDelete = if (onDelete != null && !isDeleted) {
-            { showDeleteConfirm = true }
-        } else {
-            null
-        },
-        onReact = onAddReaction,
-        destructiveColor = colors.dialogDestructive,
-    )
+    // No actions available for deleted messages
+    val menuActions = if (isDeleted) {
+        emptyList()
+    } else {
+        actions ?: defaultMessageActions(
+            isOwnMessage = isOwnMessage,
+            onCopy = { text ->
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("message", text)
+                clipboard.setPrimaryClip(clip)
+            },
+            onEdit = if (onEdit != null) {
+                { isEditing = true }
+            } else {
+                null
+            },
+            onDelete = if (onDelete != null) {
+                { showDeleteConfirm = true }
+            } else {
+                null
+            },
+            onReact = onAddReaction,
+            destructiveColor = colors.dialogDestructive,
+        )
+    }
 
     // Delete confirmation dialog
     if (showDeleteConfirm) {
@@ -125,13 +137,23 @@ public fun MessageBubble(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top,
     ) {
+        // Show avatar for other users' messages
+        if (showAvatar && !isOwnMessage) {
+            Avatar(
+                clientId = message.clientId,
+                size = AvatarSize.Small,
+                modifier = Modifier.padding(end = 8.dp, top = if (showClientId) 18.dp else 0.dp),
+            )
+        }
+
         Column(
             horizontalAlignment = if (isOwnMessage) Alignment.End else Alignment.Start,
         ) {
             if (showClientId && !isOwnMessage) {
                 Text(
-                    text = message.clientId,
+                    text = displayName,
                     color = colors.clientId,
                     fontSize = typography.clientId,
                     modifier = Modifier.padding(bottom = 2.dp, start = 4.dp),
@@ -223,8 +245,10 @@ public fun MessageBubble(
                             .combinedClickable(
                                 onClick = { },
                                 onLongClick = {
-                                    onLongPress?.invoke(message)
-                                    showMenu = true
+                                    if (!isDeleted) {
+                                        onLongPress?.invoke(message)
+                                        showMenu = true
+                                    }
                                 },
                             )
                             .padding(horizontal = 12.dp, vertical = 8.dp),

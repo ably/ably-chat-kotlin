@@ -49,6 +49,11 @@ public fun Participant(
     val colors = AblyChatTheme.colors
     val typography = AblyChatTheme.typography
 
+    // Check for avatar provider to get display name
+    val avatarProvider = LocalAvatarProvider.current
+    val resolvedData = avatarProvider?.getAvatarData(member.clientId)
+    val displayName = resolvedData?.displayName ?: member.clientId
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -77,7 +82,7 @@ public fun Participant(
 
         // Name with optional "(you)" suffix
         Text(
-            text = if (isCurrentUser) "${member.clientId} (you)" else member.clientId,
+            text = if (isCurrentUser) "$displayName (you)" else displayName,
             color = colors.menuContent,
             fontSize = typography.participantName,
             fontWeight = if (isCurrentUser) FontWeight.SemiBold else FontWeight.Normal,
@@ -113,6 +118,11 @@ public fun Participant(
     val colors = AblyChatTheme.colors
     val typography = AblyChatTheme.typography
 
+    // Check for avatar provider to get display name
+    val avatarProvider = LocalAvatarProvider.current
+    val resolvedData = avatarProvider?.getAvatarData(clientId)
+    val displayName = resolvedData?.displayName ?: clientId
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -141,7 +151,7 @@ public fun Participant(
 
         // Name with optional "(you)" suffix
         Text(
-            text = if (isCurrentUser) "$clientId (you)" else clientId,
+            text = if (isCurrentUser) "$displayName (you)" else displayName,
             color = colors.menuContent,
             fontSize = typography.participantName,
             fontWeight = if (isCurrentUser) FontWeight.SemiBold else FontWeight.Normal,

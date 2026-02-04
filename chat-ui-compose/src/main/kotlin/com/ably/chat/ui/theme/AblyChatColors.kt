@@ -32,6 +32,11 @@ import androidx.compose.ui.graphics.Color
  * @property reactionText Text color for reaction count.
  * @property dialogBackground Background color for confirmation dialogs.
  * @property dialogDestructive Color for destructive action buttons in dialogs.
+ * @property connectionConnecting Color for connecting/initializing connection status.
+ * @property connectionDisconnected Color for disconnected/suspended connection status.
+ * @property connectionFailed Color for failed connection status.
+ * @property shimmerBase Base color for skeleton loading shimmer effect.
+ * @property shimmerHighlight Highlight color for skeleton loading shimmer effect.
  */
 @Immutable
 public class AblyChatColors(
@@ -61,6 +66,11 @@ public class AblyChatColors(
     public val reactionText: Color,
     public val dialogBackground: Color,
     public val dialogDestructive: Color,
+    public val connectionConnecting: Color,
+    public val connectionDisconnected: Color,
+    public val connectionFailed: Color,
+    public val shimmerBase: Color,
+    public val shimmerHighlight: Color,
 ) {
     public companion object {
         /**
@@ -99,6 +109,11 @@ public class AblyChatColors(
             reactionText = Color(0xFF374151),
             dialogBackground = Color.White,
             dialogDestructive = Color(0xFFDC2626),
+            connectionConnecting = Color(0xFFF59E0B),
+            connectionDisconnected = Color(0xFFF97316),
+            connectionFailed = Color(0xFFDC2626),
+            shimmerBase = Color(0xFFE5E7EB),
+            shimmerHighlight = Color(0xFFF9FAFB),
         )
 
         /**
@@ -131,6 +146,11 @@ public class AblyChatColors(
             reactionText = Color(0xFFF9FAFB),
             dialogBackground = Color(0xFF374151),
             dialogDestructive = Color(0xFFEF4444),
+            connectionConnecting = Color(0xFFFBBF24),
+            connectionDisconnected = Color(0xFFFB923C),
+            connectionFailed = Color(0xFFEF4444),
+            shimmerBase = Color(0xFF374151),
+            shimmerHighlight = Color(0xFF4B5563),
         )
     }
 }

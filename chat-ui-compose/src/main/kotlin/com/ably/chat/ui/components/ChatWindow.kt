@@ -34,6 +34,8 @@ import kotlinx.coroutines.launch
  * @param showTypingIndicator Whether to show the typing indicator. Defaults to true.
  * @param showDateSeparators Whether to show date separators between messages. Defaults to true.
  * @param showScrollToBottom Whether to show the scroll-to-bottom button. Defaults to true.
+ * @param showAvatars Whether to show avatars next to messages from other users. Defaults to true.
+ * @param hideDeletedMessages Whether to completely hide deleted messages instead of showing "[Message deleted]". Defaults to false.
  * @param enableReactions Whether to enable message reactions. Defaults to true.
  * @param enableEditing Whether to enable message editing for own messages. Defaults to true.
  * @param enableDeletion Whether to enable message deletion for own messages. Defaults to true.
@@ -52,6 +54,8 @@ public fun ChatWindow(
     showTypingIndicator: Boolean = true,
     showDateSeparators: Boolean = true,
     showScrollToBottom: Boolean = true,
+    showAvatars: Boolean = true,
+    hideDeletedMessages: Boolean = false,
     enableReactions: Boolean = true,
     enableEditing: Boolean = true,
     enableDeletion: Boolean = true,
@@ -80,12 +84,15 @@ public fun ChatWindow(
         ) {
             MessageList(
                 room = room,
+                modifier = Modifier.fillMaxSize(),
                 showDateSeparators = showDateSeparators,
                 showScrollToBottomButton = showScrollToBottom,
+                hideDeletedMessages = hideDeletedMessages,
                 messageContent = { message ->
                     MessageBubble(
                         message = message,
                         currentClientId = room.clientId,
+                        showAvatar = showAvatars,
                         showReactions = enableReactions,
                         onReactionClick = if (enableReactions) { msg, emoji ->
                             coroutineScope.launch {

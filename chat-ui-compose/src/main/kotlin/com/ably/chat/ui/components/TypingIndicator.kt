@@ -88,8 +88,17 @@ private fun TypingIndicatorContent(
 
     val colors = AblyChatTheme.colors
     val typography = AblyChatTheme.typography
+
+    // Check for avatar provider to get display names
+    val avatarProvider = LocalAvatarProvider.current
+
     val displayNames = typingClientIds.map { clientId ->
-        if (clientId == currentClientId) "You" else clientId
+        if (clientId == currentClientId) {
+            "You"
+        } else {
+            // Use resolved display name if available
+            avatarProvider?.getAvatarData(clientId)?.displayName ?: clientId
+        }
     }
 
     val text = formatTypingText(displayNames)

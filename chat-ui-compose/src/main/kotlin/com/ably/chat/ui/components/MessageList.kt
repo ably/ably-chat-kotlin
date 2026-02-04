@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ably.chat.Message
+import com.ably.chat.MessageAction
 import com.ably.chat.Room
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.annotations.InternalChatApi
@@ -46,6 +47,7 @@ import kotlinx.coroutines.launch
  * @param dateFormat The format pattern for date separators. Defaults to "MMMM d, yyyy".
  * @param showScrollToBottomButton Whether to show a FAB to scroll to the latest messages.
  * @param scrollToBottomThreshold Number of items from the bottom before showing the scroll button.
+ * @param hideDeletedMessages Whether to completely hide deleted messages instead of showing "[Message deleted]".
  * @param messageContent Custom composable for rendering each message. Defaults to [MessageBubble].
  * @param loadingContent Custom composable shown while loading messages.
  * @param emptyContent Custom composable shown when there are no messages.
@@ -62,6 +64,7 @@ public fun MessageList(
     dateFormat: String = "MMMM d, yyyy",
     showScrollToBottomButton: Boolean = true,
     scrollToBottomThreshold: Int = 3,
+    hideDeletedMessages: Boolean = false,
     messageContent: @Composable (Message) -> Unit = { message ->
         MessageBubble(
             message = message,
@@ -84,6 +87,7 @@ public fun MessageList(
         dateFormat = dateFormat,
         showScrollToBottomButton = showScrollToBottomButton,
         scrollToBottomThreshold = scrollToBottomThreshold,
+        hideDeletedMessages = hideDeletedMessages,
         messageContent = messageContent,
         loadingContent = loadingContent,
         emptyContent = emptyContent,
@@ -103,6 +107,7 @@ public fun MessageList(
  * @param dateFormat The format pattern for date separators. Defaults to "MMMM d, yyyy".
  * @param showScrollToBottomButton Whether to show a FAB to scroll to the latest messages.
  * @param scrollToBottomThreshold Number of items from the bottom before showing the scroll button.
+ * @param hideDeletedMessages Whether to completely hide deleted messages instead of showing "[Message deleted]".
  * @param messageContent Custom composable for rendering each message. Defaults to [MessageBubble].
  * @param loadingContent Custom composable shown while loading messages.
  * @param emptyContent Custom composable shown when there are no messages.
@@ -118,6 +123,7 @@ public fun MessageList(
     dateFormat: String = "MMMM d, yyyy",
     showScrollToBottomButton: Boolean = true,
     scrollToBottomThreshold: Int = 3,
+    hideDeletedMessages: Boolean = false,
     messageContent: @Composable (Message) -> Unit = { message ->
         MessageBubble(
             message = message,
@@ -135,6 +141,7 @@ public fun MessageList(
         dateFormat = dateFormat,
         showScrollToBottomButton = showScrollToBottomButton,
         scrollToBottomThreshold = scrollToBottomThreshold,
+        hideDeletedMessages = hideDeletedMessages,
         messageContent = messageContent,
         loadingContent = loadingContent,
         emptyContent = emptyContent,
@@ -151,6 +158,7 @@ private fun MessageListContent(
     dateFormat: String,
     showScrollToBottomButton: Boolean,
     scrollToBottomThreshold: Int,
+    hideDeletedMessages: Boolean,
     messageContent: @Composable (Message) -> Unit,
     loadingContent: @Composable () -> Unit,
     emptyContent: @Composable () -> Unit,
@@ -159,9 +167,18 @@ private fun MessageListContent(
     val coroutineScope = rememberCoroutineScope()
     var previousMessageCount by remember { mutableIntStateOf(pagingState.loaded.size) }
 
+    // Filter out deleted messages if hideDeletedMessages is enabled
+    val messagesToDisplay = remember(pagingState.loaded, hideDeletedMessages) {
+        if (hideDeletedMessages) {
+            pagingState.loaded.filter { it.action != MessageAction.MessageDelete }
+        } else {
+            pagingState.loaded
+        }
+    }
+
     // Auto-scroll to bottom when new messages arrive and user is at the bottom
-    LaunchedEffect(pagingState.loaded.size) {
-        val currentCount = pagingState.loaded.size
+    LaunchedEffect(messagesToDisplay.size) {
+        val currentCount = messagesToDisplay.size
         val isNewMessage = currentCount > previousMessageCount
         val isAtBottom = pagingState.listState.firstVisibleItemIndex <= 1
 
@@ -176,7 +193,7 @@ private fun MessageListContent(
             pagingState.error != null -> {
                 errorContent(pagingState.error?.message ?: "An error occurred")
             }
-            pagingState.loaded.isEmpty() && pagingState.loading -> {
+            messagesToDisplay.isEmpty() && pagingState.loading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -184,7 +201,7 @@ private fun MessageListContent(
                     loadingContent()
                 }
             }
-            pagingState.loaded.isEmpty() -> {
+            messagesToDisplay.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -198,16 +215,21 @@ private fun MessageListContent(
                         modifier = Modifier.fillMaxSize(),
                         state = pagingState.listState,
                         reverseLayout = true,
-                        contentPadding = PaddingValues(bottom = 8.dp),
+                        contentPadding = PaddingValues(
+                            start = 12.dp,
+                            end = 12.dp,
+                            top = 8.dp,
+                            bottom = 8.dp,
+                        ),
                     ) {
                         itemsIndexed(
-                            items = pagingState.loaded,
+                            items = messagesToDisplay,
                             key = { _, message -> message.serial },
                         ) { index, message ->
                             messageContent(message)
 
                             if (showDateSeparators) {
-                                val nextMessage = pagingState.loaded.getOrNull(index + 1)
+                                val nextMessage = messagesToDisplay.getOrNull(index + 1)
                                 if (shouldShowDateSeparator(message.timestamp, nextMessage?.timestamp)) {
                                     DateSeparator(
                                         timestamp = message.timestamp,
