@@ -39,9 +39,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * A composable that displays a single message bubble.
+r * A composable that displays a single chat message.
  *
- * The bubble is styled differently based on whether the message was sent by the current user
+ * The message is styled differently based on whether it was sent by the current user
  * (right-aligned, uses [AblyChatTheme.colors.ownMessageBackground]) or by another user
  * (left-aligned, uses [AblyChatTheme.colors.otherMessageBackground]).
  *
@@ -50,6 +50,8 @@ import java.util.Locale
  * @param modifier Modifier to be applied to the message row.
  * @param showClientId Whether to show the sender's clientId/displayName above the message. Defaults to true.
  * @param showAvatar Whether to show the sender's avatar next to the message. Defaults to false.
+ * @param reserveAvatarSpace Whether to reserve space for avatar even when not shown. Useful for message
+ *   grouping to keep bubbles aligned. Defaults to false.
  * @param showTimestamp Whether to show the message timestamp below the message. Defaults to true.
  * @param timestampFormat The format to use for displaying timestamps. Defaults to "HH:mm".
  * @param showReactions Whether to show message reactions below the message. Defaults to true.
@@ -62,12 +64,13 @@ import java.util.Locale
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-public fun MessageBubble(
+public fun ChatMessage(
     message: Message,
     currentClientId: String,
     modifier: Modifier = Modifier,
     showClientId: Boolean = true,
     showAvatar: Boolean = false,
+    reserveAvatarSpace: Boolean = false,
     showTimestamp: Boolean = true,
     timestampFormat: String = "HH:mm",
     showReactions: Boolean = true,
@@ -132,6 +135,9 @@ public fun MessageBubble(
         )
     }
 
+    // Avatar size (Small = 32.dp) + spacing (8.dp) = 40.dp
+    val avatarSpaceWidth = 40.dp
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -139,13 +145,18 @@ public fun MessageBubble(
         horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top,
     ) {
-        // Show avatar for other users' messages
-        if (showAvatar && !isOwnMessage) {
-            Avatar(
-                clientId = message.clientId,
-                size = AvatarSize.Small,
-                modifier = Modifier.padding(end = 8.dp, top = if (showClientId) 18.dp else 0.dp),
-            )
+        // Show avatar for other users' messages, or reserve space for alignment
+        if (!isOwnMessage) {
+            if (showAvatar) {
+                Avatar(
+                    clientId = message.clientId,
+                    size = AvatarSize.Small,
+                    modifier = Modifier.padding(end = 8.dp, top = if (showClientId) 18.dp else 0.dp),
+                )
+            } else if (reserveAvatarSpace) {
+                // Reserve space for avatar to keep messages aligned in groups
+                Spacer(modifier = Modifier.width(avatarSpaceWidth))
+            }
         }
 
         Column(

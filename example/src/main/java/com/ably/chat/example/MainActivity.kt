@@ -37,7 +37,7 @@ import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
 import com.ably.chat.extensions.compose.collectAsCurrentlyTyping
 import com.ably.chat.ui.components.MessageInput
-import com.ably.chat.ui.components.MessageList
+import com.ably.chat.ui.components.ChatMessageList
 import com.ably.chat.ui.theme.AblyChatTheme
 import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.types.ClientOptions
@@ -127,7 +127,7 @@ fun App(chatClient: ChatClient) {
 /**
  * Chat screen demonstrating the use of the Ably Chat UI Kit components.
  *
- * This example shows how to use [MessageList] and [MessageInput] from chat-ui-compose
+ * This example shows how to use [ChatMessageList] and [MessageInput] from chat-ui-compose
  * to build a chat interface with minimal code.
  */
 @Composable
@@ -146,8 +146,8 @@ fun Chat(room: Room, modifier: Modifier = Modifier) {
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            // MessageList from UI Kit - handles pagination and message display
-            MessageList(
+            // ChatMessageList from UI Kit - handles pagination and message display
+            ChatMessageList(
                 room = room,
                 modifier = Modifier
                     .weight(1f)

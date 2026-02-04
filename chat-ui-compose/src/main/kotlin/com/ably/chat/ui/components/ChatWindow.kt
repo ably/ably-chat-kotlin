@@ -29,16 +29,20 @@ import kotlinx.coroutines.launch
  * - Date separators
  * - Scroll-to-bottom button
  *
+ * Settings can be provided via [ChatSettingsProvider] for global/per-room defaults,
+ * or overridden with explicit parameters. Explicit parameters always take precedence.
+ *
  * @param room The chat room to display.
  * @param modifier Modifier to be applied to the chat window.
- * @param showTypingIndicator Whether to show the typing indicator. Defaults to true.
- * @param showDateSeparators Whether to show date separators between messages. Defaults to true.
- * @param showScrollToBottom Whether to show the scroll-to-bottom button. Defaults to true.
- * @param showAvatars Whether to show avatars next to messages from other users. Defaults to true.
- * @param hideDeletedMessages Whether to completely hide deleted messages instead of showing "[Message deleted]". Defaults to false.
- * @param enableReactions Whether to enable message reactions. Defaults to true.
- * @param enableEditing Whether to enable message editing for own messages. Defaults to true.
- * @param enableDeletion Whether to enable message deletion for own messages. Defaults to true.
+ * @param showTypingIndicator Whether to show the typing indicator. If null, uses [ChatSettingsProvider] value.
+ * @param showDateSeparators Whether to show date separators between messages. If null, uses [ChatSettingsProvider] value.
+ * @param showScrollToBottom Whether to show the scroll-to-bottom button. If null, uses [ChatSettingsProvider] value.
+ * @param showAvatars Whether to show avatars next to messages from other users. If null, uses [ChatSettingsProvider] value.
+ * @param hideDeletedMessages Whether to completely hide deleted messages. If null, uses [ChatSettingsProvider] value.
+ * @param enableMessageGrouping Whether to group consecutive messages from the same user. Defaults to true.
+ * @param enableReactions Whether to enable message reactions. If null, uses [ChatSettingsProvider] value.
+ * @param enableEditing Whether to enable message editing for own messages. If null, uses [ChatSettingsProvider] value.
+ * @param enableDeletion Whether to enable message deletion for own messages. If null, uses [ChatSettingsProvider] value.
  * @param headerContent Optional custom header content slot.
  * @param footerContent Optional custom footer content slot.
  * @param onMessageSent Optional callback invoked when a message is sent.
@@ -51,14 +55,15 @@ import kotlinx.coroutines.launch
 public fun ChatWindow(
     room: Room,
     modifier: Modifier = Modifier,
-    showTypingIndicator: Boolean = true,
-    showDateSeparators: Boolean = true,
-    showScrollToBottom: Boolean = true,
-    showAvatars: Boolean = true,
-    hideDeletedMessages: Boolean = false,
-    enableReactions: Boolean = true,
-    enableEditing: Boolean = true,
-    enableDeletion: Boolean = true,
+    showTypingIndicator: Boolean? = null,
+    showDateSeparators: Boolean? = null,
+    showScrollToBottom: Boolean? = null,
+    showAvatars: Boolean? = null,
+    hideDeletedMessages: Boolean? = null,
+    enableMessageGrouping: Boolean = true,
+    enableReactions: Boolean? = null,
+    enableEditing: Boolean? = null,
+    enableDeletion: Boolean? = null,
     headerContent: (@Composable () -> Unit)? = null,
     footerContent: (@Composable () -> Unit)? = null,
     onMessageSent: ((Message) -> Unit)? = null,
@@ -66,6 +71,19 @@ public fun ChatWindow(
     onMessageDeleted: ((Message) -> Unit)? = null,
     onReactionToggled: ((Message, String) -> Unit)? = null,
 ) {
+    // Get settings from provider, falling back to defaults
+    val settings = chatSettingsFor(room.name)
+
+    // Use explicit parameters if provided, otherwise use provider settings
+    val effectiveShowTypingIndicator = showTypingIndicator ?: settings.showTypingIndicator
+    val effectiveShowDateSeparators = showDateSeparators ?: settings.showDateSeparators
+    val effectiveShowScrollToBottom = showScrollToBottom ?: settings.showScrollToBottom
+    val effectiveShowAvatars = showAvatars ?: settings.showAvatars
+    val effectiveHideDeletedMessages = hideDeletedMessages ?: settings.hideDeletedMessages
+    val effectiveEnableReactions = enableReactions ?: settings.allowMessageReactions
+    val effectiveEnableEditing = enableEditing ?: settings.allowMessageEditOwn
+    val effectiveEnableDeletion = enableDeletion ?: settings.allowMessageDeleteOwn
+
     val coroutineScope = rememberCoroutineScope()
     var showEmojiPicker by remember { mutableStateOf(false) }
     var selectedMessageForReaction by remember { mutableStateOf<Message?>(null) }
@@ -82,19 +100,24 @@ public fun ChatWindow(
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
-            MessageList(
+            ChatMessageList(
                 room = room,
                 modifier = Modifier.fillMaxSize(),
-                showDateSeparators = showDateSeparators,
-                showScrollToBottomButton = showScrollToBottom,
-                hideDeletedMessages = hideDeletedMessages,
-                messageContent = { message ->
-                    MessageBubble(
+                showDateSeparators = effectiveShowDateSeparators,
+                showScrollToBottomButton = effectiveShowScrollToBottom,
+                hideDeletedMessages = effectiveHideDeletedMessages,
+                enableMessageGrouping = enableMessageGrouping,
+                messageContent = { message, groupInfo ->
+                    val isFirstInGroup = groupInfo?.isFirstInGroup ?: true
+                    ChatMessage(
                         message = message,
                         currentClientId = room.clientId,
-                        showAvatar = showAvatars,
-                        showReactions = enableReactions,
-                        onReactionClick = if (enableReactions) { msg, emoji ->
+                        showClientId = isFirstInGroup,
+                        showAvatar = effectiveShowAvatars && isFirstInGroup,
+                        reserveAvatarSpace = effectiveShowAvatars && !isFirstInGroup,
+                        showTimestamp = groupInfo?.isLastInGroup ?: true,
+                        showReactions = effectiveEnableReactions,
+                        onReactionClick = if (effectiveEnableReactions) { msg, emoji ->
                             coroutineScope.launch {
                                 try {
                                     toggleReaction(room, msg, emoji)
@@ -106,13 +129,13 @@ public fun ChatWindow(
                         } else {
                             null
                         },
-                        onAddReaction = if (enableReactions) { msg ->
+                        onAddReaction = if (effectiveEnableReactions) { msg ->
                             selectedMessageForReaction = msg
                             showEmojiPicker = true
                         } else {
                             null
                         },
-                        onEdit = if (enableEditing) { msg, newText ->
+                        onEdit = if (effectiveEnableEditing) { msg, newText ->
                             coroutineScope.launch {
                                 try {
                                     val updated = room.messages.update(
@@ -127,7 +150,7 @@ public fun ChatWindow(
                         } else {
                             null
                         },
-                        onDelete = if (enableDeletion) { msg ->
+                        onDelete = if (effectiveEnableDeletion) { msg ->
                             coroutineScope.launch {
                                 try {
                                     val deleted = room.messages.delete(msg.serial)
@@ -174,7 +197,7 @@ public fun ChatWindow(
         }
 
         // Typing indicator
-        if (showTypingIndicator) {
+        if (effectiveShowTypingIndicator) {
             TypingIndicator(
                 room = room,
                 includeCurrentUser = false,

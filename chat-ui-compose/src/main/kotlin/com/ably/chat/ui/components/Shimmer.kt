@@ -77,7 +77,7 @@ public fun Modifier.shimmer(): Modifier = composed {
  * @param modifier Modifier to be applied to the skeleton.
  */
 @Composable
-public fun MessageBubbleSkeleton(
+public fun ChatMessageSkeleton(
     isOwnMessage: Boolean = false,
     showAvatar: Boolean = false,
     modifier: Modifier = Modifier,
@@ -152,7 +152,7 @@ public fun MessageBubbleSkeleton(
  * @param modifier Modifier to be applied to the list.
  */
 @Composable
-public fun MessageListSkeleton(
+public fun ChatMessageListSkeleton(
     itemCount: Int = 6,
     showAvatars: Boolean = false,
     modifier: Modifier = Modifier,
@@ -169,7 +169,7 @@ public fun MessageListSkeleton(
     ) {
         items(itemCount) { index ->
             // Alternate between own and other messages for visual variety
-            MessageBubbleSkeleton(
+            ChatMessageSkeleton(
                 isOwnMessage = index % 3 == 0,
                 showAvatar = showAvatars && index % 3 != 0,
             )

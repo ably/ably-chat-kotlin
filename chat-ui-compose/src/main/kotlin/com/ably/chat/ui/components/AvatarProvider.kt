@@ -121,7 +121,7 @@ internal val LocalAvatarProvider = compositionLocalOf<AvatarProviderState?> { nu
  *     )
  * ) {
  *     // All Avatar components here will use the custom resolver
- *     MessageList(room = room)
+ *     ChatMessageList(room = room)
  * }
  * ```
  *

@@ -57,12 +57,15 @@ import com.ably.chat.ui.components.AvatarData
 import com.ably.chat.ui.components.AvatarProvider
 import com.ably.chat.ui.components.AvatarProviderOptions
 import com.ably.chat.ui.components.AvatarSize
+import com.ably.chat.ui.components.ChatSettings
+import com.ably.chat.ui.components.ChatSettingsProvider
+import com.ably.chat.ui.components.ChatSettingsProviderOptions
 import com.ably.chat.ui.components.ChatWindow
 import com.ably.chat.ui.components.ConnectionStatusIndicator
 import com.ably.chat.ui.components.ConnectionStatusStyle
 import com.ably.chat.ui.components.MessageInput
-import com.ably.chat.ui.components.MessageList
-import com.ably.chat.ui.components.MessageListSkeleton
+import com.ably.chat.ui.components.ChatMessageList
+import com.ably.chat.ui.components.ChatMessageListSkeleton
 import com.ably.chat.ui.components.OccupancyBadge
 import com.ably.chat.ui.components.ParticipantList
 import com.ably.chat.ui.components.PresenceIndicator
@@ -280,6 +283,16 @@ fun ChatApp(chatClient: ChatClient) {
     ) {
         // Wrap in AvatarProvider to demo custom avatar resolution
         AvatarProvider(options = avatarProviderOptions) {
+            // Wrap in ChatSettingsProvider to demo per-room settings
+            // "announcements" room is read-only, "demo-room" has full features
+            ChatSettingsProvider(
+                options = ChatSettingsProviderOptions(
+                    globalSettings = ChatSettings.default(),
+                    roomSettings = mapOf(
+                        "announcements" to ChatSettings.readOnly(),
+                    ),
+                ),
+            ) {
             val colors = AblyChatTheme.colors
 
             Scaffold(
@@ -349,7 +362,7 @@ fun ChatApp(chatClient: ChatClient) {
                         )
                     } ?: run {
                         // Show skeleton loading while room is being initialized
-                        MessageListSkeleton(
+                        ChatMessageListSkeleton(
                             showAvatars = true,
                             modifier = Modifier.weight(1f),
                         )
@@ -442,6 +455,7 @@ fun ChatApp(chatClient: ChatClient) {
                     }
                 }
             }
+            } // ChatSettingsProvider
         }
     }
 }
@@ -537,11 +551,11 @@ fun SimpleChatScreen(room: Room, modifier: Modifier = Modifier) {
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            // MessageList handles:
+            // ChatMessageList handles:
             // - Subscribing to new messages
             // - Loading history with pagination
             // - Auto-loading more when scrolling up
-            MessageList(
+            ChatMessageList(
                 room = room,
                 modifier = Modifier
                     .weight(1f)
@@ -630,7 +644,7 @@ fun CustomThemedChatScreen(room: Room, modifier: Modifier = Modifier) {
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            MessageList(
+            ChatMessageList(
                 room = room,
                 modifier = Modifier
                     .weight(1f)

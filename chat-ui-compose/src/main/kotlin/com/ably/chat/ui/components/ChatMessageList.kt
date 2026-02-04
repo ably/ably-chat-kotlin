@@ -48,14 +48,17 @@ import kotlinx.coroutines.launch
  * @param showScrollToBottomButton Whether to show a FAB to scroll to the latest messages.
  * @param scrollToBottomThreshold Number of items from the bottom before showing the scroll button.
  * @param hideDeletedMessages Whether to completely hide deleted messages instead of showing "[Message deleted]".
- * @param messageContent Custom composable for rendering each message. Defaults to [MessageBubble].
+ * @param enableMessageGrouping Whether to group consecutive messages from the same user. When enabled,
+ *   avatar and name are only shown for the first message in a group, and timestamp only for the last.
+ * @param messageContent Custom composable for rendering each message. Receives the message and grouping info.
+ *   Defaults to [ChatMessage] with grouping support when [enableMessageGrouping] is true.
  * @param loadingContent Custom composable shown while loading messages.
  * @param emptyContent Custom composable shown when there are no messages.
  * @param errorContent Custom composable shown when an error occurs.
  */
 @OptIn(ExperimentalChatApi::class, InternalChatApi::class)
 @Composable
-public fun MessageList(
+public fun ChatMessageList(
     room: Room,
     modifier: Modifier = Modifier,
     scrollThreshold: Int = 10,
@@ -65,10 +68,13 @@ public fun MessageList(
     showScrollToBottomButton: Boolean = true,
     scrollToBottomThreshold: Int = 3,
     hideDeletedMessages: Boolean = false,
-    messageContent: @Composable (Message) -> Unit = { message ->
-        MessageBubble(
+    enableMessageGrouping: Boolean = false,
+    messageContent: @Composable (Message, MessageGroupInfo?) -> Unit = { message, groupInfo ->
+        ChatMessage(
             message = message,
             currentClientId = room.clientId,
+            showClientId = groupInfo?.isFirstInGroup ?: true,
+            showTimestamp = groupInfo?.isLastInGroup ?: true,
         )
     },
     loadingContent: @Composable () -> Unit = { DefaultLoadingIndicator() },
@@ -80,7 +86,7 @@ public fun MessageList(
         fetchSize = fetchSize,
     )
 
-    MessageListContent(
+    ChatMessageListContent(
         pagingState = pagingState,
         modifier = modifier,
         showDateSeparators = showDateSeparators,
@@ -88,6 +94,7 @@ public fun MessageList(
         showScrollToBottomButton = showScrollToBottomButton,
         scrollToBottomThreshold = scrollToBottomThreshold,
         hideDeletedMessages = hideDeletedMessages,
+        enableMessageGrouping = enableMessageGrouping,
         messageContent = messageContent,
         loadingContent = loadingContent,
         emptyContent = emptyContent,
@@ -108,14 +115,15 @@ public fun MessageList(
  * @param showScrollToBottomButton Whether to show a FAB to scroll to the latest messages.
  * @param scrollToBottomThreshold Number of items from the bottom before showing the scroll button.
  * @param hideDeletedMessages Whether to completely hide deleted messages instead of showing "[Message deleted]".
- * @param messageContent Custom composable for rendering each message. Defaults to [MessageBubble].
+ * @param enableMessageGrouping Whether to group consecutive messages from the same user.
+ * @param messageContent Custom composable for rendering each message with grouping info.
  * @param loadingContent Custom composable shown while loading messages.
  * @param emptyContent Custom composable shown when there are no messages.
  * @param errorContent Custom composable shown when an error occurs.
  */
 @OptIn(ExperimentalChatApi::class)
 @Composable
-public fun MessageList(
+public fun ChatMessageList(
     pagingState: PagingMessagesState,
     currentClientId: String,
     modifier: Modifier = Modifier,
@@ -124,17 +132,20 @@ public fun MessageList(
     showScrollToBottomButton: Boolean = true,
     scrollToBottomThreshold: Int = 3,
     hideDeletedMessages: Boolean = false,
-    messageContent: @Composable (Message) -> Unit = { message ->
-        MessageBubble(
+    enableMessageGrouping: Boolean = false,
+    messageContent: @Composable (Message, MessageGroupInfo?) -> Unit = { message, groupInfo ->
+        ChatMessage(
             message = message,
             currentClientId = currentClientId,
+            showClientId = groupInfo?.isFirstInGroup ?: true,
+            showTimestamp = groupInfo?.isLastInGroup ?: true,
         )
     },
     loadingContent: @Composable () -> Unit = { DefaultLoadingIndicator() },
     emptyContent: @Composable () -> Unit = { DefaultEmptyState() },
     errorContent: @Composable (String) -> Unit = { error -> DefaultErrorState(error) },
 ) {
-    MessageListContent(
+    ChatMessageListContent(
         pagingState = pagingState,
         modifier = modifier,
         showDateSeparators = showDateSeparators,
@@ -142,6 +153,7 @@ public fun MessageList(
         showScrollToBottomButton = showScrollToBottomButton,
         scrollToBottomThreshold = scrollToBottomThreshold,
         hideDeletedMessages = hideDeletedMessages,
+        enableMessageGrouping = enableMessageGrouping,
         messageContent = messageContent,
         loadingContent = loadingContent,
         emptyContent = emptyContent,
@@ -151,7 +163,7 @@ public fun MessageList(
 
 @OptIn(ExperimentalChatApi::class)
 @Composable
-private fun MessageListContent(
+private fun ChatMessageListContent(
     pagingState: PagingMessagesState,
     modifier: Modifier,
     showDateSeparators: Boolean,
@@ -159,13 +171,15 @@ private fun MessageListContent(
     showScrollToBottomButton: Boolean,
     scrollToBottomThreshold: Int,
     hideDeletedMessages: Boolean,
-    messageContent: @Composable (Message) -> Unit,
+    enableMessageGrouping: Boolean,
+    messageContent: @Composable (Message, MessageGroupInfo?) -> Unit,
     loadingContent: @Composable () -> Unit,
     emptyContent: @Composable () -> Unit,
     errorContent: @Composable (String) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     var previousMessageCount by remember { mutableIntStateOf(pagingState.loaded.size) }
+    var newMessageCount by remember { mutableIntStateOf(0) }
 
     // Filter out deleted messages if hideDeletedMessages is enabled
     val messagesToDisplay = remember(pagingState.loaded, hideDeletedMessages) {
@@ -176,16 +190,34 @@ private fun MessageListContent(
         }
     }
 
-    // Auto-scroll to bottom when new messages arrive and user is at the bottom
+    // Check if user is scrolled away from bottom
+    val isScrolledUp = pagingState.listState.firstVisibleItemIndex > scrollToBottomThreshold
+
+    // Track new messages and auto-scroll behavior
     LaunchedEffect(messagesToDisplay.size) {
         val currentCount = messagesToDisplay.size
-        val isNewMessage = currentCount > previousMessageCount
-        val isAtBottom = pagingState.listState.firstVisibleItemIndex <= 1
+        val addedMessages = currentCount - previousMessageCount
 
-        if (isNewMessage && isAtBottom) {
-            pagingState.listState.animateScrollToItem(0)
+        if (addedMessages > 0) {
+            val isAtBottom = pagingState.listState.firstVisibleItemIndex <= 1
+
+            if (isAtBottom) {
+                // User is at bottom, auto-scroll and reset count
+                pagingState.listState.animateScrollToItem(0)
+                newMessageCount = 0
+            } else {
+                // User is scrolled up, increment unread count
+                newMessageCount += addedMessages
+            }
         }
         previousMessageCount = currentCount
+    }
+
+    // Reset new message count when user scrolls to bottom
+    LaunchedEffect(isScrolledUp) {
+        if (!isScrolledUp) {
+            newMessageCount = 0
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -226,7 +258,25 @@ private fun MessageListContent(
                             items = messagesToDisplay,
                             key = { _, message -> message.serial },
                         ) { index, message ->
-                            messageContent(message)
+                            // Compute grouping info if enabled
+                            // Note: In reversed layout, index 0 is newest, so "previous" is index-1 (newer)
+                            // and "next" is index+1 (older)
+                            val groupInfo = if (enableMessageGrouping) {
+                                val previousMessage = messagesToDisplay.getOrNull(index - 1) // newer message
+                                val nextMessage = messagesToDisplay.getOrNull(index + 1) // older message
+
+                                val groupedWithPrevious = shouldGroupMessages(message, previousMessage)
+                                val groupedWithNext = shouldGroupMessages(message, nextMessage)
+
+                                MessageGroupInfo(
+                                    isFirstInGroup = !groupedWithNext, // Show avatar/name if not grouped with older
+                                    isLastInGroup = !groupedWithPrevious, // Show timestamp if not grouped with newer
+                                )
+                            } else {
+                                null
+                            }
+
+                            messageContent(message, groupInfo)
 
                             if (showDateSeparators) {
                                 val nextMessage = messagesToDisplay.getOrNull(index + 1)
@@ -253,16 +303,33 @@ private fun MessageListContent(
                         }
                     }
 
+                    // New messages pill at top
+                    NewMessagesPill(
+                        visible = newMessageCount > 0 && isScrolledUp,
+                        count = newMessageCount,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 8.dp),
+                        onClick = {
+                            coroutineScope.launch {
+                                pagingState.listState.animateScrollToItem(0)
+                                newMessageCount = 0
+                            }
+                        },
+                    )
+
                     if (showScrollToBottomButton) {
                         ScrollToBottomButton(
                             listState = pagingState.listState,
                             threshold = scrollToBottomThreshold,
+                            unreadCount = newMessageCount,
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp),
                             onClick = {
                                 coroutineScope.launch {
                                     pagingState.listState.animateScrollToItem(0)
+                                    newMessageCount = 0
                                 }
                             },
                         )
@@ -298,3 +365,41 @@ private fun DefaultErrorState(error: String) {
         )
     }
 }
+
+/**
+ * Default time threshold for message grouping (2 minutes).
+ * Messages from the same user within this time window are grouped together.
+ */
+private const val MESSAGE_GROUP_THRESHOLD_MS = 2 * 60 * 1000L
+
+/**
+ * Determines if two messages should be grouped together.
+ *
+ * Messages are grouped when:
+ * - They are from the same client
+ * - They are within the time threshold
+ * - Neither is a deleted message
+ *
+ * @param current The current message.
+ * @param previous The previous message (newer, since list is reversed).
+ * @return True if the messages should be grouped.
+ */
+internal fun shouldGroupMessages(current: Message, previous: Message?): Boolean {
+    if (previous == null) return false
+    if (current.clientId != previous.clientId) return false
+    if (current.action == MessageAction.MessageDelete || previous.action == MessageAction.MessageDelete) return false
+
+    val timeDiff = kotlin.math.abs(current.timestamp - previous.timestamp)
+    return timeDiff <= MESSAGE_GROUP_THRESHOLD_MS
+}
+
+/**
+ * Data class containing grouping information for a message.
+ *
+ * @property isFirstInGroup Whether this is the first message in a group (should show avatar/name).
+ * @property isLastInGroup Whether this is the last message in a group (should show timestamp).
+ */
+public data class MessageGroupInfo(
+    val isFirstInGroup: Boolean,
+    val isLastInGroup: Boolean,
+)
