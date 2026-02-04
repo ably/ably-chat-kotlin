@@ -9,9 +9,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.ably.chat.copy
 import com.ably.chat.delete
+import com.ably.chat.test.RoomOptionsWithAllFeatures
 import com.ably.chat.test.Sandbox
 import com.ably.chat.test.createConnectedRoom
+import com.ably.chat.test.createSandboxChatClient
 import com.ably.chat.ui.components.ChatWindow
+import com.ably.chat.ui.components.RoomProvider
 import com.ably.chat.ui.theme.AblyChatTheme
 import com.ably.chat.update
 import java.util.UUID
@@ -245,5 +248,41 @@ class ChatWindowE2ETest {
         }
 
         composeTestRule.onNodeWithText("[Message deleted]").assertIsDisplayed()
+    }
+
+    /**
+     * Test: RoomProvider attaches and provides room to ChatWindow.
+     *
+     * User journey:
+     * 1. RoomProvider is rendered with chatClient and roomId
+     * 2. RoomProvider shows loading state initially
+     * 3. Room attaches successfully
+     * 4. ChatWindow is rendered with the attached room
+     */
+    @Test
+    fun `RoomProvider attaches and provides room to ChatWindow`() = runTest {
+        val chatClient = sandbox.createSandboxChatClient("test-user")
+        val roomId = UUID.randomUUID().toString()
+
+        composeTestRule.setContent {
+            AblyChatTheme {
+                RoomProvider(
+                    chatClient = chatClient,
+                    roomId = roomId,
+                    options = RoomOptionsWithAllFeatures,
+                ) { room ->
+                    ChatWindow(room = room)
+                }
+            }
+        }
+
+        // Wait for room to attach and UI to render
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodesWithText("Type a message...")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // Verify ChatWindow is displayed
+        composeTestRule.onNodeWithText("Type a message...").assertIsDisplayed()
     }
 }
