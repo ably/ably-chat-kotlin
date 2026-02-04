@@ -61,6 +61,8 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.material3)
     implementation(libs.coil.compose)
+
+    // Unit test dependencies
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutine.test)
@@ -68,5 +70,38 @@ dependencies {
     testImplementation(libs.molecule)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.ui.test.junit4)
+
+    // E2E test dependencies (shared sandbox utilities)
+    testImplementation(project(":test-fixtures"))
+
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// Register e2eTest task that only runs E2E tests
+tasks.register("e2eTest") {
+    description = "Runs end-to-end tests against Ably sandbox."
+    group = "verification"
+
+    dependsOn("testDebugUnitTest")
+
+    doFirst {
+        // Configure the test task to only run e2e tests
+        tasks.named("testDebugUnitTest", Test::class) {
+            filter {
+                includeTestsMatching("com.ably.chat.ui.e2e.*")
+            }
+        }
+    }
+}
+
+// Exclude e2e tests from regular unit test runs
+tasks.withType<Test>().configureEach {
+    if (name == "testDebugUnitTest" || name == "testReleaseUnitTest") {
+        // Only exclude if not running e2eTest task
+        if (!gradle.startParameter.taskNames.any { it.contains("e2eTest") }) {
+            filter {
+                excludeTestsMatching("com.ably.chat.ui.e2e.*")
+            }
+        }
+    }
 }
