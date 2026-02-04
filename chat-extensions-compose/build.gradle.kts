@@ -13,7 +13,7 @@ val version = property("VERSION_NAME")
 
 android {
     namespace = "com.ably.chat.extensions.compose"
-    compileSdk = 34
+    compileSdk = 36
     defaultConfig {
         minSdk = 24
         consumerProguardFiles("consumer-rules.pro")

@@ -4,7 +4,7 @@
 [versions]
 ably = "1.4.2"
 junit = "4.13.2"
-agp = "8.5.2"
+agp = "8.9.1"
 detekt = "1.23.6"
 kotlin = "2.2.20"
 androidx-test = "1.6.1"
