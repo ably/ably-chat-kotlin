@@ -66,6 +66,7 @@ kotlin {
 dependencies {
     implementation(project(":chat"))
     implementation(project(":chat-extensions-compose"))
+    implementation(project(":chat-ui-compose"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
