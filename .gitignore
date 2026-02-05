@@ -85,3 +85,6 @@ publish.properties
 
 # general
 **/.DS_Store
+
+# Claude
+.claude/settings.local.json
