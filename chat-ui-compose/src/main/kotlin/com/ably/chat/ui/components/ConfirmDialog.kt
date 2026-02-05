@@ -14,11 +14,11 @@ import com.ably.chat.ui.theme.AblyChatTheme
  *
  * @param title The title text for the dialog.
  * @param message The message/body text for the dialog.
- * @param confirmText The text for the confirm button. Defaults to "Delete".
- * @param dismissText The text for the dismiss/cancel button. Defaults to "Cancel".
  * @param onConfirm Callback invoked when the confirm button is clicked.
  * @param onDismiss Callback invoked when the dialog is dismissed or cancel is clicked.
  * @param modifier Modifier to be applied to the dialog.
+ * @param confirmText The text for the confirm button. Defaults to "Delete".
+ * @param dismissText The text for the dismiss/cancel button. Defaults to "Cancel".
  * @param isDestructive Whether the confirm action is destructive (shows in red). Defaults to true.
  */
 @Composable

@@ -41,16 +41,6 @@ class ChatWindowE2ETest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    companion object {
-        private lateinit var sandbox: Sandbox
-
-        @JvmStatic
-        @BeforeClass
-        fun setUp() = runTest {
-            sandbox = Sandbox.createInstance()
-        }
-    }
-
     /**
      * Test: Send a message and verify it appears in the message list.
      *
@@ -284,5 +274,15 @@ class ChatWindowE2ETest {
 
         // Verify ChatWindow is displayed
         composeTestRule.onNodeWithText("Type a message...").assertIsDisplayed()
+    }
+
+    companion object {
+        private lateinit var sandbox: Sandbox
+
+        @JvmStatic
+        @BeforeClass
+        fun setUp() = runTest {
+            sandbox = Sandbox.createInstance()
+        }
     }
 }

@@ -36,8 +36,9 @@ public enum class ThemeMode {
  * This class maintains the current theme mode and provides methods to toggle or set it.
  * When used with [rememberAblyChatThemeState], the preference is persisted to SharedPreferences.
  *
- * @property themeMode The current theme mode.
- * @property isDarkTheme Whether the current resolved theme is dark.
+ * @param initialMode The initial theme mode to use.
+ * @param isSystemDark Whether the system is currently in dark mode.
+ * @param onModeChanged Callback invoked when the theme mode changes.
  */
 @Stable
 public class AblyChatThemeState internal constructor(
