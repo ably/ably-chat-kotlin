@@ -23,6 +23,9 @@ kotlin {
 
     compilerOptions {
         optIn.add("com.ably.chat.annotations.ExperimentalChatApi")
+        // Set language and API version to 2.0 for backward compatibility with Kotlin 2.0 projects
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
     }
 
     androidTarget {
