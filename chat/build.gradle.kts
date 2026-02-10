@@ -1,7 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -31,14 +30,14 @@ kotlin {
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_1_8)
-            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
     }
 
     jvm {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_1_8)
-            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
     }
 
