@@ -301,7 +301,19 @@ internal class DefaultTyping(
     }
 
     override fun dispose() {
+        // Clear all typing state first
+        typingStartEventPrunerJobs.values.forEach { it.cancel() }
+        typingStartEventPrunerJobs.clear()
+        currentlyTypingMembers.clear()
+        typingHeartbeatStarted = null
+
+        // Clear listeners
+        listeners.clear()
+
+        // Unsubscribe from channel events
         typingEventPubSubSubscription.unsubscribe()
+
+        // Cancel scope (also cancels any remaining jobs)
         typingScope.cancel()
     }
 

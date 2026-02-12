@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -330,6 +331,8 @@ internal class RoomLifecycleManager(
         eventCompletionDeferred.set(null)
         roomMonitoringJob.cancel()
         offAllDiscontinuity()
+        // Cancel the room scope to clean up all room-level coroutines
+        roomScope.coroutineContext.cancelChildren()
         logger.debug("doRelease(); underlying resources released each room feature")
         statusManager.setStatus(RoomStatus.Released) // CHA-RL3o
         logger.debug("doRelease(); transitioned room to RELEASED state")

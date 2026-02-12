@@ -206,7 +206,16 @@ internal class DefaultOccupancy(
     }
 
     override fun dispose() {
+        // Clear listeners
+        listeners.clear()
+
+        // Clear cached data
+        latestOccupancyData = null
+
+        // Unsubscribe from channel events
         occupancySubscription.unsubscribe()
+
+        // Cancel scope
         occupancyScope.cancel()
     }
 

@@ -514,8 +514,15 @@ internal class DefaultMessageReactions(
     }
 
     fun dispose() {
+        // Clear listeners
+        listeners.clear()
+        rawEventlisteners.clear()
+
+        // Unsubscribe from channel events
         summarySubscription.unsubscribe()
         annotationSubscription?.unsubscribe()
+
+        // Cancel scope
         reactionsScope.cancel()
     }
 
