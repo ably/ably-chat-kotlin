@@ -34,6 +34,7 @@ class TypingTest {
             val change = object : TypingSetEvent.Change {
                 override val type: TypingEventType = TypingEventType.Started
                 override val clientId: String = "client_1"
+                override val userClaim: String? = null
             }
             val typingEvent1 = object : TypingSetEvent {
                 override val currentlyTyping: Set<String> = setOf("client_1", "client_2")

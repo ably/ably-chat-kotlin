@@ -162,6 +162,7 @@ internal class DefaultRoomReactions(
                 metadata = data.jsonObjectOrNull()?.get("metadata")?.jsonObjectOrNull() ?: jsonObject {},
                 headers = pubSubMessage.extras?.asJsonObject()?.get("headers")?.tryAsJsonValue()?.toMap() ?: mapOf(),
                 isSelf = pubSubMessage.clientId == room.clientIdResolver.get(),
+                userClaim = pubSubMessage.extras.userClaim(), // CHA-ER2a
             )
             listener.invoke(DefaultRoomReactionEvent(reaction))
         }

@@ -106,6 +106,13 @@ public interface PresenceMember {
      * The extras associated with the presence member.
      */
     public val extras: JsonObject
+
+    /**
+     * A server-provided string extracted from a JWT claim, if available.
+     * This is a read-only value set by the server based on channel-specific JWT claims.
+     * Spec: CHA-PR6g
+     */
+    public val userClaim: String?
 }
 
 public interface PresenceEvent {
@@ -119,6 +126,8 @@ internal data class DefaultPresenceMember(
     override val data: JsonObject?,
     override val updatedAt: Long,
     override val extras: JsonObject = JsonObject(),
+    // TODO: populate from PresenceMessage.extras once ably-java supports extras on PresenceMessage
+    override val userClaim: String? = null,
 ) : PresenceMember
 
 internal data class DefaultPresenceEvent(

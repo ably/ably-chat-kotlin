@@ -226,6 +226,13 @@ public interface MessageReaction {
      * The client ID of the user who added/removed the reaction
      */
     public val clientId: String
+
+    /**
+     * A server-provided string extracted from a JWT claim, if available.
+     * This is a read-only value set by the server based on channel-specific JWT claims.
+     * Spec: CHA-MR7d
+     */
+    public val userClaim: String?
 }
 
 /**
@@ -337,6 +344,7 @@ internal data class DefaultMessageReaction(
     override val name: String,
     override val count: Int?,
     override val clientId: String,
+    override val userClaim: String? = null,
 ) : MessageReaction
 
 internal class DefaultMessageReactions(
@@ -628,6 +636,7 @@ internal class DefaultMessageReactions(
                 name = name,
                 clientId = annotation.clientId,
                 count = count,
+                userClaim = annotation.extras.userClaim(), // CHA-MR7d
             ),
         )
 
