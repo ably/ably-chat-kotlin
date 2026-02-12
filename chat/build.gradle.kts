@@ -1,7 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -23,19 +22,22 @@ kotlin {
 
     compilerOptions {
         optIn.add("com.ably.chat.annotations.ExperimentalChatApi")
+        // Set language and API version to 2.0 for backward compatibility with Kotlin 2.0 projects
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
     }
 
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_1_8)
-            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
     }
 
     jvm {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_1_8)
-            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
     }
 
