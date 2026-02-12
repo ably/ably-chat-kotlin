@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.2.0](https://github.com/ably/ably-chat-kotlin/tree/v1.2.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v1.1.0...v1.2.0)
+
+## What's Changed
+
+- Extended Chat Kotlin SDK compatibility to support usage in projects running Kotlin 2.0 and above. [#191](https://github.com/ably/ably-chat-kotlin/pull/191)
+
 ## [1.1.0](https://github.com/ably/ably-chat-kotlin/tree/v1.1.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v1.0.0...v1.1.0)
