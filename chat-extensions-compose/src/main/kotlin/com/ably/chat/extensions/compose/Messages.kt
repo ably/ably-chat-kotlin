@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.map
  */
 @ExperimentalChatApi
 @Composable
-@Suppress("LongMethod", "CognitiveComplexMethod")
+@Suppress("LongMethod", "CognitiveComplexMethod", "CyclomaticComplexMethod")
 public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSize: Int = 100): PagingMessagesState {
     val listState = rememberLazyListState()
     val loaded = remember(this) { mutableStateListOf<Message>() }
@@ -66,7 +66,11 @@ public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSiz
     DisposableEffect(this) {
         val effectSubscription = messages.subscribe { event ->
             when (event.type) {
-                ChatMessageEventType.Created -> loaded.add(0, event.message)
+                ChatMessageEventType.Created ->
+                    // Only add if not already in list to prevent duplicate keys
+                    if (loaded.none { it.serial == event.message.serial }) {
+                        loaded.add(0, event.message)
+                    }
                 ChatMessageEventType.Updated -> loaded.replaceFirstWith(event)
                 ChatMessageEventType.Deleted -> loaded.replaceFirstWith(event)
             }
@@ -138,7 +142,10 @@ public fun Room.collectAsPagingMessagesState(scrollThreshold: Int = 10, fetchSiz
             return@LaunchedEffect
         }
         lastReceivedPaginatedResult = receivedPaginatedResult
-        loaded += receivedPaginatedResult.items
+        // Filter out any items that already exist in the list to prevent duplicate keys
+        val existingSerials = loaded.map { it.serial }.toSet()
+        val newItems = receivedPaginatedResult.items.filter { it.serial !in existingSerials }
+        loaded += newItems
         loadingState.value = false
     }
 

@@ -4,7 +4,7 @@
 [versions]
 ably = "1.4.2"
 junit = "4.13.2"
-agp = "8.5.2"
+agp = "8.9.1"
 detekt = "1.23.6"
 kotlin = "2.1.21"
 androidx-test = "1.6.1"
@@ -24,6 +24,7 @@ ktor = "3.3.0"
 molecule = "2.2.0"
 nanohttpd = "2.3.0"
 turbine = "1.2.1"
+coil = "2.6.0"
 binary-compatibility-validator = "0.18.1"
 dokka = "1.9.20"
 kover = "0.9.2"
@@ -70,6 +71,8 @@ ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 molecule = { module = "app.cash.molecule:molecule-runtime", version.ref = "molecule" }
 nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [bundles]
 ktor-client = ["ktor-client-core", "ktor-client-cio"]

@@ -7,18 +7,20 @@ on:
       - main
 
 jobs:
-  test:
+  # Core chat module tests (KMP - runs on both JVM and Android)
+  chat-tests:
+    name: Chat Module Tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: Android Release tests
-            task: testReleaseUnitTest
+            task: ":chat:testReleaseUnitTest"
           - name: Android Debug tests
-            task: testDebugUnitTest
+            task: ":chat:testDebugUnitTest"
           - name: JVM tests
-            task: jvmTest
+            task: ":chat:jvmTest"
     steps:
       - uses: actions/checkout@v4
 
@@ -31,5 +33,46 @@ jobs:
       - name: Set up Gradle
         uses: gradle/gradle-build-action@v2
 
-      - name: Run Gradle check
-        run: ./gradlew :chat:${{ matrix.task }}
+      - name: Run ${{ matrix.name }}
+        run: ./gradlew ${{ matrix.task }}
+
+  # Compose modules unit tests
+  compose-tests:
+    name: Compose Module Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Run chat-extensions-compose tests
+        run: ./gradlew :chat-extensions-compose:testDebugUnitTest
+
+      - name: Run chat-ui-compose unit tests
+        run: ./gradlew :chat-ui-compose:testDebugUnitTest
+
+  # E2E tests (connect to Ably sandbox - run separately as they're slower)
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Run E2E tests
+        run: ./gradlew :chat-ui-compose:e2eTest
