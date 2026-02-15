@@ -80,30 +80,45 @@ VERSION_NAME=0.1.0-local.1
 Publish the library to your local Maven repository by running:
 
 ```bash
-./gradlew publishToMavenLocal
+./gradlew publishToMavenLocal -PskipSigning
 ```
+
+> [!TIP]
+> The `-PskipSigning` flag skips GPG signing which is only required for Maven Central releases.
+> If you have GPG signing configured (see [Prerequisites for Release](#prerequisites-for-release)), you can omit this flag.
 
 ### Step 3: Use the Local Version in Another Project
 
 In the project where you want to use the updated library:
 
-1. Add the mavenLocal() repository to your repositories block:
+1. Add the `mavenLocal()` repository to your `settings.gradle.kts` (or `settings.gradle`) file. It should be added **before** other repositories to ensure local versions take precedence:
    ```kotlin
-   repositories {
-       mavenLocal()
-       // other repositories...
+   dependencyResolutionManagement {
+       repositories {
+           mavenLocal() // Add this first to prioritize local versions
+           google()
+           mavenCentral()
+       }
    }
    ```
 
-2. Add a dependency for the local version of the library:
-    ```kotlin
-    implementation("com.ably.chat:chat:0.1.0-local.1")
-    ```
+2. Update the dependency version to match your local version. If using a version catalog (`gradle/libs.versions.toml`):
+   ```toml
+   [versions]
+   ablyChat = "0.1.0-local.1"
+   ```
+
+   Or directly in your module's `build.gradle.kts`:
+   ```kotlin
+   implementation("com.ably.chat:chat:0.1.0-local.1")
+   ```
+
+3. Sync your project to pull the local dependency.
 
 > [!NOTE]
-> - Ensure the version number (`0.1.0-local.1`) matches the one you set in gradle.properties.
-> - The `mavenLocal()` repository should typically be used only during development to avoid conflicts with published versions in remote
-    repositories.
+> - Ensure the version number (`0.1.0-local.1`) matches the one you set in `gradle.properties`.
+> - The `mavenLocal()` repository should typically be used only during development to avoid conflicts with published versions in remote repositories.
+> - Remember to remove `mavenLocal()` and revert the version before committing your changes.
 
 ## Documentation
 
@@ -159,7 +174,8 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 [voltaire snippets](https://github.com/ably/voltaire/) that updates that SDK version in the setup/installation guide.
 6. Make a PR against `main`
 7. Once the PR is approved, merge it into `main`
-8. Create the release and the release tag on Github including populating the release notes
-9. Use the [GitHub action](https://github.com/ably/ably-chat-kotlin/actions/workflows/release.yaml) to publish the release. Run the workflow on the latest release tag.
-10. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes, including the one you created in Step 5.
-11. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
+8. Add a tag to the new `main` head commit and push to origin such as `git tag v1.2.4 && git push origin v1.2.4`
+9. Visit [https://github.com/ably/ably-chat-kotlin/tags](https://github.com/ably/ably-chat-kotlin/tags) and add release notes for the release including links to the changelog entry.
+10. Use the [GitHub action](https://github.com/ably/ably-chat-kotlin/actions/workflows/release.yaml) to publish the release. Run the workflow on the release tag created in Step 8.
+11. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes, including the one you created in Step 5.
+12. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))

@@ -52,7 +52,11 @@ tasks.register("check") {
 configure(subprojects) {
     pluginManager.withPlugin("com.vanniktech.maven.publish") {
         extensions.configure<MavenPublishBaseExtension> {
-            signAllPublications()
+            // Only sign publications when signing is available (for Maven Central releases)
+            // For local Maven publish without signing, use: ./gradlew publishToMavenLocal -PskipSigning
+            if (!project.hasProperty("skipSigning")) {
+                signAllPublications()
+            }
         }
     }
 }
