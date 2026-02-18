@@ -93,6 +93,40 @@ class RoomReactionsTest {
         )
     }
 
+    /**
+     * @spec CHA-ER2a
+     */
+    @Test
+    fun `should parse userClaim from room reaction extras`() = runTest {
+        val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
+
+        every { roomReactions.channelWrapper.subscribe("roomReaction", capture(pubSubMessageListenerSlot)) } returns mockk(relaxed = true)
+
+        val deferredValue = CompletableDeferred<RoomReactionEvent>()
+
+        roomReactions.subscribe {
+            deferredValue.complete(it)
+        }
+
+        pubSubMessageListenerSlot.captured.onMessage(
+            PubSubMessage().apply {
+                data = jsonObject {
+                    put("name", "like")
+                }.toGson()
+                clientId = "clientId"
+                timestamp = 1000L
+                extras = MessageExtras(
+                    jsonObject {
+                        put("userClaim", "test-claim-value")
+                    }.toGson().asJsonObject,
+                )
+            },
+        )
+
+        val reactionEvent = deferredValue.await()
+        assertEquals("test-claim-value", reactionEvent.reaction.userClaim)
+    }
+
     @Test
     fun `asFlow() should automatically unsubscribe then it's done`() = runTest {
         val roomReactions: RoomReactions = mockk()

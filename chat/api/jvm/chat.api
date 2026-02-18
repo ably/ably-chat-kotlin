@@ -158,6 +158,7 @@ public abstract interface class com/ably/chat/Message {
 	public abstract fun getSerial ()Ljava/lang/String;
 	public abstract fun getText ()Ljava/lang/String;
 	public abstract fun getTimestamp ()J
+	public abstract fun getUserClaim ()Ljava/lang/String;
 	public abstract fun getVersion ()Lcom/ably/chat/MessageVersion;
 }
 
@@ -171,8 +172,8 @@ public final class com/ably/chat/MessageAction : java/lang/Enum {
 }
 
 public final class com/ably/chat/MessageKt {
-	public static final fun copy (Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lcom/ably/chat/json/JsonObject;)Lcom/ably/chat/Message;
-	public static synthetic fun copy$default (Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lcom/ably/chat/json/JsonObject;ILjava/lang/Object;)Lcom/ably/chat/Message;
+	public static final fun copy (Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lcom/ably/chat/json/JsonObject;Ljava/lang/String;)Lcom/ably/chat/Message;
+	public static synthetic fun copy$default (Lcom/ably/chat/Message;Ljava/lang/String;Ljava/util/Map;Lcom/ably/chat/json/JsonObject;Ljava/lang/String;ILjava/lang/Object;)Lcom/ably/chat/Message;
 	public static final fun with (Lcom/ably/chat/Message;Lcom/ably/chat/ChatMessageEvent;)Lcom/ably/chat/Message;
 	public static final fun with (Lcom/ably/chat/Message;Lcom/ably/chat/MessageReactionSummaryEvent;)Lcom/ably/chat/Message;
 }
@@ -183,6 +184,7 @@ public abstract interface class com/ably/chat/MessageReaction {
 	public abstract fun getMessageSerial ()Ljava/lang/String;
 	public abstract fun getName ()Ljava/lang/String;
 	public abstract fun getType ()Lcom/ably/chat/MessageReactionType;
+	public abstract fun getUserClaim ()Ljava/lang/String;
 }
 
 public final class com/ably/chat/MessageReactionEventType : java/lang/Enum {
@@ -436,6 +438,7 @@ public abstract interface class com/ably/chat/PresenceMember {
 	public abstract fun getData ()Lcom/ably/chat/json/JsonObject;
 	public abstract fun getExtras ()Lcom/ably/chat/json/JsonObject;
 	public abstract fun getUpdatedAt ()J
+	public abstract fun getUserClaim ()Ljava/lang/String;
 }
 
 public abstract interface class com/ably/chat/PresenceOptions {
@@ -503,6 +506,7 @@ public abstract interface class com/ably/chat/RoomReaction {
 	public abstract fun getHeaders ()Ljava/util/Map;
 	public abstract fun getMetadata ()Lcom/ably/chat/json/JsonObject;
 	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getUserClaim ()Ljava/lang/String;
 	public abstract fun isSelf ()Z
 }
 
@@ -618,6 +622,7 @@ public abstract interface class com/ably/chat/TypingSetEvent {
 public abstract interface class com/ably/chat/TypingSetEvent$Change {
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getType ()Lcom/ably/chat/TypingEventType;
+	public abstract fun getUserClaim ()Ljava/lang/String;
 }
 
 public final class com/ably/chat/TypingSetEventType : java/lang/Enum {

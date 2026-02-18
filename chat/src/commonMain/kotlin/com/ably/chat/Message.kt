@@ -78,6 +78,13 @@ public interface Message {
      * The reactions summary for this message.
      */
     public val reactions: MessageReactionSummary
+
+    /**
+     * A server-provided string extracted from a JWT claim, if available.
+     * This is a read-only value set by the server based on channel-specific JWT claims.
+     * Spec: CHA-M2h
+     */
+    public val userClaim: String?
 }
 
 /**
@@ -178,11 +185,13 @@ public fun Message.copy(
     text: String = this.text,
     headers: Map<String, String> = this.headers,
     metadata: JsonObject = this.metadata,
+    userClaim: String? = this.userClaim,
 ): Message =
     (this as? DefaultMessage)?.copy(
         text = text,
         headers = headers,
         metadata = metadata,
+        userClaim = userClaim,
     ) ?: throw clientError("unable to copy message; Message interface is not suitable for inheritance", ErrorCode.InvalidArgument)
 
 public fun Message.with(
@@ -237,6 +246,7 @@ internal data class DefaultMessage(
     override val action: MessageAction,
     override val version: MessageVersion,
     override val reactions: MessageReactionSummary = DefaultMessageReactionSummary(),
+    override val userClaim: String? = null,
 ) : Message
 
 internal data class DefaultMessageReactionSummary(
@@ -280,6 +290,7 @@ internal object MessageProperty {
     const val Version = "version"
     const val Timestamp = "timestamp"
     const val Reactions = "reactions"
+    const val UserClaim = "userClaim"
 }
 
 /**

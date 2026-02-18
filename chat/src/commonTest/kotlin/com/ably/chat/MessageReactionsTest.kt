@@ -148,6 +148,47 @@ class MessageReactionsTest {
     }
 
     /**
+     * Spec: CHA-MR7d
+     */
+    @Test
+    fun `should parse userClaim from annotation extras in raw events`() = runTest {
+        val annotationsListenerSlot = slot<RealtimeAnnotations.AnnotationListener>()
+
+        every { annotations.subscribe(capture(annotationsListenerSlot)) } returns mockk()
+        val deferredValue = CompletableDeferred<MessageReactionRawEvent>()
+
+        val messageReactions = createMessagesReaction(
+            MutableMessagesOptions().apply {
+                rawMessageReactions = true
+            },
+        )
+
+        messageReactions.subscribeRaw {
+            deferredValue.complete(it)
+        }
+
+        annotationsListenerSlot.captured.onAnnotation(
+            Annotation().apply {
+                serial = "abcdefghij@1672531200000-456"
+                messageSerial = "abcdefghij@1672531200000-123"
+                timestamp = 1000L
+                action = AnnotationAction.ANNOTATION_CREATE
+                type = "reaction:distinct.v1"
+                name = "heart"
+                clientId = "clientId"
+                extras = io.ably.lib.types.MessageExtras(
+                    jsonObject {
+                        put("userClaim", "test-claim-value")
+                    }.toGson().asJsonObject,
+                )
+            },
+        )
+
+        val event = deferredValue.await()
+        assertEquals("test-claim-value", event.reaction.userClaim)
+    }
+
+    /**
      * Spec: CHA-MR4a1
      */
     @Test

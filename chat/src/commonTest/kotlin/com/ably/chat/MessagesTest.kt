@@ -285,6 +285,126 @@ class MessagesTest {
         assertEquals("channel-serial-3", subscription2.fromSerialProvider().await())
     }
 
+    /**
+     * @spec CHA-M2h
+     */
+    @Test
+    fun `should parse userClaim from realtime message extras`() = runTest {
+        val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
+
+        every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
+
+        val deferredValue = CompletableDeferred<ChatMessageEvent>()
+
+        messages.subscribe {
+            deferredValue.complete(it)
+        }
+
+        pubSubMessageListenerSlot.captured.onMessage(
+            PubSubMessage().apply {
+                data = jsonObject {
+                    put("text", "hello")
+                }.toGson()
+                serial = "abcdefghij@1672531200000-123"
+                clientId = "clientId"
+                timestamp = 1000L
+                extras = MessageExtras(
+                    jsonObject {
+                        put("userClaim", "test-claim-value")
+                    }.toGson().asJsonObject,
+                )
+                action = PubSubMessageAction.MESSAGE_CREATE
+                version = io.ably.lib.types.MessageVersion().apply {
+                    serial = "abcdefghij@1672531200000-123"
+                    timestamp = 1000L
+                }
+            },
+        )
+
+        val messageEvent = deferredValue.await()
+        assertEquals("test-claim-value", messageEvent.message.userClaim)
+    }
+
+    /**
+     * @spec CHA-M2h
+     */
+    @Test
+    fun `should return null userClaim when extras do not contain it`() = runTest {
+        val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
+
+        every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
+
+        val deferredValue = CompletableDeferred<ChatMessageEvent>()
+
+        messages.subscribe {
+            deferredValue.complete(it)
+        }
+
+        pubSubMessageListenerSlot.captured.onMessage(
+            PubSubMessage().apply {
+                data = jsonObject {
+                    put("text", "hello")
+                }.toGson()
+                serial = "abcdefghij@1672531200000-123"
+                clientId = "clientId"
+                timestamp = 1000L
+                extras = MessageExtras(
+                    jsonObject {
+                        putObject("headers") {}
+                    }.toGson().asJsonObject,
+                )
+                action = PubSubMessageAction.MESSAGE_CREATE
+                version = io.ably.lib.types.MessageVersion().apply {
+                    serial = "abcdefghij@1672531200000-123"
+                    timestamp = 1000L
+                }
+            },
+        )
+
+        val messageEvent = deferredValue.await()
+        assertEquals(null, messageEvent.message.userClaim)
+    }
+
+    /**
+     * @spec CHA-M2h
+     */
+    @Test
+    fun `should ignore non-string userClaim values`() = runTest {
+        val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
+
+        every { messages.channelWrapper.subscribe("chat.message", capture(pubSubMessageListenerSlot)) } returns mockk()
+
+        val deferredValue = CompletableDeferred<ChatMessageEvent>()
+
+        messages.subscribe {
+            deferredValue.complete(it)
+        }
+
+        pubSubMessageListenerSlot.captured.onMessage(
+            PubSubMessage().apply {
+                data = jsonObject {
+                    put("text", "hello")
+                }.toGson()
+                serial = "abcdefghij@1672531200000-123"
+                clientId = "clientId"
+                timestamp = 1000L
+                extras = MessageExtras(
+                    jsonObject {
+                        put("userClaim", 42)
+                    }.toGson().asJsonObject,
+                )
+                action = PubSubMessageAction.MESSAGE_CREATE
+                version = io.ably.lib.types.MessageVersion().apply {
+                    serial = "abcdefghij@1672531200000-123"
+                    timestamp = 1000L
+                }
+            },
+        )
+
+        val messageEvent = deferredValue.await()
+        assertEquals(null, messageEvent.message.userClaim)
+    }
+
     @Test
     fun `subscription should invoke once for each incoming message`() = runTest {
         val listener1 = mockk<MessageListener>(relaxed = true)

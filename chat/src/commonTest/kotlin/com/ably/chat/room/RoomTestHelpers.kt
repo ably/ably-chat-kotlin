@@ -16,6 +16,7 @@ import com.ably.chat.RoomStatus
 import com.ably.chat.RoomStatusEventEmitter
 import com.ably.chat.Rooms
 import com.ably.chat.Typing
+import com.ably.chat.TypingClientState
 import com.ably.chat.TypingEventType
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.getPrivateField
@@ -40,7 +41,6 @@ import io.mockk.spyk
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Job
 import io.ably.lib.realtime.Channel as AblyRealtimeChannel
 
 const val DEFAULT_ROOM_ID = "1234"
@@ -150,10 +150,10 @@ internal var Typing.TypingHeartbeatStarted: ValueTimeMark?
     get() = getPrivateField("typingHeartbeatStarted")
     set(value) = setPrivateField("typingHeartbeatStarted", value)
 
-internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<String, Job>>("typingStartEventPrunerJobs")
+internal val Typing.TypingStartEventPrunerJobs get() = getPrivateField<Map<String, TypingClientState>>("typingStartEventPrunerJobs")
 
-internal fun Typing.processEvent(eventType: TypingEventType, clientId: String) =
-    invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId)
+internal fun Typing.processEvent(eventType: TypingEventType, clientId: String, userClaim: String? = null) =
+    invokePrivateMethod<Unit>("processReceivedTypingEvents", eventType, clientId, userClaim)
 
 internal fun createRoomFeatureMocks(
     roomName: String = DEFAULT_ROOM_ID,
