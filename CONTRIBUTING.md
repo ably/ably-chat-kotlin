@@ -120,6 +120,47 @@ In the project where you want to use the updated library:
 > - The `mavenLocal()` repository should typically be used only during development to avoid conflicts with published versions in remote repositories.
 > - Remember to remove `mavenLocal()` and revert the version before committing your changes.
 
+## Publishing to Maven Central
+
+> [!IMPORTANT]
+> Publishing to Maven Central should only be done after merging a release PR and creating a release tag.
+> Use the [GitHub Actions workflow](https://github.com/ably/ably-chat-kotlin/actions/workflows/release.yaml) to publish releases (see Step 11 in the [Release Process](#release-process)).
+> The instructions below are for reference and manual publishing in exceptional circumstances only.
+
+### Prerequisites for Publishing to Maven Central
+
+Ensure you have the following configured in your `~/.gradle/gradle.properties`:
+
+1. Sonatype OSSRH account credentials:
+   ```properties
+   mavenCentralUsername=user-token-username
+   mavenCentralPassword=user-token-password
+   ```
+2. GPG key for signing artifacts:
+
+- Generate a key pair if you don't have one: `gpg --gen-key`
+- Export the secret key to gradle.properties:
+    ```properties
+    signing.keyId=short-key-id
+    signing.password=key-password
+    signing.secretKeyRingFile=/path/to/.gnupg/secring.gpg
+    ```
+
+### Publishing Command
+
+To publish and release to Maven Central, run:
+
+```bash
+./gradlew publishAndReleaseToMavenCentral
+```
+
+> [!NOTE]
+> The CI workflow (`.github/workflows/release.yaml`) uses in-memory signing with environment variables instead of file-based signing:
+> - `ORG_GRADLE_PROJECT_signingInMemoryKey` - The GPG private key
+> - `ORG_GRADLE_PROJECT_signingInMemoryKeyId` - The GPG key ID
+> - `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword` - The GPG key password
+
+
 ## Documentation
 
 The source of truth for documentation for the Ably Chat SDKs can be found on the [Ably Docs repository](https://github.com/ably/docs).
@@ -128,20 +169,17 @@ Please ensure that you merge any pull requests in that repository promptly after
 
 Any releases must be accompanied by a PR to bump the library install version in the setup/install guide, at minimum.
 
-## Validate website docs snippet changes
+## Validate website doc snippets
 
-As part of the [release process](#release-process) (see Step 5), you should validate that the web documentation code snippets are accurate
-and up-to-date with the SDK source code. This is done by running the following prompt against a locally cloned copy of the
-[ably/docs](https://github.com/ably/docs) repository and this SDK repository.
+To validate that the web documentation code snippets are accurate and up-to-date with the SDK source code, run the following prompt against a locally cloned copy of the [ably/docs](https://github.com/ably/docs) repository and this SDK repository.
 
 > [!IMPORTANT]
-> This prompt should be run with the most powerful LLM available to you (e.g. Claude Opus, GPT-4, etc.) for the best results.
+> This prompt should be run with the most powerful LLM available to you (e.g. Claude Opus, GPT-5, etc.) for the best results.
 
-Replace `{DOCS_PATH}` with the path to your local clone of the [ably/docs](https://github.com/ably/docs) repository, `{SDK_NAME}` with
-`ably-chat-kotlin`, and `{SDK_PATH}` with the path to your local clone of this SDK repository.
+Replace `{DOCS_PATH}` with the path to your local clone of the [ably/docs](https://github.com/ably/docs) repository and `{SDK_PATH}` with the path to your local clone of this SDK repository.
 
-~~~
-Verify all `kotlin` and `android` annotated code snippets in `.mdx` files located at `{DOCS_PATH}` against the `{SDK_NAME}` source code repository at `{SDK_PATH}`.
+```text
+Verify all `kotlin` and `android` annotated code snippets in `.mdx` files located at `{DOCS_PATH}` against the `ably-chat-kotlin` source code repository at `{SDK_PATH}`.
 
 ### Verification Steps:
 
@@ -155,8 +193,8 @@ Verify all `kotlin` and `android` annotated code snippets in `.mdx` files locate
    - Namespaces and import requirements
 
 3. **Cross-check each snippet** for the following issues:
-   - **Syntax errors**: Missing keywords (e.g., `new` for constructors), missing semicolons, incorrect brackets
-   - **Naming conventions**: Verify casing matches the language conventions (e.g., PascalCase for C# properties, camelCase for JavaScript)
+   - **Syntax errors**: Incorrect object construction (Kotlin uses `MyClass()` not `new MyClass()`), missing `suspend` modifier, missing `val`/`var` for declarations, incorrect lambda syntax, incorrect null-safety operators (`?.`, `!!`, `?:`)
+   - **Naming conventions**: Verify casing matches Kotlin conventions (`PascalCase` for classes/objects/enums, `camelCase` for functions/properties/variables, `SCREAMING_SNAKE_CASE` for `const val` constants)
    - **API accuracy**: Verify method names, property names, and enum values exist in the SDK
    - **Type correctness**: Verify correct types are used (e.g., `ConnectionEvent` vs `ConnectionState`)
    - **Namespace/import requirements**: Note any required imports that are missing from examples
@@ -174,8 +212,8 @@ Verify all `kotlin` and `android` annotated code snippets in `.mdx` files locate
    - Recommendations for fixes
 
 ### Output Format:
-Create/update a markdown report file `chat_kotlin_api_verification_report.md` with all findings.
-~~~
+Create/update a markdown report file `{DOCS_PATH}/chat_kotlin_api_verification_report.md` with all findings.
+```
 
 ## Release Process
 
@@ -198,34 +236,12 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
     - Also ensure that the "Full Changelog" link points to the new version tag instead of the `HEAD`.
 
 4. Commit [CHANGELOG](./CHANGELOG.md)
-5. Run the [Validate website docs snippet changes](#validate-website-docs-snippet-changes) locally to verify that all `kotlin` and `android` code
-snippets in the [web documentation](https://github.com/ably/docs) are accurate and up-to-date with the SDK source code. Review the generated report and fix any issues found.
-6. Create a PR on the [website docs](https://github.com/ably/docs), [website snippets](https://github.com/ably/website) and
-[voltaire snippets](https://github.com/ably/voltaire/) that updates the SDK version in the setup/installation guide. Additionally, include fixes for any documentation issues identified in Step 5. Even if there are no public API changes, a PR must still be created to update the
-SDK version.
+5. If you’ve deprecated any public methods or properties, made changes to public interfaces, or are uncertain about the impact of your updates, run the [Validate website doc snippets](#validate-website-doc-snippets) task locally. This will verify that the `kotlin` or `android` code snippets in the web documentation (https://github.com/ably/docs) are accurate and aligned with the current SDK source. Review the generated report and address any issues it identifies.
+6. Create a PR on the [website docs](https://github.com/ably/docs) that updates the SDK version in the setup/installation guide. Additionally, include fixes for any documentation issues identified in the previous step. Even if there are no public API changes, a PR must still be created to update the SDK version.
 7. Make a PR against `main`
 8. Once the PR is approved, merge it into `main`
 9. Add a tag to the new `main` head commit and push to origin such as `git tag v1.2.4 && git push origin v1.2.4`
 10. Visit [https://github.com/ably/ably-chat-kotlin/tags](https://github.com/ably/ably-chat-kotlin/tags) and add release notes for the release including links to the changelog entry.
 11. Use the [GitHub action](https://github.com/ably/ably-chat-kotlin/actions/workflows/release.yaml) to publish the release. Run the workflow on the release tag created in Step 9.
-12. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes, including the one you created in Step 6.
+12. Merge any [website docs](https://github.com/ably/docs) PRs related to the changes created in Step 6.
 13. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
-
-### Publishing to Maven Central
-
-Ensure you have the following configured in your `~/.gradle/gradle.properties`:
-
-1. Sonatype OSSRH account credentials:
-   ```properties
-   mavenCentralUsername=user-token-username
-   mavenCentralPassword=user-token-password
-   ```
-2. GPG key for signing artifacts:
-
-- Generate a key pair if you don't have one: `gpg --gen-key`
-- Export the secret key to gradle.properties:
-    ```properties
-    signing.keyId=short-key-id
-    signing.password=key-password
-    signing.secretKeyRingFile=/path/to/.gnupg/secring.gpg
-    ```
