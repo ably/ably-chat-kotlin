@@ -163,11 +163,7 @@ To publish and release to Maven Central, run:
 
 ## Documentation
 
-The source of truth for documentation for the Ably Chat SDKs can be found on the [Ably Docs repository](https://github.com/ably/docs).
-
-Please ensure that you merge any pull requests in that repository promptly after releasing your change.
-
-Any releases must be accompanied by a PR to bump the library install version in the setup/install guide, at minimum.
+The source of truth for documentation for the Ably Chat SDKs can be found on the [Ably Docs repository](https://github.com/ably/docs) and is deployed at https://ably.com/docs.
 
 ## Validate website doc snippets
 
@@ -176,10 +172,10 @@ To validate that the web documentation code snippets are accurate and up-to-date
 > [!IMPORTANT]
 > This prompt should be run with the most powerful LLM available to you (e.g. Claude Opus, GPT-5, etc.) for the best results.
 
-Replace `{DOCS_PATH}` with the path to your local clone of the [ably/docs](https://github.com/ably/docs) repository and `{SDK_PATH}` with the path to your local clone of this SDK repository.
+Replace `{DOCS_PATH}` with the path to your local clone of the [ably/docs](https://github.com/ably/docs) repository and `{SDK_PATH}` with the path to your local clone of the [ably-chat-kotlin](https://github.com/ably/ably-chat-kotlin) SDK repository. Ensure both the local `ably/docs` and `ably-chat-kotlin` repositories are on the `main` branch and in sync with the remote.
 
 ```text
-Verify all `kotlin` and `android` annotated code snippets in `.mdx` files located at `{DOCS_PATH}` against the `ably-chat-kotlin` source code repository at `{SDK_PATH}`.
+Verify all `kotlin` and `android` annotated code snippets in `.mdx` files located at `{DOCS_PATH}/src/pages/docs/chat` against the `ably-chat-kotlin` source code repository at `{SDK_PATH}`.
 
 ### Verification Steps:
 
@@ -212,7 +208,7 @@ Verify all `kotlin` and `android` annotated code snippets in `.mdx` files locate
    - Recommendations for fixes
 
 ### Output Format:
-Create/update a markdown report file `{DOCS_PATH}/chat_kotlin_api_verification_report.md` with all findings.
+Create/update a markdown report file `chat_kotlin_api_verification_report.md` with all findings.
 ```
 
 ## Release Process
