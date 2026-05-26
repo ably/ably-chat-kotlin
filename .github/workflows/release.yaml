@@ -7,6 +7,8 @@ jobs:
   run-on-release:
     runs-on: ubuntu-latest
     if: github.repository == 'ably/ably-chat-kotlin'
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
