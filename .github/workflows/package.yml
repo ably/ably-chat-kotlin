@@ -11,9 +11,13 @@ on:
 jobs:
   package:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Validate version format
         env:
@@ -25,13 +29,13 @@ jobs:
           fi
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
 
       - name: Build artifacts
         env:
@@ -39,21 +43,21 @@ jobs:
         run: ./gradlew :chat:jvmJar :chat:assembleRelease :chat-extensions-compose:assembleRelease -PVERSION_NAME="${VERSION}"
 
       - name: Upload chat JVM JAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ably-chat-jvm-${{ inputs.version }}
           path: chat/build/libs/*.jar
           if-no-files-found: error
 
       - name: Upload chat Android AAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ably-chat-android-${{ inputs.version }}
           path: chat/build/outputs/aar/*-release.aar
           if-no-files-found: error
 
       - name: Upload chat-extensions-compose AAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ably-chat-extensions-compose-${{ inputs.version }}
           path: chat-extensions-compose/build/outputs/aar/*-release.aar
