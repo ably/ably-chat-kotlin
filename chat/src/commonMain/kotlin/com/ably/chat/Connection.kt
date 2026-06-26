@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import io.ably.lib.realtime.Connection as PubSubConnection
@@ -140,7 +141,7 @@ public fun Connection.statusAsFlow(): Flow<ConnectionStatusChange> = transformCa
 }
 
 internal class DefaultConnection(
-    pubSubConnection: PubSubConnection,
+    private val pubSubConnection: PubSubConnection,
     private val logger: Logger,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : Connection {
@@ -148,6 +149,8 @@ internal class DefaultConnection(
     private val connectionScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private val listeners: MutableList<ConnectionStatusListener> = CopyOnWriteArrayList()
+
+    private var connectionStateListener: io.ably.lib.realtime.ConnectionStateListener? = null
 
     // (CHA-CS3)
     override var status: ConnectionStatus = mapPubSubStatusToChat(pubSubConnection.state)
@@ -157,10 +160,11 @@ internal class DefaultConnection(
         private set
 
     init {
-        pubSubConnection.on { stateChange ->
+        connectionStateListener = io.ably.lib.realtime.ConnectionStateListener { stateChange ->
             val nextStatus = mapPubSubStatusToChat(stateChange.current)
             applyStatusChange(nextStatus, stateChange.reason.toErrorInfo(), stateChange.retryIn)
         }
+        pubSubConnection.on(connectionStateListener)
     }
 
     override fun onStatusChange(listener: ConnectionStatusListener): Subscription {
@@ -190,6 +194,21 @@ internal class DefaultConnection(
 
     private fun emitStateChange(statusChange: ConnectionStatusChange) {
         listeners.forEach { it.invoke(statusChange) }
+    }
+
+    /**
+     * Disposes of the Connection, removing listeners and cleaning up resources.
+     * Spec: CHA-CL1b
+     */
+    internal fun dispose() {
+        logger.trace("Connection.dispose()")
+        connectionStateListener?.let {
+            pubSubConnection.off(it)
+            connectionStateListener = null
+        }
+        listeners.clear()
+        connectionScope.cancel()
+        logger.debug("Connection.dispose(); disposed successfully")
     }
 }
 

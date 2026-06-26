@@ -44,6 +44,13 @@ public interface ChatClient {
      * The chat client options for the client, including any defaults that have been set.
      */
     public val clientOptions: ChatClientOptions
+
+    /**
+     * Disposes of the chat client, releasing all rooms and cleaning up resources.
+     * After calling this, the client should not be used.
+     * Spec: CHA-CL1
+     */
+    public suspend fun dispose()
 }
 
 /**
@@ -105,6 +112,12 @@ internal class DefaultChatClient(
 
     override val clientId: String?
         get() = realtimeClientWrapper.auth.clientId
+
+    // CHA-CL1
+    override suspend fun dispose() {
+        (rooms as DefaultRooms).dispose() // CHA-CL1a
+        (connection as DefaultConnection).dispose() // CHA-CL1b
+    }
 
     private fun buildLogContext() = DefaultLogContext(
         tag = "ChatClient",

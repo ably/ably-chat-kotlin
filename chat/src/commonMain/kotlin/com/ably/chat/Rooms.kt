@@ -1,11 +1,13 @@
 package com.ably.chat
 
 import com.ably.pubsub.RealtimeClient
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 
 /**
@@ -72,6 +74,7 @@ internal class DefaultRooms(
     logger: Logger,
 ) : Rooms {
     private val logger = logger.withContext(tag = "Rooms")
+    private val disposed = AtomicBoolean(false)
 
     /**
      * All operations for DefaultRooms should be executed under sequentialScope to avoid concurrency issues.
@@ -85,6 +88,9 @@ internal class DefaultRooms(
 
     override suspend fun get(name: String, options: RoomOptions): Room {
         logger.trace("get(); name=$name, options=$options")
+        if (disposed.get()) {
+            throw chatException("unable to get room; client has been disposed", ErrorCode.ResourceDisposed)
+        }
         return sequentialScope.async {
             val existingRoom = getReleasedOrExistingRoom(name)
             existingRoom?.let {
@@ -188,4 +194,35 @@ internal class DefaultRooms(
      */
     private fun makeRoom(roomName: String, options: RoomOptions): DefaultRoom =
         DefaultRoom(roomName, options, realtimeClient, chatApi, clientIdResolver, logger)
+
+    /**
+     * Disposes of the Rooms instance, releasing all managed rooms.
+     * Subsequent calls to get() will throw ChatException with ErrorCode.ResourceDisposed.
+     * Spec: CHA-CL1a
+     */
+    internal suspend fun dispose() {
+        logger.trace("dispose();")
+        if (!disposed.compareAndSet(false, true)) {
+            logger.debug("dispose(); already disposed")
+            return
+        }
+
+        sequentialScope.launch {
+            // Wait for in-flight releases
+            roomReleaseDeferredMap.values.toList().forEach { runCatching { it.await() } }
+
+            // CHA-CL1a - Release all rooms
+            roomNameToRoom.values.toList().forEach { room ->
+                runCatching { room.release() }
+            }
+
+            // Clear state
+            roomNameToRoom.clear()
+            roomGetDeferredMap.clear()
+            roomReleaseDeferredMap.clear()
+        }.join()
+
+        sequentialScope.coroutineContext.cancelChildren()
+        logger.debug("dispose(); disposed successfully")
+    }
 }
