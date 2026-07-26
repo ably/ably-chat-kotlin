@@ -513,6 +513,7 @@ internal class DefaultMessages(
                     description = pubSubMessage.version.description,
                     metadata = pubSubMessage.version.metadata,
                 ),
+                userClaim = pubSubMessage.extras.userClaim(), // CHA-M2h
             )
             listener.invoke(DefaultChatMessageEvent(type = eventType, message = chatMessage))
         }

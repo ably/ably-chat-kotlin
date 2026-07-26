@@ -35,6 +35,13 @@ public interface RoomReaction {
      * Whether the reaction was sent by the current user.
      */
     public val isSelf: Boolean
+
+    /**
+     * A server-provided string extracted from a JWT claim, if available.
+     * This is a read-only value set by the server based on channel-specific JWT claims.
+     * Spec: CHA-ER2a
+     */
+    public val userClaim: String?
 }
 
 internal data class DefaultRoomReaction(
@@ -44,4 +51,5 @@ internal data class DefaultRoomReaction(
     override val createdAt: Long,
     override val clientId: String,
     override val isSelf: Boolean,
+    override val userClaim: String? = null,
 ) : RoomReaction

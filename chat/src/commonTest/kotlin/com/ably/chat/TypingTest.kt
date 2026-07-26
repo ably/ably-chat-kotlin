@@ -282,7 +282,7 @@ class TypingTest {
         receiveTypingEvent(TypingEventType.Started, DEFAULT_CLIENT_ID)
         assertWaiter { typingEvents.size == 2 }
         // Old timer is cancelled and new inactivity timer started
-        assertTrue(activityTimer2!!.isCancelled)
+        assertTrue(activityTimer2!!.job.isCancelled)
         val activityTimer3 = typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID]
         assertNotNull(activityTimer3)
 
@@ -290,7 +290,7 @@ class TypingTest {
         receiveTypingEvent(TypingEventType.Started, DEFAULT_CLIENT_ID)
         assertWaiter { typingEvents.size == 3 }
         // Old timer is cancelled and new inactivity timer started
-        assertTrue(activityTimer3!!.isCancelled)
+        assertTrue(activityTimer3!!.job.isCancelled)
         val activityTimer4 = typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID]
         assertNotNull(activityTimer4)
     }
@@ -363,13 +363,13 @@ class TypingTest {
 
         val activityTimer1 = typing.TypingStartEventPrunerJobs[DEFAULT_CLIENT_ID]
         assertNotNull(activityTimer1)
-        assertTrue(activityTimer1!!.isActive)
+        assertTrue(activityTimer1!!.job.isActive)
 
         // Receive mock typing stop event
         receiveTypingEvent(TypingEventType.Stopped, DEFAULT_CLIENT_ID)
 
         assertWaiter { typingEvents.size == 2 }
-        assertTrue(activityTimer1.isCancelled)
+        assertTrue(activityTimer1.job.isCancelled)
         assertEquals(emptySet<String>(), typingEvents[1].currentlyTyping)
         assertEquals(TypingEventType.Stopped, typingEvents[1].change.type)
         assertEquals(DEFAULT_CLIENT_ID, typingEvents[1].change.clientId)
@@ -495,6 +495,140 @@ class TypingTest {
             ),
         )
         assertEquals(listOf(TypingEventType.Started, TypingEventType.Stopped), recordedEvents)
+    }
+
+    /**
+     * @spec CHA-T13a1
+     */
+    @Test
+    fun `userClaim should appear in typing start events`() = runTest {
+        val testScheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val typing = DefaultTyping(room, dispatcher)
+
+        val typingEvents = mutableListOf<TypingSetEvent>()
+        typing.subscribe {
+            typingEvents.add(it)
+        }
+
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, "test-claim")
+
+        assertEquals(1, typingEvents.size)
+        assertEquals("test-claim", typingEvents[0].change.userClaim)
+    }
+
+    /**
+     * @spec CHA-T13a1
+     */
+    @Test
+    fun `userClaim should be preserved across heartbeats when new event has no claim`() = runTest {
+        val testScheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val typing = DefaultTyping(room, dispatcher)
+
+        val typingEvents = mutableListOf<TypingSetEvent>()
+        typing.subscribe {
+            typingEvents.add(it)
+        }
+
+        // First typing event with userClaim
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, "test-claim")
+        assertEquals(1, typingEvents.size)
+        assertEquals("test-claim", typingEvents[0].change.userClaim)
+
+        // Second typing event without userClaim (heartbeat) - should preserve the cached value
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, null)
+        assertEquals(2, typingEvents.size)
+        assertEquals("test-claim", typingEvents[1].change.userClaim)
+    }
+
+    /**
+     * @spec CHA-T13a1
+     */
+    @Test
+    fun `userClaim should appear in typing stop events`() = runTest {
+        val testScheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val typing = DefaultTyping(room, dispatcher)
+
+        val typingEvents = mutableListOf<TypingSetEvent>()
+        typing.subscribe {
+            typingEvents.add(it)
+        }
+
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, "test-claim")
+        typing.processEvent(TypingEventType.Stopped, DEFAULT_CLIENT_ID, "stop-claim")
+
+        assertEquals(2, typingEvents.size)
+        assertEquals("stop-claim", typingEvents[1].change.userClaim)
+    }
+
+    /**
+     * @spec CHA-T13a1
+     */
+    @Test
+    fun `userClaim should be included in timed-stop events`() = runTest {
+        val testScheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val typing = DefaultTyping(room, dispatcher)
+
+        val typingEvents = mutableListOf<TypingSetEvent>()
+        typing.subscribe {
+            typingEvents.add(it)
+        }
+
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, "test-claim")
+        assertEquals(1, typingEvents.size)
+
+        // Advance past heartbeatThrottle + timeout to trigger timed stop
+        testScheduler.advanceTimeBy(12.seconds)
+        testScheduler.runCurrent()
+
+        assertEquals(2, typingEvents.size)
+        assertEquals(TypingEventType.Stopped, typingEvents[1].change.type)
+        assertEquals("test-claim", typingEvents[1].change.userClaim)
+    }
+
+    /**
+     * @spec CHA-T13a1
+     */
+    @Test
+    fun `incoming stop userClaim should take precedence over cached`() = runTest {
+        val testScheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val typing = DefaultTyping(room, dispatcher)
+
+        val typingEvents = mutableListOf<TypingSetEvent>()
+        typing.subscribe {
+            typingEvents.add(it)
+        }
+
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, "cached-claim")
+        typing.processEvent(TypingEventType.Stopped, DEFAULT_CLIENT_ID, "incoming-claim")
+
+        assertEquals(2, typingEvents.size)
+        assertEquals("incoming-claim", typingEvents[1].change.userClaim)
+    }
+
+    /**
+     * @spec CHA-T13a1
+     */
+    @Test
+    fun `cached userClaim should be used when stop event has no claim`() = runTest {
+        val testScheduler = TestCoroutineScheduler()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val typing = DefaultTyping(room, dispatcher)
+
+        val typingEvents = mutableListOf<TypingSetEvent>()
+        typing.subscribe {
+            typingEvents.add(it)
+        }
+
+        typing.processEvent(TypingEventType.Started, DEFAULT_CLIENT_ID, "cached-claim")
+        typing.processEvent(TypingEventType.Stopped, DEFAULT_CLIENT_ID, null)
+
+        assertEquals(2, typingEvents.size)
+        assertEquals("cached-claim", typingEvents[1].change.userClaim)
     }
 
     @Test

@@ -11,6 +11,7 @@ import com.ably.chat.json.jsonArray
 import com.ably.chat.json.jsonObject
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
+import io.ably.lib.types.MessageExtras
 import kotlin.collections.component1
 import kotlin.collections.component2
 
@@ -55,3 +56,12 @@ internal fun Any?.tryAsJsonValue(): JsonValue? = when (this) {
     is JsonElement -> toJsonValue()
     else -> null
 }
+
+/**
+ * Extracts the `userClaim` string from [MessageExtras], if present.
+ * Returns `null` if extras are null, don't contain `userClaim`, or the value is not a string.
+ */
+internal fun MessageExtras?.userClaim(): String? =
+    this?.asJsonObject()?.get("userClaim")?.let {
+        if (it.isJsonPrimitive && it.asJsonPrimitive.isString) it.asString else null
+    }

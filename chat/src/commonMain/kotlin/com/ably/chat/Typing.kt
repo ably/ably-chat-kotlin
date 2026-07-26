@@ -132,6 +132,13 @@ public interface TypingSetEvent {
          * The type of typing event.
          */
         public val type: TypingEventType
+
+        /**
+         * A server-provided string extracted from a JWT claim, if available.
+         * This is a read-only value set by the server based on channel-specific JWT claims.
+         * Spec: CHA-T13a1
+         */
+        public val userClaim: String?
     }
 }
 
@@ -144,7 +151,10 @@ internal data class DefaultTypingEvent(
 internal data class DefaultTypingEventChange(
     override val type: TypingEventType,
     override val clientId: String,
+    override val userClaim: String? = null,
 ) : TypingSetEvent.Change
+
+internal data class TypingClientState(val job: Job, val userClaim: String?)
 
 internal class DefaultTyping(
     private val room: DefaultRoom,
@@ -171,10 +181,10 @@ internal class DefaultTyping(
     private var typingEventPubSubSubscription: Subscription
 
     /**
-     * A mutable map of clientId to TimedTypingStopEvent job.
+     * A mutable map of clientId to typing client state (pruner job + cached userClaim).
      * Each received typing start event is capable of timed death after a certain period (heartbeatThrottle + timeout).
      */
-    private val typingStartEventPrunerJobs = mutableMapOf<String, Job>()
+    private val typingStartEventPrunerJobs = mutableMapOf<String, TypingClientState>()
 
     /**
      * Defines how often a typing.started heartbeat can be sent (in milliseconds).
@@ -224,8 +234,9 @@ internal class DefaultTyping(
                 logger.error("unable to handle typing event; no clientId", context = mapOf("message" to msg))
                 return@PubSubMessageListener
             }
+            val userClaim = msg.extras.userClaim() // CHA-T13a1
             typingScope.launch { // sequentially launches all events since limitedParallelism is set to 1
-                processReceivedTypingEvents(typingEventType, msg.clientId)
+                processReceivedTypingEvents(typingEventType, msg.clientId, userClaim)
             }
         }
         val typingEvents = listOf(TypingEventType.Started.eventName, TypingEventType.Stopped.eventName)
@@ -312,40 +323,48 @@ internal class DefaultTyping(
      *
      * @param eventType The type of typing event (started or stopped).
      * @param clientId The ID of the user who triggered the typing event.
+     * @param userClaim The userClaim extracted from the message extras, if available.
      * Spec: CHA-T13
      */
-    private fun processReceivedTypingEvents(eventType: TypingEventType, clientId: String) {
+    private fun processReceivedTypingEvents(eventType: TypingEventType, clientId: String, userClaim: String? = null) {
         when (eventType) {
             TypingEventType.Started -> { // CHA-T13b1
                 currentlyTypingMembers.add(clientId)
+                // Preserve userClaim across heartbeats: if new event has no claim, keep the existing one
+                val effectiveUserClaim = userClaim ?: typingStartEventPrunerJobs[clientId]?.userClaim
                 // CHA-T13b2 - Cancel the current self stopping event and replace with new one
-                typingStartEventPrunerJobs[clientId]?.cancel()
+                typingStartEventPrunerJobs[clientId]?.job?.cancel()
                 // CHA-T10a1, CHA-T13b3 - If a typing.start not received within this period, the client shall assume that the user has stopped typing
                 val timedTypingStopEvent: Job = typingScope.launch {
                     val typingEventWaitingTimeout = heartbeatThrottle + timeout
                     delay(typingEventWaitingTimeout)
                     // typingEventWaitingTimeout elapsed, so remove given clientId and emit stop event
                     currentlyTypingMembers.remove(clientId)
+                    val cachedUserClaim = typingStartEventPrunerJobs[clientId]?.userClaim
                     typingStartEventPrunerJobs.remove(clientId)
-                    emit(TypingEventType.Stopped, clientId)
+                    emit(TypingEventType.Stopped, clientId, cachedUserClaim)
                 }
-                typingStartEventPrunerJobs[clientId] = timedTypingStopEvent
+                typingStartEventPrunerJobs[clientId] = TypingClientState(timedTypingStopEvent, effectiveUserClaim)
             }
 
             TypingEventType.Stopped -> { // CHA-T13b4
                 val clientIdPresent = currentlyTypingMembers.remove(clientId)
-                typingStartEventPrunerJobs[clientId]?.cancel()
+                // On explicit stop: prefer incoming userClaim, fall back to cached
+                val effectiveUserClaim = userClaim ?: typingStartEventPrunerJobs[clientId]?.userClaim
+                typingStartEventPrunerJobs[clientId]?.job?.cancel()
                 typingStartEventPrunerJobs.remove(clientId)
                 if (!clientIdPresent) { // CHA-T13b5
                     return
                 }
+                emit(eventType, clientId, effectiveUserClaim)
+                return
             }
         }
-        emit(eventType, clientId)
+        emit(eventType, clientId, userClaim ?: typingStartEventPrunerJobs[clientId]?.userClaim)
     }
 
-    private fun emit(eventType: TypingEventType, clientId: String) {
-        val typingEventChange = DefaultTypingEventChange(eventType, clientId)
+    private fun emit(eventType: TypingEventType, clientId: String, userClaim: String? = null) {
+        val typingEventChange = DefaultTypingEventChange(eventType, clientId, userClaim)
         listeners.forEach {
             it.invoke(DefaultTypingEvent(current, typingEventChange))
         }

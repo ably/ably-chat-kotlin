@@ -127,6 +127,61 @@ class ChatApiTest {
     }
 
     /**
+     * @spec CHA-M2h
+     */
+    @Test
+    fun `getMessages should parse userClaim from REST API response`() = runTest {
+        mockMessagesApiResponse(
+            realtime,
+            listOf(
+                jsonObject {
+                    put(MessageProperty.Serial, "timeserial")
+                    put(MessageProperty.ClientId, "clientId")
+                    put(MessageProperty.Text, "hello")
+                    put(MessageProperty.Timestamp, 1_000_000)
+                    put(MessageProperty.Action, "message.create")
+                    put(MessageProperty.UserClaim, "test-claim-value")
+                    putObject(MessageProperty.Version) {
+                        put(MessageProperty.Serial, "timeserial")
+                        put(MessageProperty.Timestamp, 1_000_000)
+                    }
+                },
+            ),
+        )
+
+        val messages = chatApi.getMessages("roomName", QueryOptions())
+
+        assertEquals("test-claim-value", messages.items.first().userClaim)
+    }
+
+    /**
+     * @spec CHA-M2h
+     */
+    @Test
+    fun `getMessages should return null userClaim when not present in response`() = runTest {
+        mockMessagesApiResponse(
+            realtime,
+            listOf(
+                jsonObject {
+                    put(MessageProperty.Serial, "timeserial")
+                    put(MessageProperty.ClientId, "clientId")
+                    put(MessageProperty.Text, "hello")
+                    put(MessageProperty.Timestamp, 1_000_000)
+                    put(MessageProperty.Action, "message.create")
+                    putObject(MessageProperty.Version) {
+                        put(MessageProperty.Serial, "timeserial")
+                        put(MessageProperty.Timestamp, 1_000_000)
+                    }
+                },
+            ),
+        )
+
+        val messages = chatApi.getMessages("roomName", QueryOptions())
+
+        assertEquals(null, messages.items.first().userClaim)
+    }
+
+    /**
      * @nospec
      */
     @Test

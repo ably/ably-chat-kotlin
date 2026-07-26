@@ -121,6 +121,7 @@ internal class ChatApi(
                 description = version?.get(MessageVersionProperty.Description)?.stringOrNull(),
                 metadata = version?.get(MessageVersionProperty.Metadata)?.toMap(),
             ),
+            userClaim = messageJsonObject[MessageProperty.UserClaim]?.stringOrNull(), // CHA-M2h
         )
     }
 
