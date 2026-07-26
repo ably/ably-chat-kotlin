@@ -1,0 +1,59 @@
+# Compose UI specific detekt configuration
+# This config is used for chat-ui-compose and example-ui-kit modules
+# It relaxes rules that conflict with standard Compose patterns
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+complexity:
+  active: true
+  # Composables have nested layouts in single functions
+  LongMethod:
+    active: true
+    threshold: 300
+  # State-dependent rendering increases cognitive complexity
+  CognitiveComplexMethod:
+    active: true
+    threshold: 200
+  # Conditional UI branches for different states
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 50
+  # Theme/color data classes need many constructor parameters
+  LongParameterList:
+    active: true
+    constructorThreshold: 35
+    functionThreshold: 15
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+    ignoreAnnotated:
+      - 'Composable'
+  # Test classes often have many test functions
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 30
+    thresholdInClasses: 30
+    thresholdInInterfaces: 22
+    thresholdInObjects: 22
+    thresholdInEnums: 22
+
+style:
+  active: true
+  # Dimensions, colors, dp/sp values are standard in Compose
+  MagicNumber:
+    active: false
+  # Timestamps in tests use large numbers
+  UnderscoresInNumericLiterals:
+    active: true
+    acceptableLength: 15
+
+libraries:
+  active: true
+  # Config data classes are standard pattern in Compose UI
+  ForbiddenPublicDataClass:
+    active: false

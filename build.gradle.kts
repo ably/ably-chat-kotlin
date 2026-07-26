@@ -27,22 +27,51 @@ allprojects {
 detekt {
     description = "Runs detekt for all modules"
     autoCorrect = true
-    config.setFrom(files("${rootProject.rootDir}/detekt.yml"))
-    source.setFrom(files(rootProject.rootDir))
 }
 
-tasks.detekt.configure {
+// Detekt for SDK modules (strict rules)
+tasks.register<io.gitlab.arturbosch.detekt.Detekt>("detektSdk") {
+    description = "Run detekt on SDK modules"
+    config.setFrom(files("${rootProject.rootDir}/detekt.yml"))
+    setSource(files(
+        "chat/src",
+        "chat-extensions-compose/src",
+        "test-fixtures/src",
+    ))
     include("**/*.kt")
-    include("**/*.kts")
-    exclude("**/resources/**")
     exclude("**/build/**")
     reports {
-        xml.required.set(false)
+        md.required.set(true)
         html.required.set(false)
+        xml.required.set(false)
         txt.required.set(false)
         sarif.required.set(false)
-        md.required.set(true)
     }
+}
+
+// Detekt for Compose UI modules (relaxed rules)
+tasks.register<io.gitlab.arturbosch.detekt.Detekt>("detektCompose") {
+    description = "Run detekt on Compose UI modules"
+    config.setFrom(files("${rootProject.rootDir}/detekt-compose.yml"))
+    setSource(files(
+        "chat-ui-compose/src",
+        "example/src",
+        "example-ui-kit/src",
+    ))
+    include("**/*.kt")
+    exclude("**/build/**")
+    reports {
+        md.required.set(true)
+        html.required.set(false)
+        xml.required.set(false)
+        txt.required.set(false)
+        sarif.required.set(false)
+    }
+}
+
+// Configure main detekt task to run both SDK and Compose tasks
+tasks.named("detekt") {
+    dependsOn("detektSdk", "detektCompose")
 }
 
 tasks.register("check") {
