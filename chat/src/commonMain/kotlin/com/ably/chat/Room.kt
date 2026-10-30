@@ -2,9 +2,9 @@ package com.ably.chat
 
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.annotations.InternalChatApi
+import com.ably.pubsub.PubSubRealtimeClient
 import com.ably.pubsub.RealtimeChannel
-import com.ably.pubsub.RealtimeClient
-import io.ably.lib.realtime.ConnectionState
+import io.ably.pubsub.realtime.ConnectionState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -127,7 +127,7 @@ public fun Room.statusAsFlow(): Flow<RoomStatusChange> = transformCallbackAsFlow
 internal class DefaultRoom(
     override val name: String,
     override val options: RoomOptions,
-    internal val realtimeClient: RealtimeClient,
+    internal val realtimeClient: PubSubRealtimeClient,
     internal val chatApi: ChatApi,
     internal val clientIdResolver: ClientIdResolver,
     logger: Logger,

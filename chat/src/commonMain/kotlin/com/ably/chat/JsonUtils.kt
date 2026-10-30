@@ -6,8 +6,8 @@ import com.ably.chat.json.JsonObject
 import com.ably.chat.json.JsonString
 import com.ably.chat.json.JsonValue
 import com.ably.chat.json.jsonObject
-import io.ably.lib.http.HttpCore
-import io.ably.lib.http.HttpUtils
+import io.ably.pubsub.http.HttpCore
+import io.ably.pubsub.http.HttpUtils
 
 internal fun JsonValue.stringOrNull(): String? = when (this) {
     is JsonString -> this.value

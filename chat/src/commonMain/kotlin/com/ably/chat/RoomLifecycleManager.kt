@@ -1,9 +1,9 @@
 package com.ably.chat
 
 import com.ably.annotations.InternalAPI
-import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.ChannelState
-import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
+import io.ably.pubsub.realtime.Channel
+import io.ably.pubsub.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelStateListener.ChannelStateChange
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope

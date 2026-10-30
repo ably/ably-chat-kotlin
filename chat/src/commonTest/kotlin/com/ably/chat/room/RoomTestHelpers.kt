@@ -25,15 +25,15 @@ import com.ably.chat.presence
 import com.ably.chat.reactions
 import com.ably.chat.setPrivateField
 import com.ably.chat.typing
+import com.ably.pubsub.PubSubRealtimeClient
 import com.ably.pubsub.RealtimeChannel
-import com.ably.pubsub.RealtimeClient
-import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.ChannelState
-import io.ably.lib.realtime.ChannelStateListener
-import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
-import io.ably.lib.realtime.buildRealtimeChannel
-import io.ably.lib.types.ErrorInfo
-import io.ably.lib.util.EventEmitter
+import io.ably.pubsub.realtime.Channel
+import io.ably.pubsub.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelStateListener
+import io.ably.pubsub.realtime.ChannelStateListener.ChannelStateChange
+import io.ably.pubsub.realtime.buildRealtimeChannel
+import io.ably.pubsub.types.ErrorInfo
+import io.ably.pubsub.util.EventEmitter
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
@@ -41,14 +41,14 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
-import io.ably.lib.realtime.Channel as AblyRealtimeChannel
+import io.ably.pubsub.realtime.Channel as AblyRealtimeChannel
 
 const val DEFAULT_ROOM_ID = "1234"
 const val DEFAULT_CLIENT_ID = "clientId"
 const val DEFAULT_CHANNEL_NAME = "channel"
 
-fun createMockRealtimeClient(): RealtimeClient {
-    val realtimeClient = mockk<RealtimeClient> {
+fun createMockRealtimeClient(): PubSubRealtimeClient {
+    val realtimeClient = mockk<PubSubRealtimeClient> {
         every {
             channels
         } returns mockk {
@@ -76,11 +76,11 @@ fun createMockRealtimeChannel(channelName: String = "channel"): RealtimeChannel 
 }
 
 @OptIn(InternalAPI::class)
-fun RealtimeClient.createMockChannel(channelName: String = DEFAULT_CHANNEL_NAME): Channel =
+fun PubSubRealtimeClient.createMockChannel(channelName: String = DEFAULT_CHANNEL_NAME): Channel =
     spyk(this.javaClient.channels.get(channelName), recordPrivateCalls = true)
 
 internal fun createMockChatApi(
-    realtimeClient: RealtimeClient = createMockRealtimeClient(),
+    realtimeClient: PubSubRealtimeClient = createMockRealtimeClient(),
     clientId: String = DEFAULT_CLIENT_ID,
     logger: Logger = createMockLogger(),
 ): ChatApi {
@@ -94,7 +94,7 @@ internal fun createMockLogger(): Logger = mockk<Logger>(relaxed = true)
 internal fun createTestRoom(
     roomName: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
-    realtimeClient: RealtimeClient = createMockRealtimeClient(),
+    realtimeClient: PubSubRealtimeClient = createMockRealtimeClient(),
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
     roomOptions: (MutableRoomOptions.() -> Unit)? = null,

@@ -1,10 +1,10 @@
 package com.ably.chat
 
 import app.cash.turbine.test
-import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.realtime.ConnectionStateListener
-import io.ably.lib.realtime.ConnectionStateListener.ConnectionStateChange
-import io.ably.lib.realtime.buildRealtimeConnection
+import io.ably.pubsub.realtime.ConnectionState
+import io.ably.pubsub.realtime.ConnectionStateListener
+import io.ably.pubsub.realtime.ConnectionStateListener.ConnectionStateChange
+import io.ably.pubsub.realtime.buildRealtimeConnection
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -16,8 +16,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import io.ably.lib.realtime.Connection as PubSubConnection
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.realtime.Connection as PubSubConnection
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 class ConnectionTest {
 

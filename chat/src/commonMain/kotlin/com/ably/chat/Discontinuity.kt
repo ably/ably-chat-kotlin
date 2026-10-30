@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import io.ably.lib.util.EventEmitter
+import io.ably.pubsub.util.EventEmitter
 import kotlinx.coroutines.flow.Flow
 
 /**

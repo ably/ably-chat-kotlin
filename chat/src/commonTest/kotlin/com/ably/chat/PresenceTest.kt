@@ -7,8 +7,8 @@ import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimePresence
-import io.ably.lib.realtime.Presence.PresenceListener
-import io.ably.lib.types.PresenceMessage
+import io.ably.pubsub.realtime.Presence.PresenceListener
+import io.ably.pubsub.types.PresenceMessage
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot

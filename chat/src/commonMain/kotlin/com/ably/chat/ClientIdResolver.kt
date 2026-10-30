@@ -1,13 +1,13 @@
 package com.ably.chat
 
-import com.ably.pubsub.RealtimeClient
+import com.ably.pubsub.PubSubRealtimeClient
 
 /**
  * Resolves the client ID for Chat SDK operations. Most of the Chat operations require a client ID,
  * but client IDs can be not available until the client has been authenticated if we use Token-based Auth.
- * This class encapsulates the logic for retrieving fresh client ID directly from the [RealtimeClient].
+ * This class encapsulates the logic for retrieving fresh client ID directly from the [PubSubRealtimeClient].
  */
-internal class ClientIdResolver(private val realtimeClient: RealtimeClient) {
+internal class ClientIdResolver(private val realtimeClient: PubSubRealtimeClient) {
     fun get(): String = realtimeClient.auth.clientId ?: throw chatException(
         errorMessage = "unable to perform operation; invalid client id",
         errorCode = ErrorCode.InvalidClientId,

@@ -19,9 +19,9 @@ import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.hasAttachedOnce
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.ChannelState
-import io.ably.lib.realtime.ChannelStateListener
-import io.ably.lib.types.ChannelOptions
+import io.ably.pubsub.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelStateListener
+import io.ably.pubsub.types.ChannelOptions
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -36,7 +36,7 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 class MonitoringTest {
 

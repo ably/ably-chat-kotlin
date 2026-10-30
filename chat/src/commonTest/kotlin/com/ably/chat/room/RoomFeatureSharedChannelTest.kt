@@ -6,8 +6,8 @@ import com.ably.chat.DefaultRoom
 import com.ably.chat.buildRoomOptions
 import com.ably.chat.occupancy
 import com.ably.chat.presence
-import io.ably.lib.types.ChannelMode
-import io.ably.lib.types.ChannelOptions
+import io.ably.pubsub.types.ChannelMode
+import io.ably.pubsub.types.ChannelOptions
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify

@@ -57,8 +57,8 @@ import com.ably.chat.example.ui.theme.AblyChatExampleTheme
 import com.ably.chat.extensions.compose.collectAsCurrentlyTyping
 import com.ably.chat.extensions.compose.collectAsPagingMessagesState
 import com.ably.chat.update
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.types.ClientOptions
+import io.ably.pubsub.device.PubSubDevice
+import io.ably.pubsub.types.ClientOptions
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -68,13 +68,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val realtimeClient = AblyRealtime(
+        val realtimeClient = PubSubDevice.clientBuilder(
             ClientOptions().apply {
                 key = BuildConfig.ABLY_KEY
                 clientId = randomClientId
                 logLevel = 2
             },
-        )
+        ).build()
 
         val chatClient = ChatClient(realtimeClient) { logLevel = LogLevel.Trace }
 

@@ -7,11 +7,11 @@ import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.CompletionListener
-import io.ably.lib.realtime.Connection
-import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.types.Message
-import io.ably.lib.types.MessageExtras
+import io.ably.pubsub.realtime.CompletionListener
+import io.ably.pubsub.realtime.Connection
+import io.ably.pubsub.realtime.ConnectionState
+import io.ably.pubsub.types.Message
+import io.ably.pubsub.types.MessageExtras
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

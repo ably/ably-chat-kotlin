@@ -12,7 +12,7 @@ import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.createRoomFeatureMocks
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

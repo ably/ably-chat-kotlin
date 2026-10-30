@@ -3,7 +3,7 @@ package com.ably.chat
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.http.HttpMethod
-import com.ably.pubsub.RealtimeClient
+import com.ably.pubsub.PubSubRealtimeClient
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -14,7 +14,7 @@ import org.junit.Test
 
 class ChatApiTest {
 
-    private val realtime = mockk<RealtimeClient>(relaxed = true)
+    private val realtime = mockk<PubSubRealtimeClient>(relaxed = true)
 
     private val chatApi =
         ChatApi(realtime, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))

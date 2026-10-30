@@ -1,9 +1,9 @@
 package com.ably.chat
 
 import com.ably.chat.json.jsonObject
-import io.ably.lib.types.ChannelOptions
-import io.ably.lib.types.Message
-import io.ably.lib.types.MessageExtras
+import io.ably.pubsub.types.ChannelOptions
+import io.ably.pubsub.types.Message
+import io.ably.pubsub.types.MessageExtras
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference

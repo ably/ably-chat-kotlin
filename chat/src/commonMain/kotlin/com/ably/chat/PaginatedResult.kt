@@ -1,11 +1,11 @@
 package com.ably.chat
 
 import com.ably.chat.json.JsonValue
-import io.ably.lib.types.AsyncHttpPaginatedResponse
+import io.ably.pubsub.types.AsyncHttpPaginatedResponse
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 /**
  * Represents the result of a paginated query.

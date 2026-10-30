@@ -4,9 +4,9 @@ import com.ably.annotations.InternalAPI
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.types.MessageExtras
+import io.ably.pubsub.types.MessageExtras
 import kotlinx.coroutines.flow.Flow
-import io.ably.lib.realtime.Channel as AblyRealtimeChannel
+import io.ably.pubsub.realtime.Channel as AblyRealtimeChannel
 
 /**
  * This interface is used to interact with room-level reactions in a chat room: subscribing to reactions and sending them.

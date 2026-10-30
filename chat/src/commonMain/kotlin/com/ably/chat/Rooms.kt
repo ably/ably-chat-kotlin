@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import com.ably.pubsub.RealtimeClient
+import com.ably.pubsub.PubSubRealtimeClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +66,7 @@ public suspend fun Rooms.get(
  * Manages the chat rooms.
  */
 internal class DefaultRooms(
-    private val realtimeClient: RealtimeClient,
+    private val realtimeClient: PubSubRealtimeClient,
     private val chatApi: ChatApi,
     private val clientIdResolver: ClientIdResolver,
     logger: Logger,

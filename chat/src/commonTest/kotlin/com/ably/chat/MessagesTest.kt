@@ -8,11 +8,11 @@ import com.ably.chat.room.createMockChatApi
 import com.ably.chat.room.createMockRealtimeChannel
 import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
-import io.ably.lib.realtime.ChannelState
-import io.ably.lib.realtime.ChannelStateListener
-import io.ably.lib.realtime.buildChannelStateChange
-import io.ably.lib.types.ChannelProperties
-import io.ably.lib.types.MessageExtras
+import io.ably.pubsub.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelStateListener
+import io.ably.pubsub.realtime.buildChannelStateChange
+import io.ably.pubsub.types.ChannelProperties
+import io.ably.pubsub.types.MessageExtras
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -24,7 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
-import io.ably.lib.types.MessageAction as PubSubMessageAction
+import io.ably.pubsub.types.MessageAction as PubSubMessageAction
 
 class MessagesTest {
 
@@ -126,7 +126,7 @@ class MessagesTest {
                     }.toGson().asJsonObject,
                 )
                 action = PubSubMessageAction.MESSAGE_CREATE
-                version = io.ably.lib.types.MessageVersion().apply {
+                version = io.ably.pubsub.types.MessageVersion().apply {
                     serial = "abcdefghij@1672531200000-123"
                     timestamp = 1000L
                 }
@@ -187,7 +187,7 @@ class MessagesTest {
                     }.toGson().asJsonObject,
                 )
                 action = PubSubMessageAction.MESSAGE_DELETE
-                version = io.ably.lib.types.MessageVersion().apply {
+                version = io.ably.pubsub.types.MessageVersion().apply {
                     serial = "abcdefghij@1672531200000-123"
                     timestamp = 1000L
                     clientId = "clientId"
@@ -346,7 +346,7 @@ private fun buildDummyPubSubMessage() = PubSubMessage().apply {
         jsonObject {}.toGson().asJsonObject,
     )
     action = PubSubMessageAction.MESSAGE_CREATE
-    version = io.ably.lib.types.MessageVersion().apply {
+    version = io.ably.pubsub.types.MessageVersion().apply {
         serial = "abcdefghij@1672531200000-123"
         timestamp = 1000L
     }

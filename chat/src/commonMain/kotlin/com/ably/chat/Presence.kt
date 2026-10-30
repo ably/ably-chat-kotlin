@@ -4,9 +4,9 @@ import com.ably.annotations.InternalAPI
 import com.ably.chat.json.JsonObject
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
-import io.ably.lib.realtime.Channel
+import io.ably.pubsub.realtime.Channel
 import kotlinx.coroutines.flow.Flow
-import io.ably.lib.realtime.Presence.PresenceListener as PubSubPresenceListener
+import io.ably.pubsub.realtime.Presence.PresenceListener as PubSubPresenceListener
 
 /**
  * This interface is used to interact with presence in a chat room: subscribing to presence events,

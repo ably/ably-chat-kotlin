@@ -1,8 +1,8 @@
 package com.ably.chat
 
 import com.ably.chat.annotations.ChatDsl
-import io.ably.lib.types.ChannelMode
-import io.ably.lib.types.ChannelOptions
+import io.ably.pubsub.types.ChannelMode
+import io.ably.pubsub.types.ChannelOptions
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 

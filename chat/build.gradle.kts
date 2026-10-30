@@ -43,19 +43,20 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            compileOnly(libs.ably.java)
+            /*
+             * Apps choose their side by depending on io.ably.pubsub:device or io.ably.pubsub:server, both of which
+             * publish the same io.ably.pubsub.* types, so chat compiles against core and works with either.
+             */
+            compileOnly(libs.ably.pubsub.core)
             implementation(libs.ably.pubsub.adapter)
             implementation(libs.gson)
             implementation(libs.coroutine.core)
         }
         androidMain.dependencies {
-            api(libs.ably.android)
             implementation(libs.coroutine.android)
         }
-        jvmMain.dependencies {
-            api(libs.ably.java)
-        }
         commonTest.dependencies {
+            implementation(libs.ably.pubsub.device)
             implementation(libs.junit)
             implementation(libs.mockk)
             implementation(libs.coroutine.test)
