@@ -22,7 +22,7 @@ private const val CHAT_PROTOCOL_VERSION = 4
 private const val CHAT_API_PROTOCOL_VERSION = PROTOCOL_VERSION_PARAM_NAME + CHAT_PROTOCOL_VERSION
 
 internal class ChatApi(
-    private val realtimeClient: PubSubRealtimeClient,
+    private val pubsubClient: PubSubRealtimeClient,
     parentLogger: Logger,
 ) {
     private val logger = parentLogger.withContext(tag = "ChatApi")
@@ -192,7 +192,7 @@ internal class ChatApi(
         params: List<Param> = listOf(),
     ): JsonValue? = suspendCancellableCoroutine { continuation ->
         val requestBody = body.toRequestBody()
-        realtimeClient.requestAsync(
+        pubsubClient.requestAsync(
             path = url,
             method = method,
             params = listOf(pubSubProtocolParam) + params,
@@ -226,7 +226,7 @@ internal class ChatApi(
         params: List<Param> = listOf(),
         transform: (JsonValue) -> T?,
     ): PaginatedResult<T> = suspendCancellableCoroutine { continuation ->
-        realtimeClient.requestAsync(
+        pubsubClient.requestAsync(
             method = method,
             path = url,
             params = params + pubSubProtocolParam,

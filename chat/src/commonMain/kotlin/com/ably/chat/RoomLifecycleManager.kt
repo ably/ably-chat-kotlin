@@ -320,7 +320,7 @@ internal class RoomLifecycleManager(
      */
     private fun doRelease() {
         logger.trace("doRelease();")
-        room.realtimeClient.channels.release(roomChannel.name)
+        room.pubsubClient.channels.release(roomChannel.name)
         logger.debug("doRelease(); releasing underlying resources from each room feature")
         roomFeatures.forEach {
             it.dispose()

@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val realtimeClient = PubSubDevice.clientBuilder(
+        val pubsubClient = PubSubDevice.clientBuilder(
             ClientOptions().apply {
                 key = BuildConfig.ABLY_KEY
                 clientId = randomClientId
@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
             },
         ).build()
 
-        val chatClient = createChatClient(realtimeClient) { logLevel = LogLevel.Trace }
+        val chatClient = createChatClient(pubsubClient) { logLevel = LogLevel.Trace }
 
         enableEdgeToEdge()
         setContent {

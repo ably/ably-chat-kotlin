@@ -18,8 +18,8 @@ class RequestHeaderTest {
 
     @Test
     fun `should use additional agents in Realtime wrapper SDK client calls`() = runTest {
-        val ablyRealtime = createAblyRealtime()
-        val chatClient = createChatClient(ablyRealtime)
+        val pubsubClient = createPubsubClient()
+        val chatClient = createChatClient(pubsubClient)
         val roomName = UUID.randomUUID().toString()
 
         server.servedRequests.test {
@@ -57,7 +57,7 @@ class RequestHeaderTest {
     }
 }
 
-private fun createAblyRealtime(): PubSubRealtimeClient {
+private fun createPubsubClient(): PubSubRealtimeClient {
     val options = ClientOptions("xxxxx:yyyyyyy").apply {
         port = RequestHeaderTest.PORT
         useBinaryProtocol = false

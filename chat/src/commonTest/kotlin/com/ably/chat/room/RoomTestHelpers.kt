@@ -47,8 +47,8 @@ const val DEFAULT_ROOM_ID = "1234"
 const val DEFAULT_CLIENT_ID = "clientId"
 const val DEFAULT_CHANNEL_NAME = "channel"
 
-fun createMockRealtimeClient(): PubSubRealtimeClient {
-    val realtimeClient = mockk<PubSubRealtimeClient> {
+fun createMockPubsubClient(): PubSubRealtimeClient {
+    val pubsubClient = mockk<PubSubRealtimeClient> {
         every {
             channels
         } returns mockk {
@@ -58,7 +58,7 @@ fun createMockRealtimeClient(): PubSubRealtimeClient {
             every { release(any<String>()) } returns Unit
         }
     }
-    return realtimeClient
+    return pubsubClient
 }
 
 @OptIn(InternalAPI::class)
@@ -80,13 +80,13 @@ fun PubSubRealtimeClient.createMockChannel(channelName: String = DEFAULT_CHANNEL
     spyk(this.javaClient.channels.get(channelName), recordPrivateCalls = true)
 
 internal fun createMockChatApi(
-    realtimeClient: PubSubRealtimeClient = createMockRealtimeClient(),
+    pubsubClient: PubSubRealtimeClient = createMockPubsubClient(),
     clientId: String = DEFAULT_CLIENT_ID,
     logger: Logger = createMockLogger(),
 ): ChatApi {
     val clientIdResolver = mockk<ClientIdResolver>()
     every { clientIdResolver.get() } returns clientId
-    return spyk(ChatApi(realtimeClient, logger), recordPrivateCalls = true)
+    return spyk(ChatApi(pubsubClient, logger), recordPrivateCalls = true)
 }
 
 internal fun createMockLogger(): Logger = mockk<Logger>(relaxed = true)
@@ -94,14 +94,14 @@ internal fun createMockLogger(): Logger = mockk<Logger>(relaxed = true)
 internal fun createTestRoom(
     roomName: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
-    realtimeClient: PubSubRealtimeClient = createMockRealtimeClient(),
+    pubsubClient: PubSubRealtimeClient = createMockPubsubClient(),
     chatApi: ChatApi = mockk<ChatApi>(relaxed = true),
     logger: Logger = createMockLogger(),
     roomOptions: (MutableRoomOptions.() -> Unit)? = null,
 ): DefaultRoom {
     val clientIdResolver = mockk<ClientIdResolver>()
     every { clientIdResolver.get() } returns clientId
-    return DefaultRoom(roomName, buildRoomOptions(roomOptions), realtimeClient, chatApi, clientIdResolver, logger)
+    return DefaultRoom(roomName, buildRoomOptions(roomOptions), pubsubClient, chatApi, clientIdResolver, logger)
 }
 
 internal val RoomOptionsWithAllFeatures: RoomOptions
@@ -159,10 +159,10 @@ internal fun createRoomFeatureMocks(
     roomName: String = DEFAULT_ROOM_ID,
     clientId: String = DEFAULT_CLIENT_ID,
 ): List<RoomFeature> {
-    val realtimeClient = createMockRealtimeClient()
+    val pubsubClient = createMockPubsubClient()
     val chatApi = createMockChatApi()
     val logger = createMockLogger()
-    val room = createTestRoom(roomName, clientId, realtimeClient, chatApi, logger)
+    val room = createTestRoom(roomName, clientId, pubsubClient, chatApi, logger)
 
     val messages = spyk(room.messages, recordPrivateCalls = true) as RoomFeature
     val presence = spyk(room.presence, recordPrivateCalls = true) as RoomFeature

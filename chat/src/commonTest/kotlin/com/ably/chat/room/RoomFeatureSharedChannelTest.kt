@@ -31,8 +31,8 @@ class RoomFeatureSharedChannelTest {
 
     @Test
     fun `(CHA-RC3, CHA-RC3c) All features should share same channel and channels#get should be called only once`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
-        val channels = mockRealtimeClient.channels
+        val mockPubsubClient = createMockPubsubClient()
+        val channels = mockPubsubClient.channels
 
         every {
             channels.get("1234::\$chat", any<ChannelOptions>())
@@ -41,7 +41,7 @@ class RoomFeatureSharedChannelTest {
         }
 
         // Create room with all feature enabled,
-        val room = createTestRoom(realtimeClient = mockRealtimeClient)
+        val room = createTestRoom(pubsubClient = mockPubsubClient)
 
         // All features use the same channel
         Assert.assertEquals(room.messages.channel, room.presence.channel)
@@ -60,10 +60,10 @@ class RoomFeatureSharedChannelTest {
 
     @Test
     fun `(CHA-RC3, CHA-RC3b) Shared channels should combine modes+options in accordance with room options`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val capturedChannelOptions = mutableListOf<ChannelOptions>()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val channels = mockRealtimeClient.channels
+        val channels = mockPubsubClient.channels
 
         every {
             channels.get("1234::\$chat", any<ChannelOptions>())
@@ -73,7 +73,7 @@ class RoomFeatureSharedChannelTest {
         }
 
         // Create room with default roomOptions
-        var room = createTestRoom(realtimeClient = mockRealtimeClient)
+        var room = createTestRoom(pubsubClient = mockPubsubClient)
         Assert.assertTrue(room.options.presence.enableEvents)
         Assert.assertFalse(room.options.occupancy.enableEvents)
 
@@ -102,7 +102,7 @@ class RoomFeatureSharedChannelTest {
                 presence { enableEvents = false }
                 occupancy { enableEvents = true }
             },
-            mockRealtimeClient,
+            mockPubsubClient,
             chatApi,
             clientIdResolver,
             createMockLogger(),

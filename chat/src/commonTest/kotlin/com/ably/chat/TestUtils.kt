@@ -33,9 +33,9 @@ fun buildAsyncHttpPaginatedResponse(items: List<JsonValue>): AsyncHttpPaginatedR
     return response
 }
 
-fun mockMessagesApiResponse(realtimeClientMock: PubSubRealtimeClient, response: List<JsonValue>, roomName: String = "roomName") {
+fun mockMessagesApiResponse(pubsubClientMock: PubSubRealtimeClient, response: List<JsonValue>, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/messages", any(), HttpMethod.Get, any(), any(), any())
+        pubsubClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/messages", any(), HttpMethod.Get, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -44,9 +44,9 @@ fun mockMessagesApiResponse(realtimeClientMock: PubSubRealtimeClient, response: 
     }
 }
 
-fun mockSendMessageApiResponse(realtimeClientMock: PubSubRealtimeClient, response: JsonValue, roomName: String = "roomName") {
+fun mockSendMessageApiResponse(pubsubClientMock: PubSubRealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/messages", any(), HttpMethod.Post, any(), any(), any())
+        pubsubClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/messages", any(), HttpMethod.Post, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(
@@ -58,13 +58,13 @@ fun mockSendMessageApiResponse(realtimeClientMock: PubSubRealtimeClient, respons
 }
 
 fun mockUpdateMessageApiResponse(
-    realtimeClientMock: PubSubRealtimeClient,
+    pubsubClientMock: PubSubRealtimeClient,
     response: JsonValue,
     roomName: String = "roomName",
     serial: String = "timeserial",
 ) {
     every {
-        realtimeClientMock.requestAsync(
+        pubsubClientMock.requestAsync(
             "/chat/v4/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}",
             any(),
             HttpMethod.Put,
@@ -83,13 +83,13 @@ fun mockUpdateMessageApiResponse(
 }
 
 fun mockDeleteMessageApiResponse(
-    realtimeClientMock: PubSubRealtimeClient,
+    pubsubClientMock: PubSubRealtimeClient,
     response: JsonValue,
     roomName: String = "roomName",
     serial: String = "timeserial",
 ) {
     every {
-        realtimeClientMock.requestAsync(
+        pubsubClientMock.requestAsync(
             "/chat/v4/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}/delete",
             any(),
             HttpMethod.Post,
@@ -108,12 +108,12 @@ fun mockDeleteMessageApiResponse(
 }
 
 fun mockMessageReactionApiResponse(
-    realtimeClientMock: PubSubRealtimeClient,
+    pubsubClientMock: PubSubRealtimeClient,
     roomName: String = "roomName",
     serial: String = "timeserial",
 ) {
     every {
-        realtimeClientMock.requestAsync(
+        pubsubClientMock.requestAsync(
             "/chat/v4/rooms/${encodePath(roomName)}/messages/${encodePath(serial)}/reactions",
             any(),
             any(),
@@ -131,9 +131,9 @@ fun mockMessageReactionApiResponse(
     }
 }
 
-fun mockOccupancyApiResponse(realtimeClientMock: PubSubRealtimeClient, response: JsonValue, roomName: String = "roomName") {
+fun mockOccupancyApiResponse(pubsubClientMock: PubSubRealtimeClient, response: JsonValue, roomName: String = "roomName") {
     every {
-        realtimeClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/occupancy", any(), HttpMethod.Get, any(), any(), any())
+        pubsubClientMock.requestAsync("/chat/v4/rooms/${encodePath(roomName)}/occupancy", any(), HttpMethod.Get, any(), any(), any())
     } answers {
         val callback = secondArg<AsyncHttpPaginatedResponse.Callback>()
         callback.onResponse(

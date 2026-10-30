@@ -68,7 +68,7 @@ internal class DefaultChatClient(
 
     val stateDispatcher get() = clientOptions.stateDispatcher
 
-    private val realtimeClientWrapper = PubSubRealtimeClient(pubsubClient).createWrapperSdkProxy(
+    private val pubsubClientWrapper = PubSubRealtimeClient(pubsubClient).createWrapperSdkProxy(
         WrapperSdkProxyOptions(
             agents = mapOf(
                 "chat-kotlin" to BuildConfig.APP_VERSION,
@@ -85,25 +85,25 @@ internal class DefaultChatClient(
         )
     } ?: DefaultLoggerFactory(clientOptions.logLevel, buildLogContext())
 
-    private val clientIdResolver = ClientIdResolver(realtimeClientWrapper)
+    private val clientIdResolver = ClientIdResolver(pubsubClientWrapper)
 
-    private val chatApi = ChatApi(realtimeClientWrapper, logger)
+    private val chatApi = ChatApi(pubsubClientWrapper, logger)
 
     override val rooms: Rooms = DefaultRooms(
-        realtimeClient = realtimeClientWrapper,
+        pubsubClient = pubsubClientWrapper,
         chatApi = chatApi,
         clientIdResolver = clientIdResolver,
         logger = logger,
     )
 
     override val connection: Connection = DefaultConnection(
-        pubSubConnection = realtimeClientWrapper.connection,
+        pubSubConnection = pubsubClientWrapper.connection,
         logger = logger.withContext(tag = "RealtimeConnection"),
         dispatcher = stateDispatcher,
     )
 
     override val clientId: String?
-        get() = realtimeClientWrapper.auth.clientId
+        get() = pubsubClientWrapper.auth.clientId
 
     private fun buildLogContext() = DefaultLogContext(
         tag = "ChatClient",
@@ -112,8 +112,8 @@ internal class DefaultChatClient(
         ),
         dynamicContext = mapOf(
             "clientId" to { clientId },
-            "connectionId" to { realtimeClientWrapper.connection.id },
-            "connectionState" to { realtimeClientWrapper.connection.state.name },
+            "connectionId" to { pubsubClientWrapper.connection.id },
+            "connectionState" to { pubsubClientWrapper.connection.state.name },
         ),
     )
 }

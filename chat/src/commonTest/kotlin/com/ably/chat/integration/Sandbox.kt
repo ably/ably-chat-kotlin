@@ -64,14 +64,14 @@ class Sandbox private constructor(val appId: String, val apiKey: String) {
 }
 
 internal fun Sandbox.createSandboxChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
-    val realtime = createSandboxRealtime(chatClientId)
-    return DefaultChatClient(realtime, buildChatClientOptions())
+    val pubsubClient = createSandboxPubsubClient(chatClientId)
+    return DefaultChatClient(pubsubClient, buildChatClientOptions())
 }
 
 internal fun Sandbox.createTokenBasedSandboxChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
-    val keyClient = createSandboxRealtime(autoConnect = false)
+    val keyClient = createSandboxPubsubClient(autoConnect = false)
 
-    val realtime = PubSubDevice.clientBuilder(
+    val pubsubClient = PubSubDevice.clientBuilder(
         ClientOptions().apply {
             authCallback = Auth.TokenCallback {
                 keyClient.auth.createTokenRequest(
@@ -88,10 +88,10 @@ internal fun Sandbox.createTokenBasedSandboxChatClient(chatClientId: String = "s
             endpoint = SANDBOX_ENDPOINT
         },
     ).build()
-    return DefaultChatClient(realtime, buildChatClientOptions())
+    return DefaultChatClient(pubsubClient, buildChatClientOptions())
 }
 
-internal fun Sandbox.createSandboxRealtime(chatClientId: String? = null, autoConnect: Boolean = true): PubSubRealtimeClient =
+internal fun Sandbox.createSandboxPubsubClient(chatClientId: String? = null, autoConnect: Boolean = true): PubSubRealtimeClient =
     PubSubDevice.clientBuilder(
         ClientOptions().apply {
             key = apiKey
@@ -102,9 +102,9 @@ internal fun Sandbox.createSandboxRealtime(chatClientId: String? = null, autoCon
     ).build()
 
 internal suspend fun Sandbox.getConnectedChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
-    val realtime = createSandboxRealtime(chatClientId)
-    realtime.ensureConnected()
-    return DefaultChatClient(realtime, buildChatClientOptions())
+    val pubsubClient = createSandboxPubsubClient(chatClientId)
+    pubsubClient.ensureConnected()
+    return DefaultChatClient(pubsubClient, buildChatClientOptions())
 }
 
 private suspend fun PubSubRealtimeClient.ensureConnected() {

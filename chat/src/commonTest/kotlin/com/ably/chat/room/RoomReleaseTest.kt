@@ -47,13 +47,13 @@ class RoomReleaseTest {
     @Test
     fun `(CHA-RC1g) Should be able to release existing room, makes it eligible for garbage collection`() = runTest {
         val roomName = "1234"
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
         coJustRun { defaultRoom.release() }
@@ -74,13 +74,13 @@ class RoomReleaseTest {
     @Test
     fun `(CHA-RC1g1, CHA-RC1g5) Release operation only returns after channel goes into Released state`() = runTest {
         val roomName = "1234"
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
 
@@ -117,10 +117,10 @@ class RoomReleaseTest {
     @Test
     fun `(CHA-RC1g2) If the room does not exist in the room map, and no release operation is in progress, there is no-op`() = runTest {
         val roomName = "1234"
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         // No room exists
         Assert.assertEquals(0, rooms.RoomNameToRoom.size)
@@ -138,13 +138,13 @@ class RoomReleaseTest {
     @Test
     fun `(CHA-RC1g3) If the release operation is already in progress, then the associated deferred will be resolved`() = runTest {
         val roomName = "1234"
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
         every { rooms["makeRoom"](any<String>(), any<RoomOptions>()) } returns defaultRoom
@@ -196,13 +196,13 @@ class RoomReleaseTest {
     @Test
     fun `(CHA-RC1g4, CHA-RC1f6) Pending room get operation waiting for room release should be cancelled and deferred associated with previous release operation will be resolved`() = runTest {
         val roomName = "1234"
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
 
@@ -221,7 +221,7 @@ class RoomReleaseTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger)
+                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger)
             }
             room
         }

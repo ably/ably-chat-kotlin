@@ -7,8 +7,8 @@ import com.ably.pubsub.PubSubRealtimeClient
  * but client IDs can be not available until the client has been authenticated if we use Token-based Auth.
  * This class encapsulates the logic for retrieving fresh client ID directly from the [PubSubRealtimeClient].
  */
-internal class ClientIdResolver(private val realtimeClient: PubSubRealtimeClient) {
-    fun get(): String = realtimeClient.auth.clientId ?: throw chatException(
+internal class ClientIdResolver(private val pubsubClient: PubSubRealtimeClient) {
+    fun get(): String = pubsubClient.auth.clientId ?: throw chatException(
         errorMessage = "unable to perform operation; invalid client id",
         errorCode = ErrorCode.InvalidClientId,
         statusCode = HttpStatusCode.BadRequest,

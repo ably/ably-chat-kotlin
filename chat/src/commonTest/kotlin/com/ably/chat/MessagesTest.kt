@@ -5,8 +5,8 @@ import com.ably.annotations.InternalAPI
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockPubsubClient
 import com.ably.chat.room.createMockRealtimeChannel
-import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import io.ably.pubsub.realtime.ChannelState
 import io.ably.pubsub.realtime.ChannelStateListener
@@ -28,7 +28,7 @@ import io.ably.pubsub.types.MessageAction as PubSubMessageAction
 
 class MessagesTest {
 
-    private val realtimeClient = createMockRealtimeClient()
+    private val pubsubClient = createMockPubsubClient()
 
     private lateinit var messages: DefaultMessages
     private val channelStateListenerSlots = mutableListOf<ChannelStateListener>()
@@ -39,10 +39,10 @@ class MessagesTest {
         val channel = createMockRealtimeChannel("room1::\$chat")
         val javaChannel = channel.javaChannel
         every { javaChannel.on(capture(channelStateListenerSlots)) } returns mockk()
-        val channels = realtimeClient.channels
+        val channels = pubsubClient.channels
         every { channels.get("room1::\$chat", any()) } returns channel
-        val chatApi = createMockChatApi(realtimeClient)
-        val room = createTestRoom("room1", realtimeClient = realtimeClient, chatApi = chatApi)
+        val chatApi = createMockChatApi(pubsubClient)
+        val room = createTestRoom("room1", pubsubClient = pubsubClient, chatApi = chatApi)
         messages = room.messages
     }
 
@@ -52,7 +52,7 @@ class MessagesTest {
     @Test
     fun `should be able to send message and get it back from response`() = runTest {
         mockSendMessageApiResponse(
-            realtimeClient,
+            pubsubClient,
             jsonObject {
                 put(MessageProperty.Serial, "abcdefghij@1672531200000-123")
                 put(MessageProperty.Timestamp, 1_000_000)

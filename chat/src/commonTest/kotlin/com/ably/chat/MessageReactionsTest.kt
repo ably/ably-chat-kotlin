@@ -2,7 +2,7 @@ package com.ably.chat
 
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
-import com.ably.chat.room.createMockRealtimeClient
+import com.ably.chat.room.createMockPubsubClient
 import io.ably.pubsub.realtime.RealtimeAnnotations
 import io.ably.pubsub.realtime.buildRealtimeChannel
 import io.ably.pubsub.types.Annotation
@@ -25,8 +25,8 @@ import org.junit.Test
 import io.ably.pubsub.types.MessageAction as PubSubMessageAction
 
 class MessageReactionsTest {
-    private val realtimeClient = createMockRealtimeClient()
-    private val chatApi = createMockChatApi(realtimeClient)
+    private val pubsubClient = createMockPubsubClient()
+    private val chatApi = createMockChatApi(pubsubClient)
     private val channel = spyk(buildRealtimeChannel("room1::\$chat"))
     private val annotations = spyk(channel.annotations)
 

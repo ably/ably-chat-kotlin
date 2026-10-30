@@ -33,7 +33,7 @@ class ConfigureRoomOptionsTest {
 
     private val clientIdResolver = mockk<ClientIdResolver>()
     private val logger = createMockLogger()
-    private val mockRealtimeClient = createMockRealtimeClient()
+    private val mockPubsubClient = createMockPubsubClient()
     private val chatApi = mockk<ChatApi>(relaxed = true)
 
     @get:Rule
@@ -51,7 +51,7 @@ class ConfigureRoomOptionsTest {
         val room = DefaultRoom(
             "1234",
             roomOpts,
-            mockRealtimeClient,
+            mockPubsubClient,
             chatApi,
             clientIdResolver,
             logger,
@@ -65,7 +65,7 @@ class ConfigureRoomOptionsTest {
             DefaultRoom(
                 "1234",
                 roomOpts,
-                mockRealtimeClient,
+                mockPubsubClient,
                 chatApi,
                 clientIdResolver,
                 logger,
@@ -79,7 +79,7 @@ class ConfigureRoomOptionsTest {
     @Test
     fun `(CHA-RC5, CHA-RC2g) No feature should throw any exception on accessing it`() = runTest {
         // Room only supports messages feature, since by default other features are turned off
-        var room = DefaultRoom("1234", buildRoomOptions(), mockRealtimeClient, chatApi, clientIdResolver, logger)
+        var room = DefaultRoom("1234", buildRoomOptions(), mockPubsubClient, chatApi, clientIdResolver, logger)
         Assert.assertNotNull(room)
         Assert.assertEquals(RoomStatus.Initialized, room.status)
 
@@ -99,7 +99,7 @@ class ConfigureRoomOptionsTest {
                 presence { enableEvents = false }
                 occupancy { enableEvents = false }
             },
-            mockRealtimeClient, chatApi, clientIdResolver, logger,
+            mockPubsubClient, chatApi, clientIdResolver, logger,
         )
 
         Assert.assertNotNull(room)
@@ -118,7 +118,7 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4a) With no room options, the client shall provide defaults`() = runTest {
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger)
+        val rooms = DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger)
 
         val room = rooms.get(DEFAULT_ROOM_ID)
         val roomOptions = room.options
@@ -131,7 +131,7 @@ class ConfigureRoomOptionsTest {
 
     @Test
     fun `(CHA-RC4b) With partial room options, client shall deep-merge the provided values with the defaults`() = runTest {
-        val rooms: Rooms = DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger)
+        val rooms: Rooms = DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger)
 
         val roomOpts = buildRoomOptions {
             occupancy { enableEvents = true }
