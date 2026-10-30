@@ -3,12 +3,12 @@ package com.ably.chat
 import app.cash.turbine.test
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.DEFAULT_ROOM_ID
+import com.ably.chat.room.createMockPubsubClient
 import com.ably.chat.room.createMockRealtimeChannel
-import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimePresence
-import io.ably.lib.realtime.Presence.PresenceListener
-import io.ably.lib.types.PresenceMessage
+import io.ably.pubsub.realtime.Presence.PresenceListener
+import io.ably.pubsub.types.PresenceMessage
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -22,17 +22,17 @@ import org.junit.Test
 
 class PresenceTest {
 
-    private val realtimeClient = createMockRealtimeClient()
+    private val pubsubClient = createMockPubsubClient()
     private lateinit var pubSubPresence: RealtimePresence
     private lateinit var presence: DefaultPresence
 
     @Before
     fun setUp() {
         val channel = createMockRealtimeChannel("$DEFAULT_ROOM_ID::\$chat")
-        val channels = realtimeClient.channels
+        val channels = pubsubClient.channels
         every { channels.get("$DEFAULT_ROOM_ID::\$chat", any()) } returns channel
         pubSubPresence = channel.presence
-        presence = DefaultPresence(createTestRoom(realtimeClient = realtimeClient))
+        presence = DefaultPresence(createTestRoom(pubsubClient = pubsubClient))
     }
 
     /**
@@ -163,7 +163,7 @@ class PresenceTest {
 
     @Test
     fun `(CHA-PR7d) presence subscribe should throw error if presence events are disabled in room options`() = runTest {
-        val room = createTestRoom(realtimeClient = realtimeClient) {
+        val room = createTestRoom(pubsubClient = pubsubClient) {
             presence {
                 enableEvents = false
             }

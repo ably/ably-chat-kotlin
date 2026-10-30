@@ -1,7 +1,7 @@
 package com.ably.chat
 
 import com.ably.chat.json.JsonValue
-import io.ably.lib.types.Summary
+import io.ably.pubsub.types.Summary
 
 /**
  * The summary entry for aggregated annotations that use the flag.v1

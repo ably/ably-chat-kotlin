@@ -3,8 +3,8 @@ package com.ably.chat
 import app.cash.turbine.test
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockPubsubClient
 import com.ably.chat.room.createMockRealtimeChannel
-import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import io.mockk.every
 import io.mockk.mockk
@@ -21,16 +21,16 @@ class OccupancyTest {
 
     private lateinit var occupancy: DefaultOccupancy
     private val pubSubMessageListenerSlot = slot<PubSubMessageListener>()
-    private val realtimeClient = createMockRealtimeClient()
+    private val pubsubClient = createMockPubsubClient()
 
     @Before
     fun setUp() {
         val channel = createMockRealtimeChannel("room1::\$chat")
         every { channel.subscribe(any<String>(), capture(pubSubMessageListenerSlot)) } returns mockk(relaxUnitFun = true)
-        val channels = realtimeClient.channels
+        val channels = pubsubClient.channels
         every { channels.get("room1::\$chat", any()) } returns channel
-        val mockChatApi = createMockChatApi(realtimeClient)
-        val room = createTestRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi) {
+        val mockChatApi = createMockChatApi(pubsubClient)
+        val room = createTestRoom("room1", pubsubClient = pubsubClient, chatApi = mockChatApi) {
             occupancy {
                 enableEvents = true
             }
@@ -44,7 +44,7 @@ class OccupancyTest {
     @Test
     fun `user should be able to receive occupancy via #get()`() = runTest {
         mockOccupancyApiResponse(
-            realtimeClient,
+            pubsubClient,
             jsonObject {
                 put("connections", 2)
                 put("presenceMembers", 1)
@@ -151,7 +151,7 @@ class OccupancyTest {
 
     @Test
     fun `(CHA-O4e) occupancy subscribe should throw error if occupancy events are disabled in room options`() = runTest {
-        val room = createTestRoom(realtimeClient = realtimeClient) {
+        val room = createTestRoom(pubsubClient = pubsubClient) {
             occupancy {
                 enableEvents = false
             }

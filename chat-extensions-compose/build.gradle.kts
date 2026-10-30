@@ -59,6 +59,7 @@ kotlin {
 
 dependencies {
     implementation(project(":chat"))
+    testImplementation(libs.ably.pubsub.device)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)

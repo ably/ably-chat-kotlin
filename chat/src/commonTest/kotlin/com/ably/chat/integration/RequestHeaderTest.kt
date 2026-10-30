@@ -1,11 +1,12 @@
 package com.ably.chat.integration
 
 import app.cash.turbine.test
-import com.ably.chat.ChatClient
 import com.ably.chat.assertWaiter
+import com.ably.chat.createChatClient
 import fi.iki.elonen.NanoHTTPD
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.types.ClientOptions
+import io.ably.pubsub.device.PubSubDevice
+import io.ably.pubsub.realtime.PubSubRealtimeClient
+import io.ably.pubsub.types.ClientOptions
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.AfterClass
@@ -17,8 +18,8 @@ class RequestHeaderTest {
 
     @Test
     fun `should use additional agents in Realtime wrapper SDK client calls`() = runTest {
-        val ablyRealtime = createAblyRealtime()
-        val chatClient = ChatClient(ablyRealtime)
+        val pubsubClient = createPubsubClient()
+        val chatClient = createChatClient(pubsubClient)
         val roomName = UUID.randomUUID().toString()
 
         server.servedRequests.test {
@@ -56,15 +57,14 @@ class RequestHeaderTest {
     }
 }
 
-private fun createAblyRealtime(): AblyRealtime {
+private fun createPubsubClient(): PubSubRealtimeClient {
     val options = ClientOptions("xxxxx:yyyyyyy").apply {
         port = RequestHeaderTest.PORT
         useBinaryProtocol = false
-        realtimeHost = "localhost"
-        restHost = "localhost"
+        endpoint = "localhost"
         tls = false
         autoConnect = false
     }
 
-    return AblyRealtime(options)
+    return PubSubDevice.clientBuilder(options).build()
 }

@@ -70,7 +70,7 @@ When adding or modifying code:
 
 - **Test file location**: Mirror source structure - `commonTest/` for shared code, `androidUnitTest/` for Android, `jvmTest/` for JVM
 - **Naming**: Use `*Test.kt` suffix (e.g., `MessagesTest.kt` for `Messages.kt`)
-- **Test utilities**: Use helpers from `TestUtils.kt` - `createMockRealtimeClient()`, `createMockRealtimeChannel()`, `createTestRoom()`
+- **Test utilities**: Use helpers from `TestUtils.kt` - `createMockPubsubClient()`, `createMockRealtimeChannel()`, `createTestRoom()`
 - **Flow testing**: Use Turbine's `.test { }` block for Flow assertions
 - **Async testing**: Use `runTest` from kotlinx-coroutines-test
 - **Mocking**: Use MockK - `mockk()`, `every { } returns`, `slot<T>()` for capturing callbacks

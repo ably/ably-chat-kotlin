@@ -2,9 +2,9 @@ package com.ably.chat
 
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.chat.annotations.InternalChatApi
+import com.ably.pubsub.PubSubRealtimeClient
 import com.ably.pubsub.RealtimeChannel
-import com.ably.pubsub.RealtimeClient
-import io.ably.lib.realtime.ConnectionState
+import io.ably.pubsub.realtime.ConnectionState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -127,7 +127,7 @@ public fun Room.statusAsFlow(): Flow<RoomStatusChange> = transformCallbackAsFlow
 internal class DefaultRoom(
     override val name: String,
     override val options: RoomOptions,
-    internal val realtimeClient: RealtimeClient,
+    internal val pubsubClient: PubSubRealtimeClient,
     internal val chatApi: ChatApi,
     internal val clientIdResolver: ClientIdResolver,
     logger: Logger,
@@ -138,7 +138,7 @@ internal class DefaultRoom(
      * Spec: CHA-RC3a, CHA-RC3c
      */
     @ExperimentalChatApi
-    override val channel: RealtimeChannel = realtimeClient.channels.get("$name::\$chat", options.channelOptions())
+    override val channel: RealtimeChannel = pubsubClient.channels.get("$name::\$chat", options.channelOptions())
 
     /**
      * RoomScope is a crucial part of the Room lifecycle. It manages sequential and atomic operations.
@@ -219,11 +219,11 @@ internal class DefaultRoom(
     internal fun ensureConnected(featureLogger: Logger) {
         featureLogger.trace("ensureConnected();")
 
-        if (realtimeClient.connection.state != ConnectionState.connected) {
+        if (pubsubClient.connection.state != ConnectionState.connected) {
             featureLogger.trace(
                 "Room.ensureConnected(); connection state is not connected",
                 context = mapOf(
-                    "status" to realtimeClient.connection.state.name,
+                    "status" to pubsubClient.connection.state.name,
                 ),
             )
             throw clientError("unable to perform operation; connection is not connected", ErrorCode.Disconnected)

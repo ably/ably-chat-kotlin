@@ -2,8 +2,8 @@ package com.ably.chat
 
 import com.ably.annotations.InternalAPI
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.Channel
-import io.ably.lib.types.Message
+import io.ably.pubsub.realtime.Channel
+import io.ably.pubsub.types.Message
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds

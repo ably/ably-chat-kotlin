@@ -3,8 +3,7 @@ package com.ably.chat
 import com.ably.chat.annotations.ExperimentalChatApi
 import com.ably.pubsub.WrapperSdkProxyOptions
 import com.ably.pubsub.createWrapperSdkProxy
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.realtime.RealtimeClient
+import io.ably.pubsub.realtime.PubSubRealtimeClient
 
 /**
  * This is the core client for Ably chat. It provides access to chat rooms.
@@ -35,10 +34,10 @@ public interface ChatClient {
     public val clientId: String?
 
     /**
-     * The underlying Ably Realtime client.
+     * The underlying Ably Pub/Sub realtime client.
      */
     @ExperimentalChatApi
-    public val realtime: AblyRealtime
+    public val pubsubClient: PubSubRealtimeClient
 
     /**
      * The chat client options for the client, including any defaults that have been set.
@@ -47,29 +46,29 @@ public interface ChatClient {
 }
 
 /**
- * @param realtimeClient The Ably Realtime client
+ * @param pubsubClient The Ably Pub/Sub realtime client
  * @param clientOptions The client options.
  * @return [ChatClient] with the specified options
  */
-public fun ChatClient(realtimeClient: AblyRealtime, clientOptions: ChatClientOptions = buildChatClientOptions()): ChatClient =
-    DefaultChatClient(realtimeClient, clientOptions)
+public fun createChatClient(pubsubClient: PubSubRealtimeClient, clientOptions: ChatClientOptions = buildChatClientOptions()): ChatClient =
+    DefaultChatClient(pubsubClient, clientOptions)
 
 /**
- * @param realtimeClient The Ably Realtime client
+ * @param pubsubClient The Ably Pub/Sub realtime client
  * @param init Kotlin type-safe builder for client options
  * @return [ChatClient] with the specified options
  */
-public fun ChatClient(realtimeClient: AblyRealtime, init: MutableChatClientOptions.() -> Unit): ChatClient =
-    ChatClient(realtimeClient, buildChatClientOptions(init))
+public fun createChatClient(pubsubClient: PubSubRealtimeClient, init: MutableChatClientOptions.() -> Unit): ChatClient =
+    createChatClient(pubsubClient, buildChatClientOptions(init))
 
 internal class DefaultChatClient(
-    override val realtime: AblyRealtime,
+    override val pubsubClient: PubSubRealtimeClient,
     override val clientOptions: ChatClientOptions,
 ) : ChatClient {
 
     val stateDispatcher get() = clientOptions.stateDispatcher
 
-    private val realtimeClientWrapper = RealtimeClient(realtime).createWrapperSdkProxy(
+    private val pubsubClientWrapper = PubSubRealtimeClient(pubsubClient).createWrapperSdkProxy(
         WrapperSdkProxyOptions(
             agents = mapOf(
                 "chat-kotlin" to BuildConfig.APP_VERSION,
@@ -86,25 +85,25 @@ internal class DefaultChatClient(
         )
     } ?: DefaultLoggerFactory(clientOptions.logLevel, buildLogContext())
 
-    private val clientIdResolver = ClientIdResolver(realtimeClientWrapper)
+    private val clientIdResolver = ClientIdResolver(pubsubClientWrapper)
 
-    private val chatApi = ChatApi(realtimeClientWrapper, logger)
+    private val chatApi = ChatApi(pubsubClientWrapper, logger)
 
     override val rooms: Rooms = DefaultRooms(
-        realtimeClient = realtimeClientWrapper,
+        pubsubClient = pubsubClientWrapper,
         chatApi = chatApi,
         clientIdResolver = clientIdResolver,
         logger = logger,
     )
 
     override val connection: Connection = DefaultConnection(
-        pubSubConnection = realtimeClientWrapper.connection,
+        pubSubConnection = pubsubClientWrapper.connection,
         logger = logger.withContext(tag = "RealtimeConnection"),
         dispatcher = stateDispatcher,
     )
 
     override val clientId: String?
-        get() = realtimeClientWrapper.auth.clientId
+        get() = pubsubClientWrapper.auth.clientId
 
     private fun buildLogContext() = DefaultLogContext(
         tag = "ChatClient",
@@ -113,8 +112,8 @@ internal class DefaultChatClient(
         ),
         dynamicContext = mapOf(
             "clientId" to { clientId },
-            "connectionId" to { realtimeClientWrapper.connection.id },
-            "connectionState" to { realtimeClientWrapper.connection.state.name },
+            "connectionId" to { pubsubClientWrapper.connection.id },
+            "connectionState" to { pubsubClientWrapper.connection.state.name },
         ),
     )
 }

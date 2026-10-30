@@ -3,15 +3,15 @@ package com.ably.chat
 import app.cash.turbine.test
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
+import com.ably.chat.room.createMockPubsubClient
 import com.ably.chat.room.createMockRealtimeChannel
-import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.CompletionListener
-import io.ably.lib.realtime.Connection
-import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.types.Message
-import io.ably.lib.types.MessageExtras
+import io.ably.pubsub.realtime.CompletionListener
+import io.ably.pubsub.realtime.Connection
+import io.ably.pubsub.realtime.ConnectionState
+import io.ably.pubsub.types.Message
+import io.ably.pubsub.types.MessageExtras
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -32,12 +32,12 @@ class RoomReactionsTest {
 
     @Before
     fun setUp() {
-        val realtimeClient = createMockRealtimeClient()
+        val pubsubClient = createMockPubsubClient()
 
-        val channels = realtimeClient.channels
+        val channels = pubsubClient.channels
         every { channels.get(any(), any()) } returns realtimeChannel
 
-        room = spyk(createTestRoom("room1", "client1", realtimeClient = realtimeClient))
+        room = spyk(createTestRoom("room1", "client1", pubsubClient = pubsubClient))
         coEvery { room.ensureAttached(any<Logger>()) } returns Unit
 
         roomReactions = DefaultRoomReactions(room)
@@ -121,9 +121,9 @@ class RoomReactionsTest {
         var publishedMessage: Message? = null
         val connection = mockk<Connection>()
         connection.state = ConnectionState.connected
-        val realtimeClient = room.realtimeClient
+        val pubsubClient = room.pubsubClient
 
-        every { realtimeClient.connection } returns connection
+        every { pubsubClient.connection } returns connection
 
         every {
             realtimeChannel.publish(any<Message>(), any<CompletionListener>())

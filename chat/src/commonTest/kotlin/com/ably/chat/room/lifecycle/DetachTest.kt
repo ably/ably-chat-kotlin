@@ -15,7 +15,7 @@ import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.isExplicitlyDetached
 import com.ably.chat.serverError
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

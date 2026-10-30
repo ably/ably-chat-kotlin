@@ -2,6 +2,95 @@
 
 This guide provides detailed instructions on how to upgrade between versions of the Chat SDK.
 
+## 1.x to 2.x
+
+The Chat SDK now runs on version 2 of the Ably Pub/Sub SDK (`io.ably.pubsub`) instead of version 1 (`io.ably:ably-java` and `io.ably:ably-android`).
+For the full list of Pub/Sub changes, see the Pub/Sub SDK's [upgrade guide](https://github.com/ably/ably-pubsub-java/blob/main/UPGRADING.md).
+
+### Add the Pub/Sub SDK dependency yourself
+
+**Expected Impact: High**
+
+The Chat SDK no longer brings the Pub/Sub SDK with it. Add exactly one Pub/Sub package, chosen by where your code runs:
+
+```kotlin
+// Android apps and other end-user runtimes
+implementation("io.ably.pubsub:device:2.0.0")
+
+// Servers and other trusted backend environments
+implementation("io.ably.pubsub:server:2.0.0")
+```
+
+Remove `io.ably:ably-java` and `io.ably:ably-android` from your build. Never declare `io.ably.pubsub:core` or `io.ably.pubsub:core-android` directly.
+
+Without one of these packages your app still compiles, but fails with `NoClassDefFoundError` when it creates a client.
+
+### Create the chat client with `createChatClient`
+
+**Expected Impact: High**
+
+The `ChatClient(...)` factory function is renamed to `createChatClient(...)`, and it now takes an `io.ably.pubsub.realtime.PubSubRealtimeClient`
+instead of an `io.ably.lib.realtime.AblyRealtime`.
+Pub/Sub client constructors are no longer public, so create the Pub/Sub client with the builder from the package you chose.
+
+The `ChatClient.realtime` property is renamed to `ChatClient.pubsubClient` and returns the new type.
+
+**Before**
+
+```kotlin
+import io.ably.lib.realtime.AblyRealtime
+import io.ably.lib.types.ClientOptions
+
+val realtimeClient = AblyRealtime(
+    ClientOptions().apply {
+        key = "<your-ably-api-key>"
+        clientId = "your-client-id"
+    },
+)
+val chatClient = ChatClient(realtimeClient)
+```
+
+**After**
+
+```kotlin
+import com.ably.chat.createChatClient
+import io.ably.pubsub.device.PubSubDevice
+
+val pubsubClient = PubSubDevice.clientBuilder()
+    .authUrl("https://your-server.example.com/ably-auth")
+    .clientId("your-client-id")
+    .build()
+val chatClient = createChatClient(pubsubClient)
+```
+
+On a server, use `PubSubServer.realtimeClientBuilder()` from `io.ably.pubsub:server`.
+If you already build a `ClientOptions`, pass it to `PubSubDevice.clientBuilder(options)` or `PubSubServer.realtimeClientBuilder(options)`.
+
+### Pub/Sub packages renamed
+
+**Expected Impact: Medium**
+
+Pub/Sub types you use alongside the Chat SDK, such as `ErrorInfo`, `ClientOptions` and `ConnectionState`, moved from `io.ably.lib.*` to `io.ably.pubsub.*`.
+
+**Before**
+
+```kotlin
+import io.ably.lib.types.ErrorInfo
+```
+
+**After**
+
+```kotlin
+import io.ably.pubsub.types.ErrorInfo
+```
+
+### `environment`, `restHost` and `realtimeHost` replaced by `endpoint`
+
+**Expected Impact: Low**
+
+If you set any of these options, use `endpoint` instead. For example, `environment = "sandbox"` becomes `endpoint = "nonprod:sandbox"`,
+and `restHost = "localhost"` with `realtimeHost = "localhost"` becomes `endpoint = "localhost"`.
+
 ## 0.9.x to 0.10.x
 
 ### `MessageOptions` renamed to `MessagesOptions`

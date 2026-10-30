@@ -14,14 +14,14 @@ import com.ably.chat.room.StatusManager
 import com.ably.chat.room.atomicCoroutineScope
 import com.ably.chat.room.channelStateToRoomStatus
 import com.ably.chat.room.constructChannelStateChangeEvent
+import com.ably.chat.room.createMockPubsubClient
 import com.ably.chat.room.createMockRealtimeChannel
-import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.hasAttachedOnce
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.ChannelState
-import io.ably.lib.realtime.ChannelStateListener
-import io.ably.lib.types.ChannelOptions
+import io.ably.pubsub.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelStateListener
+import io.ably.pubsub.types.ChannelOptions
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -36,7 +36,7 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 class MonitoringTest {
 
@@ -52,15 +52,15 @@ class MonitoringTest {
         every { javaChannel.on(capture(channelStateListeners)) } returns mockk()
         every { javaChannel.off(any()) } returns Unit
 
-        val realtimeClient = createMockRealtimeClient()
+        val pubsubClient = createMockPubsubClient()
         every {
-            realtimeClient.channels.get(any<String>(), any<ChannelOptions>())
+            pubsubClient.channels.get(any<String>(), any<ChannelOptions>())
         } answers {
             sharedChannel
         }
-        every { realtimeClient.channels.release(any<String>()) } returns Unit
+        every { pubsubClient.channels.release(any<String>()) } returns Unit
 
-        room = createTestRoom("room1", realtimeClient = realtimeClient)
+        room = createTestRoom("room1", pubsubClient = pubsubClient)
     }
 
     @After

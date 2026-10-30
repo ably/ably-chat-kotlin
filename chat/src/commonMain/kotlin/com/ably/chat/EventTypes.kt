@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import io.ably.lib.types.PresenceMessage
+import io.ably.pubsub.types.PresenceMessage
 
 /**
  * All chat message events.

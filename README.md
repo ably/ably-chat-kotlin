@@ -65,6 +65,17 @@ implementation("com.ably.chat:chat:1.2.0")
 implementation("com.ably.chat:chat-extensions-compose:1.2.0")
 ```
 
+The Chat SDK is built on the Ably Pub/Sub SDK, which you add yourself by choosing the package for where your code runs.
+Depend on exactly one of them:
+
+```kotlin
+// Android apps and other end-user runtimes
+implementation("io.ably.pubsub:device:2.0.0")
+
+// Servers and other trusted backend environments
+implementation("io.ably.pubsub:server:2.0.0")
+```
+
 ---
 
 ## Usage
@@ -72,22 +83,19 @@ implementation("com.ably.chat:chat-extensions-compose:1.2.0")
 The following code connects to Ably's chat service, subscribes to a chat room, and sends a message to that room:
 
 ```kotlin
-import com.ably.chat.ChatClient
+import com.ably.chat.createChatClient
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.types.ClientOptions
+import io.ably.pubsub.device.PubSubDevice
 
-// Initialize Ably Realtime client
-val realtimeClient = AblyRealtime(
-    ClientOptions().apply {
-        key = "<your-ably-api-key>"
-        clientId = "your-client-id"
-    }
-)
+// Initialize Ably Pub/Sub client
+val pubsubClient = PubSubDevice.clientBuilder()
+    .key("<your-ably-api-key>")
+    .clientId("your-client-id")
+    .build()
 
 // Create a chat client
-val chatClient = ChatClient(realtimeClient)
+val chatClient = createChatClient(pubsubClient)
 
 // Get a chat room
 val room = chatClient.rooms.get("my-room", RoomOptions())

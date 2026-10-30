@@ -3,14 +3,14 @@ package com.ably.chat
 import com.ably.chat.json.JsonObject
 import com.ably.pubsub.RealtimeChannel
 import com.ably.pubsub.RealtimePresence
-import io.ably.lib.realtime.CompletionListener
-import io.ably.lib.types.PresenceMessage
+import io.ably.pubsub.realtime.CompletionListener
+import io.ably.pubsub.types.PresenceMessage
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 internal suspend fun RealtimeChannel.attachCoroutine() = suspendCancellableCoroutine { continuation ->
     attach(object : CompletionListener {

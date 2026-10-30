@@ -45,9 +45,9 @@ class RoomGetTest {
 
     @Test
     fun `(CHA-RC1f) Requesting a room from the Chat Client return instance of a room with the provided id and options`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
-        val rooms = DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger)
+        val rooms = DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger)
         val room = rooms.get("1234")
         Assert.assertNotNull(room)
         Assert.assertEquals("1234", room.name)
@@ -57,10 +57,10 @@ class RoomGetTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RC1f1) If the room name already exists, and newly requested with different options, then ErrorInfo with code 40000 is thrown`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms: Rooms = spyk(
-            DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger),
+            DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
 
@@ -92,10 +92,10 @@ class RoomGetTest {
 
     @Test
     fun `(CHA-RC1f2) If the room name already exists, and newly requested with same options, then returns same room`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val room1 = rooms.get("1234")
         Assert.assertEquals(1, rooms.RoomNameToRoom.size)
@@ -136,10 +136,10 @@ class RoomGetTest {
     @Suppress("MaximumLineLength")
     @Test
     fun `(CHA-RC1f3) If no CHA-RC1g release operation is in progress, a new room instance shall be created, and added to the room map`() = runTest {
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
         val roomName = "1234"
 
         // No release op. in progress
@@ -157,13 +157,13 @@ class RoomGetTest {
     @Test
     fun `(CHA-RC1f4, CHA-RC1f5) If CHA-RC1g release operation is in progress, new instance should not be returned until release operation completes`() = runTest {
         val roomName = "1234"
-        val mockRealtimeClient = createMockRealtimeClient()
+        val mockPubsubClient = createMockPubsubClient()
         val chatApi = mockk<ChatApi>(relaxed = true)
         val rooms =
-            spyk(DefaultRooms(mockRealtimeClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
+            spyk(DefaultRooms(mockPubsubClient, chatApi, clientIdResolver, logger), recordPrivateCalls = true)
 
         val defaultRoom = spyk(
-            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger),
+            DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger),
             recordPrivateCalls = true,
         )
 
@@ -182,7 +182,7 @@ class RoomGetTest {
         } answers {
             var room = defaultRoom
             if (roomReleased.isClosedForSend) {
-                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockRealtimeClient, chatApi, clientIdResolver, logger)
+                room = DefaultRoom(roomName, RoomOptionsWithAllFeatures, mockPubsubClient, chatApi, clientIdResolver, logger)
             }
             room
         }

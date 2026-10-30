@@ -15,7 +15,7 @@ import com.ably.chat.json.jsonObject
 import com.ably.chat.room.RoomOptionsWithAllFeatures
 import com.ably.chat.runTestWithDifferentClients
 import com.ably.chat.update
-import io.ably.lib.realtime.channelOptions
+import io.ably.pubsub.realtime.channelOptions
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest

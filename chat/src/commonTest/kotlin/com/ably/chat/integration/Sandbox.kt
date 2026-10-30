@@ -6,12 +6,12 @@ import com.ably.chat.json.jsonObject
 import com.ably.chat.serverError
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import io.ably.lib.realtime.AblyRealtime
-import io.ably.lib.realtime.ConnectionEvent
-import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.rest.AblyRest
-import io.ably.lib.rest.Auth
-import io.ably.lib.types.ClientOptions
+import io.ably.pubsub.device.PubSubDevice
+import io.ably.pubsub.http.Auth
+import io.ably.pubsub.realtime.ConnectionEvent
+import io.ably.pubsub.realtime.ConnectionState
+import io.ably.pubsub.realtime.PubSubRealtimeClient
+import io.ably.pubsub.types.ClientOptions
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -27,6 +27,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CompletableDeferred
+
+private const val SANDBOX_ENDPOINT = "nonprod:sandbox"
 
 private val client = HttpClient(CIO) {
     install(HttpRequestRetry) {
@@ -62,17 +64,17 @@ class Sandbox private constructor(val appId: String, val apiKey: String) {
 }
 
 internal fun Sandbox.createSandboxChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
-    val realtime = createSandboxRealtime(chatClientId)
-    return DefaultChatClient(realtime, buildChatClientOptions())
+    val pubsubClient = createSandboxPubsubClient(chatClientId)
+    return DefaultChatClient(pubsubClient, buildChatClientOptions())
 }
 
 internal fun Sandbox.createTokenBasedSandboxChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
-    val restClient = createSandboxRest()
+    val keyClient = createSandboxPubsubClient(autoConnect = false)
 
-    val realtime = AblyRealtime(
+    val pubsubClient = PubSubDevice.clientBuilder(
         ClientOptions().apply {
             authCallback = Auth.TokenCallback {
-                restClient.auth.createTokenRequest(
+                keyClient.auth.createTokenRequest(
                     Auth.TokenParams().apply {
                         capability = jsonObject {
                             putArray("*") { add("*") }
@@ -83,37 +85,29 @@ internal fun Sandbox.createTokenBasedSandboxChatClient(chatClientId: String = "s
                     null,
                 )
             }
-            environment = "sandbox"
+            endpoint = SANDBOX_ENDPOINT
         },
-    )
-    return DefaultChatClient(realtime, buildChatClientOptions())
+    ).build()
+    return DefaultChatClient(pubsubClient, buildChatClientOptions())
 }
 
-internal fun Sandbox.createSandboxRealtime(chatClientId: String? = null): AblyRealtime =
-    AblyRealtime(
+internal fun Sandbox.createSandboxPubsubClient(chatClientId: String? = null, autoConnect: Boolean = true): PubSubRealtimeClient =
+    PubSubDevice.clientBuilder(
         ClientOptions().apply {
             key = apiKey
-            environment = "sandbox"
+            endpoint = SANDBOX_ENDPOINT
             clientId = chatClientId
+            this.autoConnect = autoConnect
         },
-    )
-
-internal fun Sandbox.createSandboxRest(chatClientId: String? = null): AblyRest =
-    AblyRest(
-        ClientOptions().apply {
-            key = apiKey
-            environment = "sandbox"
-            clientId = chatClientId
-        },
-    )
+    ).build()
 
 internal suspend fun Sandbox.getConnectedChatClient(chatClientId: String = "sandbox-client"): DefaultChatClient {
-    val realtime = createSandboxRealtime(chatClientId)
-    realtime.ensureConnected()
-    return DefaultChatClient(realtime, buildChatClientOptions())
+    val pubsubClient = createSandboxPubsubClient(chatClientId)
+    pubsubClient.ensureConnected()
+    return DefaultChatClient(pubsubClient, buildChatClientOptions())
 }
 
-private suspend fun AblyRealtime.ensureConnected() {
+private suspend fun PubSubRealtimeClient.ensureConnected() {
     if (this.connection.state == ConnectionState.connected) {
         return
     }

@@ -1,6 +1,6 @@
 package com.ably.chat
 
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 /**
  * Represents detailed information about an error encountered in the system.

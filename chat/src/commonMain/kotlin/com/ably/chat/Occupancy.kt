@@ -3,7 +3,7 @@ package com.ably.chat
 import com.ably.annotations.InternalAPI
 import com.ably.chat.annotations.InternalChatApi
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.Channel
+import io.ably.pubsub.realtime.Channel
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

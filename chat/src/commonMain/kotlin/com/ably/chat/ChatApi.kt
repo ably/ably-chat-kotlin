@@ -4,14 +4,14 @@ import com.ably.chat.json.JsonObject
 import com.ably.chat.json.JsonValue
 import com.ably.chat.json.jsonObject
 import com.ably.http.HttpMethod
-import com.ably.pubsub.RealtimeClient
-import io.ably.lib.types.AsyncHttpPaginatedResponse
-import io.ably.lib.types.Param
+import com.ably.pubsub.PubSubRealtimeClient
+import io.ably.pubsub.types.AsyncHttpPaginatedResponse
+import io.ably.pubsub.types.Param
 import java.net.URLEncoder
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
-import io.ably.lib.types.ErrorInfo as PubSubErrorInfo
+import io.ably.pubsub.types.ErrorInfo as PubSubErrorInfo
 
 private const val PROTOCOL_VERSION_PARAM_NAME = "v"
 
@@ -22,7 +22,7 @@ private const val CHAT_PROTOCOL_VERSION = 4
 private const val CHAT_API_PROTOCOL_VERSION = PROTOCOL_VERSION_PARAM_NAME + CHAT_PROTOCOL_VERSION
 
 internal class ChatApi(
-    private val realtimeClient: RealtimeClient,
+    private val pubsubClient: PubSubRealtimeClient,
     parentLogger: Logger,
 ) {
     private val logger = parentLogger.withContext(tag = "ChatApi")
@@ -192,7 +192,7 @@ internal class ChatApi(
         params: List<Param> = listOf(),
     ): JsonValue? = suspendCancellableCoroutine { continuation ->
         val requestBody = body.toRequestBody()
-        realtimeClient.requestAsync(
+        pubsubClient.requestAsync(
             path = url,
             method = method,
             params = listOf(pubSubProtocolParam) + params,
@@ -226,7 +226,7 @@ internal class ChatApi(
         params: List<Param> = listOf(),
         transform: (JsonValue) -> T?,
     ): PaginatedResult<T> = suspendCancellableCoroutine { continuation ->
-        realtimeClient.requestAsync(
+        pubsubClient.requestAsync(
             method = method,
             path = url,
             params = params + pubSubProtocolParam,

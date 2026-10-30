@@ -1,7 +1,7 @@
 package com.ably.chat
 
 import com.ably.chat.json.JsonObject
-import io.ably.lib.types.MessageAction as PubSubMessageAction
+import io.ably.pubsub.types.MessageAction as PubSubMessageAction
 
 /**
  * Represents a single message in a chat room.

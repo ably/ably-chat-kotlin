@@ -2,13 +2,13 @@ package com.ably.chat
 
 import com.ably.chat.json.jsonObject
 import com.ably.chat.room.createMockChatApi
-import com.ably.chat.room.createMockRealtimeClient
-import io.ably.lib.realtime.RealtimeAnnotations
-import io.ably.lib.realtime.buildRealtimeChannel
-import io.ably.lib.types.Annotation
-import io.ably.lib.types.AnnotationAction
-import io.ably.lib.types.MessageAnnotations
-import io.ably.lib.types.Summary
+import com.ably.chat.room.createMockPubsubClient
+import io.ably.pubsub.realtime.RealtimeAnnotations
+import io.ably.pubsub.realtime.buildRealtimeChannel
+import io.ably.pubsub.types.Annotation
+import io.ably.pubsub.types.AnnotationAction
+import io.ably.pubsub.types.MessageAnnotations
+import io.ably.pubsub.types.Summary
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -22,11 +22,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
-import io.ably.lib.types.MessageAction as PubSubMessageAction
+import io.ably.pubsub.types.MessageAction as PubSubMessageAction
 
 class MessageReactionsTest {
-    private val realtimeClient = createMockRealtimeClient()
-    private val chatApi = createMockChatApi(realtimeClient)
+    private val pubsubClient = createMockPubsubClient()
+    private val chatApi = createMockChatApi(pubsubClient)
     private val channel = spyk(buildRealtimeChannel("room1::\$chat"))
     private val annotations = spyk(channel.annotations)
 

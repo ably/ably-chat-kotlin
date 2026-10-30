@@ -5,16 +5,16 @@ import com.ably.chat.OrderBy.NewestFirst
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.ChannelState
-import io.ably.lib.realtime.ChannelStateListener
+import io.ably.pubsub.realtime.Channel
+import io.ably.pubsub.realtime.ChannelState
+import io.ably.pubsub.realtime.ChannelStateListener
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
-import io.ably.lib.realtime.Channel as AblyRealtimeChannel
+import io.ably.pubsub.realtime.Channel as AblyRealtimeChannel
 
 internal typealias PubSubMessageListener = AblyRealtimeChannel.MessageListener
-internal typealias PubSubMessage = io.ably.lib.types.Message
+internal typealias PubSubMessage = io.ably.pubsub.types.Message
 
 /**
  * This interface is used to interact with messages in a chat room: subscribing

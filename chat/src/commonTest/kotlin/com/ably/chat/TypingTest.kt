@@ -5,15 +5,15 @@ import com.ably.chat.room.DEFAULT_CLIENT_ID
 import com.ably.chat.room.TypingHeartbeatStarted
 import com.ably.chat.room.TypingStartEventPrunerJobs
 import com.ably.chat.room.createMockChatApi
+import com.ably.chat.room.createMockPubsubClient
 import com.ably.chat.room.createMockRealtimeChannel
-import com.ably.chat.room.createMockRealtimeClient
 import com.ably.chat.room.createTestRoom
 import com.ably.chat.room.processEvent
 import com.ably.pubsub.RealtimeChannel
-import io.ably.lib.realtime.CompletionListener
-import io.ably.lib.realtime.Connection
-import io.ably.lib.realtime.ConnectionState
-import io.ably.lib.types.Message
+import io.ably.pubsub.realtime.CompletionListener
+import io.ably.pubsub.realtime.Connection
+import io.ably.pubsub.realtime.ConnectionState
+import io.ably.pubsub.types.Message
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -49,12 +49,12 @@ class TypingTest {
 
     @Before
     fun setUp() {
-        val realtimeClient = createMockRealtimeClient()
+        val pubsubClient = createMockPubsubClient()
         val connection = mockk<Connection>()
         connection.state = ConnectionState.connected
-        every { realtimeClient.connection } returns connection
+        every { pubsubClient.connection } returns connection
 
-        val channels = realtimeClient.channels
+        val channels = pubsubClient.channels
         every { channels.get(any(), any()) } returns realtimeChannel
 
         every { realtimeChannel.subscribe(any<List<String>>(), any<PubSubMessageListener>()) } answers {
@@ -64,8 +64,8 @@ class TypingTest {
             }
         }
 
-        val mockChatApi = createMockChatApi(realtimeClient)
-        room = spyk(createTestRoom("room1", realtimeClient = realtimeClient, chatApi = mockChatApi))
+        val mockChatApi = createMockChatApi(pubsubClient)
+        room = spyk(createTestRoom("room1", pubsubClient = pubsubClient, chatApi = mockChatApi))
         typingLogger = room.logger
         every {
             typingLogger.withContext(any<String>())

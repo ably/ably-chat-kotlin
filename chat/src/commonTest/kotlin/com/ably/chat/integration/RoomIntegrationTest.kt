@@ -84,7 +84,7 @@ class RoomIntegrationTest {
         val room2 = chatClient.rooms.get(UUID.randomUUID().toString())
         validateAttachAndRelease(room2, chatClient)
 
-        chatClient.realtime.close()
+        chatClient.pubsubClient.close()
     }
 
     @Test
@@ -96,7 +96,7 @@ class RoomIntegrationTest {
         val room2 = chatClient.rooms.get(UUID.randomUUID().toString())
         validateAttachAndRelease(room2, chatClient)
 
-        chatClient.realtime.close()
+        chatClient.pubsubClient.close()
     }
 
     companion object {

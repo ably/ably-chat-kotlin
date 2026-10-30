@@ -1,10 +1,10 @@
 package com.ably.chat
 
 import com.ably.chat.annotations.InternalChatApi
-import io.ably.lib.realtime.Channel
-import io.ably.lib.realtime.RealtimeAnnotations
-import io.ably.lib.types.Annotation
-import io.ably.lib.types.AnnotationAction
+import io.ably.pubsub.realtime.Channel
+import io.ably.pubsub.realtime.RealtimeAnnotations
+import io.ably.pubsub.types.Annotation
+import io.ably.pubsub.types.AnnotationAction
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +15,7 @@ import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import io.ably.lib.types.MessageAction as PubSubMessageAction
+import io.ably.pubsub.types.MessageAction as PubSubMessageAction
 
 /**
  * Add, delete, and subscribe to message reactions.

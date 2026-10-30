@@ -1,9 +1,9 @@
-package io.ably.lib.realtime
+package io.ably.pubsub.realtime
 
-import io.ably.lib.realtime.ChannelStateListener.ChannelStateChange
-import io.ably.lib.types.ChannelOptions
-import io.ably.lib.types.ClientOptions
-import io.ably.lib.types.ErrorInfo
+import io.ably.pubsub.realtime.ChannelStateListener.ChannelStateChange
+import io.ably.pubsub.types.ChannelOptions
+import io.ably.pubsub.types.ClientOptions
+import io.ably.pubsub.types.ErrorInfo
 
 /**
  * This function build ChannelStateChange object, which is package-private in ably-java.
@@ -21,7 +21,7 @@ fun buildChannelStateChange(
  * This function build realtime Channel object, it has backlink to the realtime client
  * and also package-private constructor.
  */
-fun buildRealtimeChannel(channelName: String = "channel") = AblyRealtime(
+fun buildRealtimeChannel(channelName: String = "channel") = PubSubRealtimeClient(
     ClientOptions().apply {
         key = "dummy-key"
         autoConnect = false
@@ -32,7 +32,7 @@ fun buildRealtimeChannel(channelName: String = "channel") = AblyRealtime(
  * This function build realtime Connection object, it has backlink to the realtime client
  * and also package-private constructor.
  */
-fun buildRealtimeConnection() = AblyRealtime(
+fun buildRealtimeConnection() = PubSubRealtimeClient(
     ClientOptions().apply {
         key = "dummy-key"
         autoConnect = false

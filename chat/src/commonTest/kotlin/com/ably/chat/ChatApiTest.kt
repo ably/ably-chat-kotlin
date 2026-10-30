@@ -3,7 +3,7 @@ package com.ably.chat
 import com.ably.chat.json.JsonObject
 import com.ably.chat.json.jsonObject
 import com.ably.http.HttpMethod
-import com.ably.pubsub.RealtimeClient
+import com.ably.pubsub.PubSubRealtimeClient
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -14,10 +14,10 @@ import org.junit.Test
 
 class ChatApiTest {
 
-    private val realtime = mockk<RealtimeClient>(relaxed = true)
+    private val pubsubClient = mockk<PubSubRealtimeClient>(relaxed = true)
 
     private val chatApi =
-        ChatApi(realtime, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
+        ChatApi(pubsubClient, parentLogger = EmptyLogger(DefaultLogContext(tag = "TEST")))
 
     /**
      * @nospec
@@ -25,7 +25,7 @@ class ChatApiTest {
     @Test
     fun `getMessages should ignore unknown fields for Chat Backend`() = runTest {
         mockMessagesApiResponse(
-            realtime,
+            pubsubClient,
             listOf(
                 jsonObject {
                     put("foo", "bar")
@@ -72,7 +72,7 @@ class ChatApiTest {
     @Test
     fun `getMessages should ignore messages if some required fields are missing`() = runTest {
         mockMessagesApiResponse(
-            realtime,
+            pubsubClient,
             listOf(
                 jsonObject {
                     put("foo", "bar")
@@ -90,7 +90,7 @@ class ChatApiTest {
     @Test
     fun `getMessages should process message without text for deletes`() = runTest {
         mockMessagesApiResponse(
-            realtime,
+            pubsubClient,
             listOf(
                 jsonObject {
                     putObject(MessageProperty.Metadata) {}
@@ -132,7 +132,7 @@ class ChatApiTest {
     @Test
     fun `sendMessage should ignore unknown fields for Chat Backend`() = runTest {
         mockSendMessageApiResponse(
-            realtime,
+            pubsubClient,
             jsonObject {
                 put("foo", "bar")
                 put(MessageProperty.Serial, "timeserial")
@@ -168,7 +168,7 @@ class ChatApiTest {
     @Test
     fun `sendMessage should throw exception if 'serial' field is not presented`() = runTest {
         mockSendMessageApiResponse(
-            realtime,
+            pubsubClient,
             jsonObject {
                 put("foo", "bar")
                 put(MessageProperty.Timestamp, 1_000_000)
@@ -186,7 +186,7 @@ class ChatApiTest {
     @Test
     fun `getOccupancy should return 0 if field is not presented`() = runTest {
         mockOccupancyApiResponse(
-            realtime,
+            pubsubClient,
             jsonObject {
                 put("presenceMembers", 1_000)
             },
@@ -201,10 +201,10 @@ class ChatApiTest {
     @Test
     fun `getMessages should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
-        mockMessagesApiResponse(realtime, listOf(), roomName)
+        mockMessagesApiResponse(pubsubClient, listOf(), roomName)
         chatApi.getMessages(roomName, QueryOptions())
         verify {
-            realtime.requestAsync(
+            pubsubClient.requestAsync(
                 "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages",
                 any(),
                 HttpMethod.Get,
@@ -218,7 +218,7 @@ class ChatApiTest {
     fun `sendMessage should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
         mockSendMessageApiResponse(
-            realtime,
+            pubsubClient,
             jsonObject {
                 put(MessageProperty.Serial, "timeserial")
                 put(MessageProperty.Timestamp, 1_000_000)
@@ -229,7 +229,7 @@ class ChatApiTest {
         )
         chatApi.sendMessage(roomName, SendMessageParams(text = "hello"))
         verify {
-            realtime.requestAsync(
+            pubsubClient.requestAsync(
                 "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages",
                 any(),
                 HttpMethod.Post,
@@ -243,7 +243,7 @@ class ChatApiTest {
     fun `updateMessage should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
         mockUpdateMessageApiResponse(
-            realtime,
+            pubsubClient,
             jsonObject {
                 put(MessageProperty.Serial, "timeserial")
                 put(MessageProperty.Timestamp, 1_000_000)
@@ -253,7 +253,7 @@ class ChatApiTest {
         )
         chatApi.updateMessage(roomName, "timeserial", UpdateMessageParams(SendMessageParams("hello")))
         verify {
-            realtime.requestAsync(
+            pubsubClient.requestAsync(
                 "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages/timeserial",
                 any(),
                 HttpMethod.Put,
@@ -267,7 +267,7 @@ class ChatApiTest {
     fun `deleteMessage should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
         mockDeleteMessageApiResponse(
-            realtime,
+            pubsubClient,
             jsonObject {
                 put(MessageProperty.Serial, "timeserial")
                 put(MessageProperty.Timestamp, 1_000_000)
@@ -278,7 +278,7 @@ class ChatApiTest {
         )
         chatApi.deleteMessage(roomName, "0@0:01", DeleteMessageParams())
         verify {
-            realtime.requestAsync(
+            pubsubClient.requestAsync(
                 "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages/0%400%3A01/delete",
                 any(),
                 HttpMethod.Post,
@@ -292,11 +292,11 @@ class ChatApiTest {
     fun `message reactions should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
         val timeserial = "0@0:02"
-        mockMessageReactionApiResponse(realtime, roomName, timeserial)
+        mockMessageReactionApiResponse(pubsubClient, roomName, timeserial)
         chatApi.deleteMessageReaction(roomName, timeserial, MessageReactionType.Unique)
         chatApi.sendMessageReaction(roomName, timeserial, MessageReactionType.Unique, "heart")
         verify(exactly = 2) {
-            realtime.requestAsync(
+            pubsubClient.requestAsync(
                 "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/messages/0%400%3A02/reactions",
                 any(),
                 any(),
@@ -309,10 +309,10 @@ class ChatApiTest {
     @Test
     fun `getOccupancy should encode path segments with special characters`() = runTest {
         val roomName = "name/with spaces, slashes and \""
-        mockOccupancyApiResponse(realtime, jsonObject {}, roomName)
+        mockOccupancyApiResponse(pubsubClient, jsonObject {}, roomName)
         chatApi.getOccupancy(roomName)
         verify {
-            realtime.requestAsync(
+            pubsubClient.requestAsync(
                 "/chat/v4/rooms/name%2Fwith%20spaces%2C%20slashes%20and%20%22/occupancy",
                 any(),
                 HttpMethod.Get,
