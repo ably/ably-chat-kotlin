@@ -34,10 +34,10 @@ public interface ChatClient {
     public val clientId: String?
 
     /**
-     * The underlying Ably Realtime client.
+     * The underlying Ably Pub/Sub realtime client.
      */
     @ExperimentalChatApi
-    public val realtime: PubSubRealtimeClient
+    public val pubsubClient: PubSubRealtimeClient
 
     /**
      * The chat client options for the client, including any defaults that have been set.
@@ -46,29 +46,29 @@ public interface ChatClient {
 }
 
 /**
- * @param realtimeClient The Ably Realtime client
+ * @param pubsubClient The Ably Pub/Sub realtime client
  * @param clientOptions The client options.
  * @return [ChatClient] with the specified options
  */
-public fun ChatClient(realtimeClient: PubSubRealtimeClient, clientOptions: ChatClientOptions = buildChatClientOptions()): ChatClient =
-    DefaultChatClient(realtimeClient, clientOptions)
+public fun createChatClient(pubsubClient: PubSubRealtimeClient, clientOptions: ChatClientOptions = buildChatClientOptions()): ChatClient =
+    DefaultChatClient(pubsubClient, clientOptions)
 
 /**
- * @param realtimeClient The Ably Realtime client
+ * @param pubsubClient The Ably Pub/Sub realtime client
  * @param init Kotlin type-safe builder for client options
  * @return [ChatClient] with the specified options
  */
-public fun ChatClient(realtimeClient: PubSubRealtimeClient, init: MutableChatClientOptions.() -> Unit): ChatClient =
-    ChatClient(realtimeClient, buildChatClientOptions(init))
+public fun createChatClient(pubsubClient: PubSubRealtimeClient, init: MutableChatClientOptions.() -> Unit): ChatClient =
+    createChatClient(pubsubClient, buildChatClientOptions(init))
 
 internal class DefaultChatClient(
-    override val realtime: PubSubRealtimeClient,
+    override val pubsubClient: PubSubRealtimeClient,
     override val clientOptions: ChatClientOptions,
 ) : ChatClient {
 
     val stateDispatcher get() = clientOptions.stateDispatcher
 
-    private val realtimeClientWrapper = PubSubRealtimeClient(realtime).createWrapperSdkProxy(
+    private val realtimeClientWrapper = PubSubRealtimeClient(pubsubClient).createWrapperSdkProxy(
         WrapperSdkProxyOptions(
             agents = mapOf(
                 "chat-kotlin" to BuildConfig.APP_VERSION,

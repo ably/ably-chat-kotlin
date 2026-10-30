@@ -83,19 +83,19 @@ implementation("io.ably.pubsub:server:2.0.0")
 The following code connects to Ably's chat service, subscribes to a chat room, and sends a message to that room:
 
 ```kotlin
-import com.ably.chat.ChatClient
+import com.ably.chat.createChatClient
 import com.ably.chat.RoomOptions
 import com.ably.chat.RoomStatus
 import io.ably.pubsub.device.PubSubDevice
 
-// Initialize Ably Realtime client
-val realtimeClient = PubSubDevice.clientBuilder()
+// Initialize Ably Pub/Sub client
+val pubsubClient = PubSubDevice.clientBuilder()
     .key("<your-ably-api-key>")
     .clientId("your-client-id")
     .build()
 
 // Create a chat client
-val chatClient = ChatClient(realtimeClient)
+val chatClient = createChatClient(pubsubClient)
 
 // Get a chat room
 val room = chatClient.rooms.get("my-room", RoomOptions())

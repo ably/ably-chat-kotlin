@@ -51,6 +51,7 @@ import com.ably.chat.Room
 import com.ably.chat.RoomReaction
 import com.ably.chat.asFlow
 import com.ably.chat.copy
+import com.ably.chat.createChatClient
 import com.ably.chat.delete
 import com.ably.chat.example.ui.PresencePopup
 import com.ably.chat.example.ui.theme.AblyChatExampleTheme
@@ -76,7 +77,7 @@ class MainActivity : ComponentActivity() {
             },
         ).build()
 
-        val chatClient = ChatClient(realtimeClient) { logLevel = LogLevel.Trace }
+        val chatClient = createChatClient(realtimeClient) { logLevel = LogLevel.Trace }
 
         enableEdgeToEdge()
         setContent {

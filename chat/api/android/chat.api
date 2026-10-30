@@ -2,14 +2,14 @@ public abstract interface class com/ably/chat/ChatClient {
 	public abstract fun getClientId ()Ljava/lang/String;
 	public abstract fun getClientOptions ()Lcom/ably/chat/ChatClientOptions;
 	public abstract fun getConnection ()Lcom/ably/chat/Connection;
-	public abstract fun getRealtime ()Lio/ably/pubsub/realtime/PubSubRealtimeClient;
+	public abstract fun getPubsubClient ()Lio/ably/pubsub/realtime/PubSubRealtimeClient;
 	public abstract fun getRooms ()Lcom/ably/chat/Rooms;
 }
 
 public final class com/ably/chat/ChatClientKt {
-	public static final fun ChatClient (Lio/ably/pubsub/realtime/PubSubRealtimeClient;Lcom/ably/chat/ChatClientOptions;)Lcom/ably/chat/ChatClient;
-	public static final fun ChatClient (Lio/ably/pubsub/realtime/PubSubRealtimeClient;Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/ChatClient;
-	public static synthetic fun ChatClient$default (Lio/ably/pubsub/realtime/PubSubRealtimeClient;Lcom/ably/chat/ChatClientOptions;ILjava/lang/Object;)Lcom/ably/chat/ChatClient;
+	public static final fun createChatClient (Lio/ably/pubsub/realtime/PubSubRealtimeClient;Lcom/ably/chat/ChatClientOptions;)Lcom/ably/chat/ChatClient;
+	public static final fun createChatClient (Lio/ably/pubsub/realtime/PubSubRealtimeClient;Lkotlin/jvm/functions/Function1;)Lcom/ably/chat/ChatClient;
+	public static synthetic fun createChatClient$default (Lio/ably/pubsub/realtime/PubSubRealtimeClient;Lcom/ably/chat/ChatClientOptions;ILjava/lang/Object;)Lcom/ably/chat/ChatClient;
 }
 
 public abstract interface class com/ably/chat/ChatClientOptions {

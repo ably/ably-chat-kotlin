@@ -1,8 +1,8 @@
 package com.ably.chat.integration
 
 import app.cash.turbine.test
-import com.ably.chat.ChatClient
 import com.ably.chat.assertWaiter
+import com.ably.chat.createChatClient
 import fi.iki.elonen.NanoHTTPD
 import io.ably.pubsub.device.PubSubDevice
 import io.ably.pubsub.realtime.PubSubRealtimeClient
@@ -19,7 +19,7 @@ class RequestHeaderTest {
     @Test
     fun `should use additional agents in Realtime wrapper SDK client calls`() = runTest {
         val ablyRealtime = createAblyRealtime()
-        val chatClient = ChatClient(ablyRealtime)
+        val chatClient = createChatClient(ablyRealtime)
         val roomName = UUID.randomUUID().toString()
 
         server.servedRequests.test {

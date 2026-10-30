@@ -25,13 +25,15 @@ Remove `io.ably:ably-java` and `io.ably:ably-android` from your build. Never dec
 
 Without one of these packages your app still compiles, but fails with `NoClassDefFoundError` when it creates a client.
 
-### Create the realtime client with a builder
+### Create the chat client with `createChatClient`
 
 **Expected Impact: High**
 
-`ChatClient` now takes an `io.ably.pubsub.realtime.PubSubRealtimeClient` instead of an `io.ably.lib.realtime.AblyRealtime`.
-Client constructors are no longer public, so create the client with the builder from the package you chose.
-`ChatClient.realtime` returns the new type too.
+The `ChatClient(...)` factory function is renamed to `createChatClient(...)`, and it now takes an `io.ably.pubsub.realtime.PubSubRealtimeClient`
+instead of an `io.ably.lib.realtime.AblyRealtime`.
+Pub/Sub client constructors are no longer public, so create the Pub/Sub client with the builder from the package you chose.
+
+The `ChatClient.realtime` property is renamed to `ChatClient.pubsubClient` and returns the new type.
 
 **Before**
 
@@ -51,13 +53,14 @@ val chatClient = ChatClient(realtimeClient)
 **After**
 
 ```kotlin
+import com.ably.chat.createChatClient
 import io.ably.pubsub.device.PubSubDevice
 
-val realtimeClient = PubSubDevice.clientBuilder()
+val pubsubClient = PubSubDevice.clientBuilder()
     .authUrl("https://your-server.example.com/ably-auth")
     .clientId("your-client-id")
     .build()
-val chatClient = ChatClient(realtimeClient)
+val chatClient = createChatClient(pubsubClient)
 ```
 
 On a server, use `PubSubServer.realtimeClientBuilder()` from `io.ably.pubsub:server`.
