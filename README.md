@@ -49,20 +49,20 @@ The Ably Chat SDK is available on the Maven Central Repository. To include the d
 For Groovy:
 
 ```groovy
-implementation 'com.ably.chat:chat:1.2.0'
+implementation 'com.ably.chat:chat:2.0.0'
 ```
 
 For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat:1.2.0")
+implementation("com.ably.chat:chat:2.0.0")
 ```
 
 For Android (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat:1.2.0")
-implementation("com.ably.chat:chat-extensions-compose:1.2.0")
+implementation("com.ably.chat:chat:2.0.0")
+implementation("com.ably.chat:chat-extensions-compose:2.0.0")
 ```
 
 The Chat SDK is built on the Ably Pub/Sub SDK, which you add yourself by choosing the package for where your code runs.
