@@ -37,8 +37,8 @@ This SDK supports the following platforms:
 | Java | Java 8+ |
 
 > [!NOTE]
-> Key functionality such as sending and receiving messages is powered by the [ably-java](https://github.com/ably/ably-java) library.
-The `ably-java` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
+> Key functionality such as sending and receiving messages is powered by the [Ably Pub/Sub SDK](https://github.com/ably/ably-pubsub-java).
+The Pub/Sub SDK is not bundled with the Chat SDK, so add it to your project yourself, as described in [Installation](#installation).
 
 ---
 
