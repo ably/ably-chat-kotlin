@@ -1,5 +1,32 @@
 # Change Log
 
+## [2.0.0](https://github.com/ably/ably-chat-kotlin/tree/v2.0.0)
+
+[Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v1.2.0...v2.0.0)
+
+The 2.0.0 release moves the Chat SDK onto version 2 of the Ably Pub/Sub SDK (`io.ably.pubsub`). Pub/Sub 2.0 is split by where your code runs: `io.ably.pubsub:device` for code on an end user's device, and `io.ably.pubsub:server` for code on your own infrastructure. The Chat SDK no longer bundles a Pub/Sub SDK, so you choose the package that matches your side, and the same Chat SDK artifact works with either.
+
+The Chat client API is also renamed to match the Pub/Sub SDK it now runs on.
+
+Below is an overview of the major changes in this release. Please refer to the [upgrade guide](./UPGRADING.md) for the full details and instructions on how to address each breaking change. For changes in the Pub/Sub SDK itself, see the Pub/Sub SDK's [upgrade guide](https://github.com/ably/ably-pubsub-java/blob/main/UPGRADING.md).
+
+### Pub/Sub SDK dependency
+
+The Chat SDK no longer includes `io.ably:ably-java` or `io.ably:ably-android` as a dependency. Add exactly one Pub/Sub package next to the Chat SDK:
+
+- `io.ably.pubsub:device` for Android apps and other end-user runtimes, such as JVM desktop apps.
+- `io.ably.pubsub:server` for servers and other trusted backend environments.
+
+### Client API naming
+
+- The `ChatClient(...)` factory function is renamed `createChatClient(...)`. It takes an `io.ably.pubsub.realtime.PubSubRealtimeClient` instead of an `io.ably.lib.realtime.AblyRealtime`.
+- `ChatClient.realtime` is renamed `ChatClient.pubsubClient` and returns a `PubSubRealtimeClient`.
+- The Pub/Sub client is created with a builder instead of a constructor: `PubSubDevice.clientBuilder()` from `io.ably.pubsub:device`, or `PubSubServer.realtimeClientBuilder()` from `io.ably.pubsub:server`.
+
+### Pub/Sub package and option changes
+
+- Pub/Sub types used alongside the Chat SDK, such as `ErrorInfo`, `ClientOptions` and `ConnectionState`, moved from `io.ably.lib.*` to `io.ably.pubsub.*`.
+
 ## [1.2.0](https://github.com/ably/ably-chat-kotlin/tree/v1.2.0)
 
 [Full Changelog](https://github.com/ably/ably-chat-kotlin/compare/v1.1.0...v1.2.0)
