@@ -23,7 +23,7 @@ implementation("io.ably.pubsub:server:2.0.0")
 
 Remove `io.ably:ably-java` and `io.ably:ably-android` from your build. Never declare `io.ably.pubsub:core` or `io.ably.pubsub:core-android` directly.
 
-Without one of these packages your app still compiles, but fails with `NoClassDefFoundError` when it creates a client.
+Without one of these packages your build fails, because the Pub/Sub types such as `PubSubDevice` and `ClientOptions` cannot be resolved.
 
 ### Create the chat client with `createChatClient`
 

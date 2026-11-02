@@ -37,8 +37,8 @@ This SDK supports the following platforms:
 | Java | Java 8+ |
 
 > [!NOTE]
-> Key functionality such as sending and receiving messages is powered by the [ably-java](https://github.com/ably/ably-java) library.
-The `ably-java` library is included as an api dependency within the Chat SDK, so there is no need to manually add it to your project.
+> Key functionality such as sending and receiving messages is powered by the [Ably Pub/Sub SDK](https://github.com/ably/ably-pubsub-java).
+The Pub/Sub SDK is not bundled with the Chat SDK, so add it to your project yourself, as described in [Installation](#installation).
 
 ---
 
@@ -49,20 +49,20 @@ The Ably Chat SDK is available on the Maven Central Repository. To include the d
 For Groovy:
 
 ```groovy
-implementation 'com.ably.chat:chat:1.2.0'
+implementation 'com.ably.chat:chat:2.0.0'
 ```
 
 For Kotlin Script (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat:1.2.0")
+implementation("com.ably.chat:chat:2.0.0")
 ```
 
 For Android (`build.gradle.kts`):
 
 ```kotlin
-implementation("com.ably.chat:chat:1.2.0")
-implementation("com.ably.chat:chat-extensions-compose:1.2.0")
+implementation("com.ably.chat:chat:2.0.0")
+implementation("com.ably.chat:chat-extensions-compose:2.0.0")
 ```
 
 The Chat SDK is built on the Ably Pub/Sub SDK, which you add yourself by choosing the package for where your code runs.
